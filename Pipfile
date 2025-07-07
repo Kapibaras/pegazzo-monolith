@@ -9,9 +9,10 @@ fastapi-cloudauth = "==0.4.3"
 fastapi-pagination = "==0.12.21"
 mangum = "==0.17.0"
 pipenv = "==2025.0.3"
-sqlalchemy = "*"
 psycopg2-binary = "*"
 python-dotenv = "*"
+sqlalchemy = "*"
+uvicorn = "*"
 
 [dev-packages]
 

@@ -28,12 +28,18 @@ pipenv install
 
 ### 3. Set up environment variables
 
+First, activate your virtual environment:
+
+```bash
+pipenv shell
+```
+
 Create a `.env` file in the root directory and add the following variables:
 
 ```bash
 ENV=development
 DEBUG=true
-DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+DATABASE_URL=sqlite:///./dev.db
 ```
 
 ### 4. Run the application

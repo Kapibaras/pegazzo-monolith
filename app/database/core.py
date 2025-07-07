@@ -3,6 +3,8 @@ from app.config import variables
 
 DATABASE_URL = variables.DATABASE_URL
 
+print("DATABASE_URL", DATABASE_URL)
+
 engine = create_engine(
     DATABASE_URL,
     echo=variables.DEBUG,
