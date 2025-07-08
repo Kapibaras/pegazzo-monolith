@@ -1,0 +1,76 @@
+# ───── Python ─────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.egg-info/
+dist/
+build/
+
+# ───── Entornos virtuales ─────
+.venv/
+venv/
+ENV/
+env/
+pip-wheel-metadata/
+
+# ───── VSCode / IDEs ─────
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ───── Logs y outputs ─────
+*.log
+*.sqlite3
+*.db
+*.bak
+*.tmp
+*.pid
+
+# ───── Archivos de entorno ─────
+.env
+
+# ───── Pipenv ─────
+Pipfile.lock
+
+# ───── AWS / Serverless Framework ─────
+.serverless/
+.aws-sam/
+.cloudformation/
+
+# ───── Bytecode / caché ─────
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# ───── Sistema operativo ─────
+.DS_Store
+Thumbs.db
+
+# ───── Test / Coverage ─────
+.coverage
+htmlcov/
+.cache/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# ───── Docker ─────
+*.tar
+*.bak
+docker-compose.override.yml
+
+# ───── MyPy / Pyright / Ruff ─────
+.mypy_cache/
+.pyright/
+ruff_cache/
+
+# ───── Otros ─────
+*.swp
+*.orig
