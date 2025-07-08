@@ -1,17 +1,16 @@
 from sqlalchemy import create_engine, text
-from app.config import variables
-
-DATABASE_URL = variables.DATABASE_URL
-
-print("DATABASE_URL", DATABASE_URL)
+from sqlalchemy.orm import declarative_base
+from app.config import DEBUG, DATABASE_URL
 
 engine = create_engine(
     DATABASE_URL,
-    echo=variables.DEBUG,
+    echo=DEBUG,
     connect_args={
         "check_same_thread": False
     } if DATABASE_URL.startswith("sqlite") else {}
 )
+
+Base = declarative_base()
 
 
 def test_connection():
@@ -20,3 +19,7 @@ def test_connection():
             conn.execute(text("SELECT 1"))
     except Exception as e:
         raise RuntimeError("❌ Error al conectar a la base de datos") from e
+
+
+def create_all_tables():
+    Base.metadata.create_all(bind=engine)
