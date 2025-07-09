@@ -1,20 +1,27 @@
 [[source]]
 url = "https://pypi.org/simple"
 verify_ssl = true
-name = "pip_conf_index_global"
+name = "pypi"
 
 [packages]
 fastapi = "==0.95.0"
 fastapi-cloudauth = "==0.4.3"
 fastapi-pagination = "==0.12.21"
 mangum = "==0.17.0"
-pipenv = "==2025.0.3"
 psycopg2-binary = "*"
 python-dotenv = "*"
 sqlalchemy = "*"
 uvicorn = "*"
+httpx = "==0.24.1"
 
 [dev-packages]
+pytest = "*"
+pytest-cov = "*"
+pytest-asyncio = "*"
+faker = "*"
 
 [requires]
 python_version = "3.12"
+
+[scripts]
+test = "pytest"

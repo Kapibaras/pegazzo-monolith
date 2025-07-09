@@ -51,3 +51,16 @@ uvicorn app.main:app --reload
 ### 5. Access the API
 
 Open your browser and navigate to `http://localhost:8000` to access the API.
+
+## 🧪 Run tests
+
+```bash
+# Activate virtual environment
+pipenv shell
+
+# Run all tests
+pytest
+
+# Run tests with coverage
+pytest --cov=app
+```
