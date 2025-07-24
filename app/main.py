@@ -1,20 +1,21 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from mangum import Mangum
-from app.config import AppConfig, DEBUG
-from app.database import get_db
-from app.database.core import test_connection, create_all_tables
 from sqlalchemy.orm import Session
-from fastapi import Depends
+
+from app.config import DEBUG, AppConfig
+from app.database import get_db
+from app.database.core import create_all_tables, test_connection
+from app.routers import user_router
 
 app = FastAPI(
     debug=DEBUG,
     title=AppConfig.NAME,
     description=AppConfig.DESCRIPTION,
-    version=AppConfig.VERSION
+    version=AppConfig.VERSION,
 )
 
 
-@app.get("/")
+@app.get("/", tags=["Root"])
 def root(db: Session = Depends(get_db)):
     return {"message": "Bienvenido a la API de Pegazzo Drivers"}
 
@@ -24,5 +25,11 @@ def on_startup():
     test_connection()
     create_all_tables()
 
+
+# * ROUTERS * #
+
+app.include_router(user_router)
+
+# * HANDLERS * #
 
 handler = Mangum(app)
