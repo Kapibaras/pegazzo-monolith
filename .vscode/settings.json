@@ -8,5 +8,10 @@
     "red": 0,
     "yellow": 60,
     "green": 90
+  },
+  "[python]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
   }
 }
