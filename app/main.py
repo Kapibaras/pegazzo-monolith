@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from mangum import Mangum
 from app.config import AppConfig, DEBUG
 from app.database import get_db
-from app.database.core import test_connection, create_all_tables
+from app.database.core import test_connection
 from sqlalchemy.orm import Session
 from fastapi import Depends
 
@@ -22,7 +22,6 @@ def root(db: Session = Depends(get_db)):
 @app.on_event("startup")
 def on_startup():
     test_connection()
-    create_all_tables()
 
 
 handler = Mangum(app)
