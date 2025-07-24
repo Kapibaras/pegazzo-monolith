@@ -1,5 +1,12 @@
 {
-  "python.testing.pytestArgs": ["tests"],
+  "python.testing.pytestArgs": [
+    "tests",
+    "--cov=app",
+    "--cov-report=term-missing",
+    "--cov-branch",
+    "--cov-fail-under=80",
+    "--strict-markers"
+  ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "editor.formatOnSave": true,
