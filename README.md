@@ -65,33 +65,33 @@ pytest
 pytest --cov=app
 ```
 
-## 🔧 Alembic - Migraciones de base de datos
+## 🔧 Alembic - Database migrations
 
-### Crear una nueva migración
+### Create a new migration
 
 ```bash
-alembic revision --autogenerate -m "Descripción de cambio"
+alembic revision --autogenerate -m "Description of change"
 ```
 
-### Aplicar migraciones
+### Apply migrations
 
 ```bash
 alembic upgrade head
 ```
 
-### Revertir migraciones
+### Revert migrations
 
 ```bash
 alembic downgrade -1
 ```
 
-### Historial de migraciones
+### Migration history
 
 ```bash
 alembic history
 ```
 
-### Migracion Actual
+### Current migration
 
 ```bash
 alembic current
