@@ -64,3 +64,37 @@ pytest
 # Run tests with coverage
 pytest --cov=app
 ```
+
+## 🔧 Alembic - Migraciones de base de datos
+
+### Crear una nueva migración
+
+```bash
+alembic revision --autogenerate -m "Descripción de cambio"
+```
+
+### Aplicar migraciones
+
+```bash
+alembic upgrade head
+```
+
+### Revertir migraciones
+
+```bash
+alembic downgrade -1
+```
+
+### Historial de migraciones
+
+```bash
+alembic history
+```
+
+### Migracion Actual
+
+```bash
+alembic current
+```
+
+###
