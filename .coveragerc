@@ -1,6 +1,8 @@
 [run]
 omit =
     */__init__.py
+    */models/*.py
+    */schemas/*.py
 source = app
 
 [report]

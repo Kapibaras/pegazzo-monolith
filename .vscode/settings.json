@@ -1,0 +1,24 @@
+{
+  "python.testing.pytestArgs": [
+    "tests",
+    "--cov=app",
+    "--cov-report=term-missing",
+    "--cov-branch",
+    "--cov-fail-under=80",
+    "--strict-markers"
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "charliermarsh.ruff",
+  "testing.coverageBarThresholds": {
+    "red": 0,
+    "yellow": 60,
+    "green": 90
+  },
+  "[python]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  }
+}
