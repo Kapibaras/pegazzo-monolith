@@ -15,6 +15,7 @@ sqlalchemy = "*"
 uvicorn = "*"
 httpx = "==0.24.1"
 alembic = "*"
+argon2-cffi = "*"
 
 [dev-packages]
 pytest = "*"
@@ -27,3 +28,5 @@ python_version = "3.12"
 
 [scripts]
 test = "pytest"
+seed_roles = "python -m app.database.seed_roles"
+

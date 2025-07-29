@@ -27,7 +27,7 @@ def on_startup():
 
 # * ROUTERS * #
 
-app.include_router(user_router)
+app.include_router(user_router, prefix="/pegazzo")
 
 # * HANDLERS * #
 

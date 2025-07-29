@@ -1,5 +1,7 @@
 from sqlalchemy import Column, ForeignKey, Integer, String, Table
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+from sqlalchemy.types import DateTime
 
 from app.database.base import Base
 
@@ -26,6 +28,8 @@ class User(Base):
     password = Column(String(128), nullable=False)
     role_id = Column(Integer, ForeignKey("role.id"), nullable=False)
     role = relationship("Role")
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
 
 
 class Permission(Base):

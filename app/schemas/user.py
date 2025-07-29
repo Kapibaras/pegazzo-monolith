@@ -1,4 +1,22 @@
+from datetime import datetime
+from enum import Enum
+from typing import Any, Optional
+
 from pydantic import BaseModel, Field
+
+# * ENUMS * #
+
+
+class RoleEnum(str, Enum):
+    admin = "admin"
+    user = "user"
+
+
+ROLE_MAPPING = {
+    RoleEnum.admin: 1,
+    RoleEnum.user: 2,
+}
+
 
 # * MODEL SCHEMAS * #
 
@@ -11,7 +29,9 @@ class UserSchema(BaseModel):
     username: str = Field(..., description="Username of the user")
     name: str = Field(..., description="Name of the user")
     surnames: str = Field(..., description="Surnames of the user")
-    role_name: str = Field(..., description="Role of the user", alias="role")
+    role_name: RoleEnum = Field(..., description="Role of the user", alias="role")
+    created_at: datetime = Field(..., description="User creation timestamp")
+    updated_at: datetime = Field(..., description="User update timestamp")
 
     class Config:
         orm_mode = True
@@ -24,6 +44,8 @@ class UserSchema(BaseModel):
             name=obj.name,
             surnames=obj.surnames,
             role=obj.role.name,
+            created_at=obj.created_at,
+            updated_at=obj.updated_at,
         )
 
 
@@ -35,9 +57,21 @@ class UserCreateSchema(BaseModel):
     name: str = Field(..., description="Name of the user")
     surnames: str = Field(..., description="Surnames of the user")
     password: str = Field(..., description="Password of the user")
-    role_id: int = Field(..., description="Role ID of the user", alias="roleId")
+    role: RoleEnum = Field(..., description="Role of the user")
+
+
+class UserUpdateSchema(BaseModel):
+    name: str = Field(..., description="Name of the user")
+    surnames: str = Field(..., description="Surnames of the user")
+    role: RoleEnum = Field(..., description="Role of the user")
 
 
 # * RESPONSE SCHEMAS * #
+
+
+class ActionSuccess(BaseModel):
+    message: str
+    extra_data: Optional[Any] = None
+
 
 # Add schemas..
