@@ -1,5 +1,50 @@
 line-length = 128
+target-version = "py312"
 
 [lint]
-extend-select = ["I"]
+extend-select = [
+    "I",    # Import related checks
+    "D",    # Docstring related checks
+    "DOC",  # Docstring checks
+    "F",    # Pyflakes checks
+    "N",    # Naming conventions
+    "B",    # Bug related checks
+    "A",    # Anti-patterns checks
+    "ISC",  # String concatenation checks
+    "COM",  # Commas checks
+    "C4",   # Generator checks
+    "DTZ",  # Date and timezone awareness checks
+    "FIX",  # Consider attend FIXME, TODO, and XXX comments
+    "INP",  # Implicit namespace package
+    "T20",  # Found print statements
+    "PT",   # Pytest style checks
+    "Q",    # Quoting style checks
+    "RSE",  # Unnecessary parenthesis on exception
+    "RET",  # Return statements checks
+    "SLF",  # Prvate variable checks
+    "SIM",  # Similarity checks
+    "ARG",  # Argument checks
+    "PTH",  # Path checks
+    "FLY",  # String join with f-strings
+    "C90",  # Complex structure checks
+    "N",    # PEP8 naming conventions
+    "PERF", # Performance checks
+    "RUF",  # Ruff specific checks
+    "TRY",  # Try-except checks
+]
+
 fixable = ["I"]
+extend-ignore = [
+    "D100", # ignore missing-module-docstring
+    "B008", # ignore function call in argument defaults
+    "D105", # ignore missing docstring in magic methods
+    "D104", # ignore missing docstring in package
+    "D202", # ignore blank lines bot allowed after function docstring
+]
+
+[lint.per-file-ignores]
+"tests/*" = [
+    "ANN003", # ignore annotations in tests
+    "D102",   # ignore missing docstring in public method
+    "D103",   # ignore missing docstring in public function
+]
