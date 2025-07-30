@@ -1,16 +1,12 @@
-from typing import Optional
-
 from argon2 import PasswordHasher
 
 from app.errors.user import (
-    InvalidRoleException,
     UsernameAlreadyExistsException,
-    UsernameRequiredException,
     UserNotFoundException,
 )
 from app.models.users import User
 from app.repositories.user import UserRepository
-from app.schemas.user import ROLE_MAPPING, ActionSuccess, RoleEnum, UserCreateSchema, UserSchema, UserUpdateSchema
+from app.schemas.user import ActionSuccess, RoleEnum, UserCreateSchema, UserSchema, UserUpdateSchema
 
 
 class UserService:
@@ -18,64 +14,50 @@ class UserService:
         self.repository = repository
         self.ph = PasswordHasher()
 
-    def _get_role_id(self, role: str) -> int:
-        try:
-            role_enum = RoleEnum(role)
-            return ROLE_MAPPING[role_enum]
-        except (ValueError, KeyError):
-            raise InvalidRoleException()
-
     def get_user(self, username: str):
         """Getting a user."""
 
-        if not username:
-            raise UsernameRequiredException()
         user = self.repository.get_by_username(username)
         if not user:
             raise UserNotFoundException()
-        return UserSchema.from_orm(user)
+        return user
 
-    def get_all_users(self, role: Optional[RoleEnum] = None):
-        """Getting all users."""
-        if role:
-            role_id = self._get_role_id(role)
-            users = self.repository.get_all_users_by_role(role_id)
+    def get_all_users(self, role_name: RoleEnum = None):
+        if role_name:
+            role = self.repository.get_role_by_name(role_name.value)
+            role_id = role.id
         else:
-            users = self.repository.get_all_users()
-        return [UserSchema.from_orm(user) for user in users]
+            role_id = None
+
+        users = self.repository.get_all_users(role_id=role_id)
+        return users
 
     def create_user(self, data: UserCreateSchema) -> UserSchema:
         """Creating a user."""
 
-        role_id = self._get_role_id(data.role)
+        role = self.repository.get_role_by_name(data.role)
 
         if self.repository.get_by_username(data.username):
             raise UsernameAlreadyExistsException()
 
         hashed_password = self.ph.hash(data.password)
 
-        user = User(
-            username=data.username,
-            name=data.name,
-            surnames=data.surnames,
-            password=hashed_password,
-            role_id=role_id,
-        )
+        user = User(username=data.username, name=data.name, surnames=data.surnames, password=hashed_password, role=role)
 
         created_user = self.repository.create_user(user)
-        return UserSchema.from_orm(created_user)
+        return created_user
 
     def update_user(self, username: str, data: UserUpdateSchema) -> UserSchema:
         """Updating a user."""
-        role_id = self._get_role_id(data.role)
+        role = self.repository.get_role_by_name(data.role)
         user = self.repository.get_by_username(username)
         if not user:
             raise UserNotFoundException()
         user.name = data.name
         user.surnames = data.surnames
-        user.role_id = role_id
+        user.role = role
         self.repository.update_user(user)
-        return UserSchema.from_orm(user)
+        return user
 
     def delete_user(self, username: str):
         """Deleting a user."""

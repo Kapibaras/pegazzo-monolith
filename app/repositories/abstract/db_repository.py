@@ -1,6 +1,6 @@
 from abc import ABC
 
-from sqlalchemy.orm import Query, Session, selectinload
+from sqlalchemy.orm import Session
 
 
 class DBRepository(ABC):
@@ -14,11 +14,3 @@ class DBRepository(ABC):
         Initialize the repository with a database session.
         """
         self.db = db_session
-
-    def with_selectinload(self, query: Query, *relationships):
-        """
-        Apply selectinload to a query for the given relationships.
-        """
-        for rel in relationships:
-            query = query.options(selectinload(rel))
-        return query

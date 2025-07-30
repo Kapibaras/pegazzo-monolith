@@ -1,6 +1,5 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -10,12 +9,6 @@ from pydantic import BaseModel, Field
 class RoleEnum(str, Enum):
     admin = "admin"
     user = "user"
-
-
-ROLE_MAPPING = {
-    RoleEnum.admin: 1,
-    RoleEnum.user: 2,
-}
 
 
 # * MODEL SCHEMAS * #
@@ -70,8 +63,16 @@ class UserUpdateSchema(BaseModel):
 
 
 class ActionSuccess(BaseModel):
-    message: str
-    extra_data: Optional[Any] = None
+    """
+    Schema para respuestas exitosas de acciones (como DELETE).
+
+    Atributos:
+        message (str): Un mensaje descriptivo indicando el resultado de la acción.
+    """
+
+    message: str = Field(
+        ..., description="Mensaje indicando que la acción se realizó exitosamente", example="User deleted successfully."
+    )
 
 
 # Add schemas..

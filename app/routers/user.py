@@ -1,5 +1,3 @@
-from typing import Optional
-
 from fastapi import APIRouter, Body, Depends, Path, Query, status
 
 from app.dependencies import ServiceFactory
@@ -11,7 +9,7 @@ router = APIRouter(prefix="/internal/user", tags=["User"])
 
 @router.get("", response_model=list[UserSchema])
 def get_all_users(
-    role: Optional[RoleEnum] = Query(None, description="Filter by user role"),
+    role: RoleEnum = Query(None, description="Filter by user role"),
     service: UserService = Depends(ServiceFactory.user_service),
 ) -> list[UserSchema]:
     return service.get_all_users(role)

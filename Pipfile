@@ -28,5 +28,5 @@ python_version = "3.12"
 
 [scripts]
 test = "pytest"
-seed_roles = "python -m app.database.seed_roles"
+seeders = "python -m app.database.seeders"
 

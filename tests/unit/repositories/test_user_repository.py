@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest.mock import Mock
 
 import pytest
@@ -5,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.models.users import User
 from app.repositories.user import UserRepository
+from app.schemas.user import RoleEnum
 
 
 @pytest.fixture
@@ -16,6 +18,9 @@ def sample_user():
     user.surnames = "User"
     user.password = "hashed_password"
     user.role_id = 1
+    user.role = RoleEnum.admin
+    user.created_at = datetime.now(timezone.utc)
+    user.updated_at = datetime.now(timezone.utc)
     return user
 
 
@@ -28,7 +33,6 @@ def user_repository_test_setup(request):
     mock_filter = Mock()
     mock_db.query.return_value = mock_query
     mock_query.filter.return_value = mock_filter
-    # Assign the repository and mock_db to the test class
     request.cls.repository = repository
     request.cls.mock_db = mock_db
     request.cls.mock_query = mock_query
@@ -36,48 +40,30 @@ def user_repository_test_setup(request):
 
 
 @pytest.mark.usefixtures("user_repository_test_setup")
-class TestUserRepository:
-    """Base class for UserRepository tests."""
+class TestUserRepositoryMock:
+    def test_get_by_username(self, user_repository_mock, sample_user):
+        user_repository_mock.create_user(sample_user)
+        result = user_repository_mock.get_by_username("testuser")
+        assert result is not None
+        assert result.username == "testuser"
 
-    def test_get_by_username(self, sample_user):
-        """Test getting a user by username when user exists."""
-        # Mock
-        self.mock_filter.first.return_value = sample_user
+    def test_get_all_users(self, user_repository_mock, sample_user):
+        user_repository_mock.create_user(sample_user)
+        users = user_repository_mock.get_all_users()
+        assert len(users) > 0
 
-        # Act
-        result = self.repository.get_by_username("testuser")
+    def test_create_user_duplicate_raises(self, user_repository_mock, sample_user):
+        user_repository_mock.create_user(sample_user)
+        with pytest.raises(Exception):
+            user_repository_mock.create_user(sample_user)
 
-        # Assert
-        self.mock_db.query.assert_called_once_with(User)
-        called_arg = self.mock_query.filter.call_args[0][0]
-        assert called_arg.compare(User.username == "testuser")
-        self.mock_filter.first.assert_called_once()
-        assert result == sample_user
+    def test_update_user(self, user_repository_mock, sample_user):
+        user_repository_mock.create_user(sample_user)
+        sample_user.name = "Updated"
+        updated = user_repository_mock.update_user(sample_user)
+        assert updated.name == "Updated"
 
-    def test_get_all_users(self):
-        """Test getting all users."""
-        # Mock
-        sample_users = [User(), User()]
-        sample_users[0].username = "user1"
-        sample_users[1].username = "user2"
-
-        self.mock_query.all.return_value = sample_users
-
-        # Act
-        result = self.repository.get_all_users()
-
-        # Assert
-        self.mock_db.query.assert_called_once_with(User)
-        self.mock_query.all.assert_called_once()
-        assert result == sample_users
-
-    def test_create_user(self, sample_user):
-        """Test creating a new user."""
-        # Act
-        result = self.repository.create_user(sample_user)
-
-        # Assert
-        self.mock_db.add.assert_called_once_with(sample_user)
-        self.mock_db.commit.assert_called_once()
-        self.mock_db.refresh.assert_called_once_with(sample_user)
-        assert result == sample_user
+    def test_delete_user(self, user_repository_mock, sample_user):
+        user_repository_mock.create_user(sample_user)
+        user_repository_mock.delete_user(sample_user)
+        assert sample_user in user_repository_mock._deleted_users

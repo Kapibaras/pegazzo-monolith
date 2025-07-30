@@ -12,7 +12,6 @@ def user_service_test_setup(request):
     """Fixture to set up UserRepository for class-based tests."""
     mock_repo = Mock(spec=UserRepository)
     service = UserService(mock_repo)
-    # Assign the service and mocks to the test class
     request.cls.service = service
     request.cls.mock_repo = mock_repo
 
@@ -51,11 +50,11 @@ class TestUserService:
         """Test creating a new user."""
         # Arrange
         user_data = {
-            "username": "newuser",
-            "name": "New",
+            "username": "testuser",
+            "name": "Test",
             "surnames": "User",
-            "password": "securepassword",
-            "role_id": 1,
+            "password": "password123",
+            "role": "user",
         }
         new_user = User(**user_data)
         mock_user_class.return_value = new_user
