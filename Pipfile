@@ -15,12 +15,15 @@ sqlalchemy = "*"
 uvicorn = "*"
 httpx = "==0.24.1"
 alembic = "*"
+ruff = "*"
 
 [dev-packages]
 pytest = "*"
 pytest-cov = "*"
 pytest-asyncio = "*"
 faker = "*"
+pre-commit = "*"
+ruff = "*"
 
 [requires]
 python_version = "3.12"
