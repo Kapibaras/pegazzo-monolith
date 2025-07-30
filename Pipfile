@@ -29,4 +29,5 @@ ruff = "*"
 python_version = "3.12"
 
 [scripts]
-test = "pytest"
+setup = "pipenv run python scripts/setup.py"
+test = "pytest --cov=app"

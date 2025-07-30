@@ -10,7 +10,6 @@
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "charliermarsh.ruff",
   "testing.coverageBarThresholds": {
     "red": 0,
     "yellow": 60,
@@ -19,6 +18,7 @@
   "[python]": {
     "editor.codeActionsOnSave": {
       "source.organizeImports": "explicit"
-    }
+    },
+    "editor.defaultFormatter": "charliermarsh.ruff"
   }
 }
