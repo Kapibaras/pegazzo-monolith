@@ -31,3 +31,4 @@ python_version = "3.12"
 [scripts]
 setup = "pipenv run python scripts/setup.py"
 test = "pytest --cov=app"
+dev = "uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
