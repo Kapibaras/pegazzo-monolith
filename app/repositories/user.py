@@ -1,15 +1,13 @@
-from app.errors.user import DBOperationError
+from app.errors.database import DBOperationError
 from app.models.users import Role, User
+from app.utils.logging_config import logger
 
 from .abstract import DBRepository
 
 
 class UserRepository(DBRepository):
     def get_role_by_name(self, role_name: str) -> Role:
-        role = self.db.query(Role).filter_by(name=role_name).first()
-        if not role:
-            raise DBOperationError("Role not found")
-        return role
+        return self.db.query(Role).filter_by(name=role_name).first()
 
     def get_by_username(self, username: str):
         """
@@ -45,7 +43,8 @@ class UserRepository(DBRepository):
             self.db.refresh(user)
         except Exception as ex:
             self.db.rollback()
-            raise DBOperationError(f"Error creating user in the database: {ex}")
+            logger.error(f"Error creating user {user.username} due to: {ex}")
+            raise DBOperationError("Error creating user in the database")
 
         return self.get_by_username(user.username)
 
@@ -61,7 +60,8 @@ class UserRepository(DBRepository):
             self.db.refresh(user)
         except Exception as ex:
             self.db.rollback()
-            raise DBOperationError(f"Error updating user in the database: {ex}")
+            logger.error(f"Error updating user {user.username} due to: {ex}")
+            raise DBOperationError("Error updating user in the database")
 
         return self.get_by_username(user.username)
 
@@ -77,4 +77,5 @@ class UserRepository(DBRepository):
             self.db.commit()
         except Exception as ex:
             self.db.rollback()
-            raise DBOperationError(f"Error deleting user in the database: {ex}")
+            logger.error(f"Error deleting user {user.username} due to: {ex}")
+            raise DBOperationError("Error deleting user in the database")

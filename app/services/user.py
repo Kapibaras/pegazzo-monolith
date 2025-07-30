@@ -1,18 +1,18 @@
 from argon2 import PasswordHasher
 
 from app.errors.user import (
+    RoleNotFoundException,
     UsernameAlreadyExistsException,
     UserNotFoundException,
 )
 from app.models.users import User
 from app.repositories.user import UserRepository
-from app.schemas.user import ActionSuccess, RoleEnum, UserCreateSchema, UserSchema, UserUpdateSchema
+from app.schemas.user import RoleEnum, UserCreateSchema, UserSchema, UserUpdateSchema
 
 
 class UserService:
     def __init__(self, repository: UserRepository):
         self.repository = repository
-        self.ph = PasswordHasher()
 
     def get_user(self, username: str):
         """Getting a user."""
@@ -25,6 +25,8 @@ class UserService:
     def get_all_users(self, role_name: RoleEnum = None):
         if role_name:
             role = self.repository.get_role_by_name(role_name.value)
+            if not role:
+                raise RoleNotFoundException()
             role_id = role.id
         else:
             role_id = None
@@ -40,7 +42,8 @@ class UserService:
         if self.repository.get_by_username(data.username):
             raise UsernameAlreadyExistsException()
 
-        hashed_password = self.ph.hash(data.password)
+        ph = PasswordHasher()
+        hashed_password = ph.hash(data.password)
 
         user = User(username=data.username, name=data.name, surnames=data.surnames, password=hashed_password, role=role)
 
@@ -65,4 +68,3 @@ class UserService:
         if not user:
             raise UserNotFoundException()
         self.repository.delete_user(user)
-        return ActionSuccess(message=f"User '{username}' was successfully deleted.", extra_data={"username": username})

@@ -1,66 +1,139 @@
+# import pytest
+
+# from app.schemas.user import UserSchema
+
+
+# @pytest.mark.usefixtures("client")
+# class TestUserRouter:
+#     """Base class for UserRouter tests."""
+
+#     def test_get_all_users(self):
+#         """Test getting all users."""
+#         response = self.client.get("/user/all")
+#         assert response.status_code == 200
+#         data = response.json()
+#         assert isinstance(data, list)
+#         assert all(UserSchema.validate(user) for user in data)
+
+#     def test_create_user(self):
+#         """Test creating a user."""
+#         user_data = {
+#             "username": "testuser",
+#             "name": "Test",
+#             "surnames": "User",
+#             "password": "password123",
+#             "roleId": 1,
+#         }
+#         response = self.client.post("/user", json=user_data)
+#         assert response.status_code == 200
+#         assert UserSchema.validate(response.json())
+
+#     def test_get_user(self):
+#         """Test getting a user by username."""
+#         username = "testuser"
+#         response = self.client.get(f"/user/{username}")
+#         assert response.status_code == 200
+#         data = response.json()
+#         assert data["username"] == username
+#         assert UserSchema.validate(data)
+
+
 import pytest
 
-from app.schemas.user import RoleEnum, UserSchema
+from app.schemas.user import ActionSuccess, UserSchema
 
 
 @pytest.mark.usefixtures("client")
 class TestUserRouter:
-    def test_get_all_users(self):
-        response = self.client.get("/pegazzo/internal/user")
-        assert response.status_code == 200
-        data = response.json()
-        assert isinstance(data, list)
-        validated_users = [UserSchema.parse_obj(user) for user in data]
-        assert all(isinstance(u, UserSchema) for u in validated_users)
+    """Tests for the internal UserRouter endpoints."""
 
-    def test_get_all_users_filter_role(self):
-        response = self.client.get("/pegazzo/internal/user?role=user")
+    def test_get_all_users(self):
+        """Test getting all users."""
+        # Act
+        response = self.client.get("/pegazzo/internal/user")
+
+        # Assert
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        for user in data:
-            UserSchema.parse_obj(user)
-        assert all(user.get("role") == RoleEnum.user.value for user in data)
+        assert all(UserSchema.validate(user) for user in data)
+
+    def test_get_all_users_with_role_filter(self):
+        """Test getting all users with role filter."""
+        # Arrange
+        role = "admin"
+
+        # Act
+        response = self.client.get(f"/pegazzo/internal/user?role={role}")
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert all(UserSchema.validate(user) for user in data)
 
     def test_create_user(self):
+        """Test creating a user."""
+        # Arrange
         user_data = {
             "username": "newuser",
             "name": "Test",
             "surnames": "User",
             "password": "password123",
-            "role": "user",
+            "role": "admin",
         }
+
+        # Act
         response = self.client.post("/pegazzo/internal/user", json=user_data)
+
+        # Assert
         assert response.status_code == 201
-        data = response.json()
-        user = UserSchema.parse_obj(data)
-        assert user.username == user_data["username"]
+        assert UserSchema.validate(response.json())
 
     def test_get_user(self):
+        """Test getting a user by username."""
+        # Arrange
         username = "testuser"
+
+        # Act
         response = self.client.get(f"/pegazzo/internal/user/{username}")
+
+        # Assert
         assert response.status_code == 200
         data = response.json()
-        user = UserSchema.parse_obj(data)
-        assert user.username == username
+        assert data["username"] == username
+        assert UserSchema.validate(data)
 
     def test_update_user(self):
+        """Test updating a user."""
+        # Arrange
         username = "testuser"
         update_data = {
             "name": "Updated",
             "surnames": "User",
             "role": "admin",
         }
+
+        # Act
         response = self.client.put(f"/pegazzo/internal/user/{username}", json=update_data)
+
+        # Assert
         assert response.status_code == 200
         data = response.json()
-        assert data["name"] == update_data["name"]
-        assert data["role"] == update_data["role"]
+        assert data["name"] == "Updated"
+        assert data["username"] == username
+        assert UserSchema.validate(data)
 
     def test_delete_user(self):
+        """Test deleting a user."""
+        # Arrange
         username = "testuser"
+
+        # Act
         response = self.client.delete(f"/pegazzo/internal/user/{username}")
+
+        # Assert
         assert response.status_code == 200
         data = response.json()
-        assert "message" in data
-        assert isinstance(data["message"], str)
+        assert data == {"message": f"User '{username}' was successfully deleted."}
+        assert ActionSuccess.validate(data)

@@ -64,14 +64,14 @@ class UserUpdateSchema(BaseModel):
 
 class ActionSuccess(BaseModel):
     """
-    Schema para respuestas exitosas de acciones (como DELETE).
+    Schema for successful action responses (e.g., DELETE).
 
-    Atributos:
-        message (str): Un mensaje descriptivo indicando el resultado de la acción.
+    Attributes:
+        message (str): A descriptive message indicating the result of the action.
     """
 
     message: str = Field(
-        ..., description="Mensaje indicando que la acción se realizó exitosamente", example="User deleted successfully."
+        ..., description="Message indicating the action was successfully performed", example="User deleted successfully."
     )
 
 

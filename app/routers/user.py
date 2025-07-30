@@ -45,4 +45,5 @@ def delete_user(
     username: str = Path(description="Username of the user"),
     service: UserService = Depends(ServiceFactory.user_service),
 ) -> ActionSuccess:
-    return service.delete_user(username)
+    service.delete_user(username)
+    return ActionSuccess(message=f"User '{username}' was successfully deleted.")

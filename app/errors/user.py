@@ -21,6 +21,6 @@ class UserNotFoundException(HTTPException):
         super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
 
-class DBOperationError(HTTPException):
-    def __init__(self, detail: str = "Database operation failed"):
-        super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+class RoleNotFoundException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found.")
