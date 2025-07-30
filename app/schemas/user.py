@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import Enum
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -7,6 +8,8 @@ from pydantic import BaseModel, Field
 
 
 class RoleEnum(str, Enum):
+    """Enum for role names."""
+
     admin = "admin"
     user = "user"
 
@@ -15,9 +18,7 @@ class RoleEnum(str, Enum):
 
 
 class UserSchema(BaseModel):
-    """
-    Schema for user-related operations.
-    """
+    """Schema for user-related operations."""
 
     username: str = Field(..., description="Username of the user")
     name: str = Field(..., description="Name of the user")
@@ -27,11 +28,14 @@ class UserSchema(BaseModel):
     updated_at: datetime = Field(..., description="User update timestamp")
 
     class Config:
+        """Configuration for the UserSchema."""
+
         orm_mode = True
         allow_population_by_field_name = True
 
     @classmethod
     def from_orm(cls, obj):
+        """Convert a User model instance to a UserSchema."""
         return cls(
             username=obj.username,
             name=obj.name,
@@ -46,6 +50,8 @@ class UserSchema(BaseModel):
 
 
 class UserCreateSchema(BaseModel):
+    """Schema for creating a user."""
+
     username: str = Field(..., description="Username of the user")
     name: str = Field(..., description="Name of the user")
     surnames: str = Field(..., description="Surnames of the user")
@@ -54,6 +60,8 @@ class UserCreateSchema(BaseModel):
 
 
 class UserUpdateSchema(BaseModel):
+    """Schema for updating a user."""
+
     name: str = Field(..., description="Name of the user")
     surnames: str = Field(..., description="Surnames of the user")
     role: RoleEnum = Field(..., description="Role of the user")
@@ -63,16 +71,20 @@ class UserUpdateSchema(BaseModel):
 
 
 class ActionSuccess(BaseModel):
-    """
-    Schema for successful action responses (e.g., DELETE).
+    """Schema for successful action responses (e.g., DELETE).
 
     Attributes:
         message (str): A descriptive message indicating the result of the action.
+        extra_data (Any, optional): Additional data relevant to the action. Defaults to None.
+
     """
 
     message: str = Field(
-        ..., description="Message indicating the action was successfully performed", example="User deleted successfully."
+        ...,
+        description="Message indicating the action was successfully performed",
+        example="User deleted successfully.",
     )
+    extra_data: Optional[Any] = Field(default=None, description="Additional data relevant to the action")
 
 
 # Add schemas..

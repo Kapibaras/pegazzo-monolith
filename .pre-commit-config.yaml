@@ -1,0 +1,53 @@
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
+repos:
+  # Conventional commit validations
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.2.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [--verbose]
+  # Python linting and formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.7
+    hooks:
+      # Run the linter.
+      - id: ruff-check
+        args: [--fix]
+      # Run the formatter.
+      - id: ruff-format
+  # Final linting and formatting
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Check for large files
+      - id: check-added-large-files
+      # Check for git issues
+      - id: check-merge-conflict
+      # Check secrets in files
+      - id: detect-private-key
+      # Check syntax of various file types
+      - id: check-ast
+      - id: check-json
+      - id: check-yaml
+      - id: check-xml
+      - id: check-toml
+      # Fix file formatting
+      - id: end-of-file-fixer
+      - id: pretty-format-json
+        args: [--autofix, --indent=2, --no-sort-keys]
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+  # Unit test coverage enforcement
+  - repo: local
+    hooks:
+      - id: coverage-enforcer
+        name: Unit Test Coverage Enforcer
+        entry: pipenv run pytest --cov=app
+        language: system
+        pass_filenames: false
+        always_run: true
+        files: ^(app/|tests/)

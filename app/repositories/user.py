@@ -6,36 +6,36 @@ from .abstract import DBRepository
 
 
 class UserRepository(DBRepository):
+    """User repository class."""
+
     def get_role_by_name(self, role_name: str) -> Role:
+        """Retrieve a role by its name.
+
+        Args: role_name (str): The name of the role to retrieve.
+        """
         return self.db.query(Role).filter_by(name=role_name).first()
 
     def get_by_username(self, username: str):
-        """
-        Retrieve a user by their username.
+        """Retrieve a user by their username.
 
-        Args:
-            username (str): The username of the user to retrieve.
+        Args: username (str): The username of the user to retrieve.
         """
         return self.db.query(User).filter(User.username == username).first()
 
-    def get_all_users(self, role_id: int = None):
+    def get_all_users(self, role_id: int | None = None):
+        """Retrieve all users, optionally filtered by role ID.
+
+        Args: role_id (int, optional): The ID of the role to filter by. Defaults to None.
+        """
         query = self.db.query(User)
         if role_id is not None:
             query = query.filter(User.role_id == role_id)
         return query.all()
 
-    def get_all_users_by_role(self, role_id: int):
-        """
-        Retrieve all users from the database.
-        """
-        return self.db.query(User).filter(User.role_id == role_id).all()
-
     def create_user(self, user: User):
-        """
-        Create a new user in the database.
+        """Create a new user in the database.
 
-        Args:
-            user (User): The user object to create.
+        Args: user (User): The user object to create.
         """
         try:
             self.db.add(user)
@@ -49,11 +49,9 @@ class UserRepository(DBRepository):
         return self.get_by_username(user.username)
 
     def update_user(self, user: User):
-        """
-        Update an existing user in the database.
+        """Update an existing user in the database.
 
-        Args:
-            user (User): The user object to update.
+        Args: user (User): The user object to update.
         """
         try:
             self.db.commit()
@@ -66,11 +64,9 @@ class UserRepository(DBRepository):
         return self.get_by_username(user.username)
 
     def delete_user(self, user: User):
-        """
-        Delete an existing user from the database.
+        """Delete an existing user from the database.
 
-        Args:
-            user (User): The user object to delete.
+        Args:user (User): The user object to delete.
         """
         try:
             self.db.delete(user)

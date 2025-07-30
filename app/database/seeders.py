@@ -2,7 +2,8 @@ from app.database.session import SessionLocal
 from app.models.users import Role
 
 
-def seed_roles(db: SessionLocal):
+def seeders(db: SessionLocal):
+    """Seed roles into the database."""
     roles = [
         Role(id=1, name="admin"),
         Role(id=2, name="user"),
@@ -20,5 +21,5 @@ def seed_roles(db: SessionLocal):
 
 if __name__ == "__main__":
     db = SessionLocal()
-    seed_roles(db)
+    seeders(db)
     db.close()

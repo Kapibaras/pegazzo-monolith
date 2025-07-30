@@ -14,6 +14,8 @@ role_permission_table = Table(
 
 
 class Role(Base):
+    """Role model class."""
+
     __tablename__ = "role"
     id = Column(Integer, primary_key=True)
     name = Column(String(50), nullable=False)
@@ -21,6 +23,8 @@ class Role(Base):
 
 
 class User(Base):
+    """User model class."""
+
     __tablename__ = "user"
     username = Column(String(30), primary_key=True)
     name = Column(String(50), nullable=False)
@@ -33,6 +37,8 @@ class User(Base):
 
 
 class Permission(Base):
+    """Permission model class."""
+
     __tablename__ = "permission"
     id = Column(Integer, primary_key=True)
     name = Column(String(50), nullable=False)

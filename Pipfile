@@ -15,6 +15,7 @@ sqlalchemy = "*"
 uvicorn = "*"
 httpx = "==0.24.1"
 alembic = "*"
+ruff = "*"
 argon2-cffi = "*"
 
 [dev-packages]
@@ -22,11 +23,11 @@ pytest = "*"
 pytest-cov = "*"
 pytest-asyncio = "*"
 faker = "*"
+pre-commit = "*"
+ruff = "*"
 
 [requires]
 python_version = "3.12"
 
 [scripts]
 test = "pytest"
-seeders = "python -m app.database.seeders"
-

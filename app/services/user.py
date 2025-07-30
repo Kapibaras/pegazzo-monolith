@@ -11,51 +11,54 @@ from app.schemas.user import RoleEnum, UserCreateSchema, UserSchema, UserUpdateS
 
 
 class UserService:
+    """User service class."""
+
     def __init__(self, repository: UserRepository):
+        """Initialize the user service with a repository."""
         self.repository = repository
 
     def get_user(self, username: str):
-        """Getting a user."""
+        """Get a user by username."""
 
         user = self.repository.get_by_username(username)
         if not user:
-            raise UserNotFoundException()
+            raise UserNotFoundException
         return user
 
     def get_all_users(self, role_name: RoleEnum = None):
+        """Get all users, optionally filtered by role name."""
+
         if role_name:
             role = self.repository.get_role_by_name(role_name.value)
             if not role:
-                raise RoleNotFoundException()
+                raise RoleNotFoundException
             role_id = role.id
         else:
             role_id = None
 
-        users = self.repository.get_all_users(role_id=role_id)
-        return users
+        return self.repository.get_all_users(role_id=role_id)
 
     def create_user(self, data: UserCreateSchema) -> UserSchema:
-        """Creating a user."""
+        """Create a new user."""
 
         role = self.repository.get_role_by_name(data.role)
 
         if self.repository.get_by_username(data.username):
-            raise UsernameAlreadyExistsException()
+            raise UsernameAlreadyExistsException
 
         ph = PasswordHasher()
         hashed_password = ph.hash(data.password)
 
         user = User(username=data.username, name=data.name, surnames=data.surnames, password=hashed_password, role=role)
 
-        created_user = self.repository.create_user(user)
-        return created_user
+        return self.repository.create_user(user)
 
     def update_user(self, username: str, data: UserUpdateSchema) -> UserSchema:
-        """Updating a user."""
+        """Update a user by their username."""
         role = self.repository.get_role_by_name(data.role)
         user = self.repository.get_by_username(username)
         if not user:
-            raise UserNotFoundException()
+            raise UserNotFoundException
         user.name = data.name
         user.surnames = data.surnames
         user.role = role
@@ -63,8 +66,8 @@ class UserService:
         return user
 
     def delete_user(self, username: str):
-        """Deleting a user."""
+        """Delete a user by their username."""
         user = self.repository.get_by_username(username)
         if not user:
-            raise UserNotFoundException()
+            raise UserNotFoundException
         self.repository.delete_user(user)
