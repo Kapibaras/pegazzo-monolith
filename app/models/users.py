@@ -1,5 +1,7 @@
 from sqlalchemy import Column, ForeignKey, Integer, String, Table
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+from sqlalchemy.types import DateTime
 
 from app.database.base import Base
 
@@ -12,6 +14,8 @@ role_permission_table = Table(
 
 
 class Role(Base):
+    """Role model class."""
+
     __tablename__ = "role"
     id = Column(Integer, primary_key=True)
     name = Column(String(50), nullable=False)
@@ -19,6 +23,8 @@ class Role(Base):
 
 
 class User(Base):
+    """User model class."""
+
     __tablename__ = "user"
     username = Column(String(30), primary_key=True)
     name = Column(String(50), nullable=False)
@@ -26,9 +32,13 @@ class User(Base):
     password = Column(String(128), nullable=False)
     role_id = Column(Integer, ForeignKey("role.id"), nullable=False)
     role = relationship("Role")
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
 
 
 class Permission(Base):
+    """Permission model class."""
+
     __tablename__ = "permission"
     id = Column(Integer, primary_key=True)
     name = Column(String(50), nullable=False)
