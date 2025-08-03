@@ -1,0 +1,39 @@
+from datetime import timedelta
+
+import pytest
+
+from app.auth.core import Settings
+
+
+@pytest.fixture
+def env_vars(monkeypatch):
+    """Fixture que simula las variables de entorno para configuración JWT."""
+    monkeypatch.setenv("JWT_SECRET_KEY", "testsecret")
+    monkeypatch.setenv("JWT_ACCESS_TOKEN_EXPIRES_MIN", "15")
+    monkeypatch.setenv("JWT_REFRESH_TOKEN_EXPIRES_DAYS", "7")
+    monkeypatch.setenv("ENVIRONMENT", "LOCAL")
+
+
+@pytest.fixture
+def settings(env_vars):
+    """Fixture que retorna una instancia de Settings con variables mockeadas."""
+
+    _ = env_vars
+    return Settings()
+
+
+class TestAuthJWTSettings:
+    """Clase de pruebas para la configuración de AuthJWT."""
+
+    def test_settings_instance(self, settings):
+        assert isinstance(settings, Settings)
+
+    def test_settings_values(self, settings):
+        assert settings.authjwt_secret_key == "top_secret"
+        assert settings.authjwt_token_location == {"cookies"}
+        assert settings.authjwt_cookie_csrf_protect is False
+        assert settings.authjwt_cookie_secure is True
+        assert settings.authjwt_cookie_samesite == "lax"
+        assert settings.authjwt_cookie_httponly is True
+        assert settings.authjwt_access_token_expires == timedelta(minutes=15)
+        assert settings.authjwt_refresh_token_expires == timedelta(days=7)

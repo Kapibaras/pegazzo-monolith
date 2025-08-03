@@ -11,6 +11,8 @@ Base = declarative_base()
 
 
 def test_connection():
+    """Test the database connection."""
+
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))

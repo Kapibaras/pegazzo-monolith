@@ -17,6 +17,7 @@ httpx = "==0.24.1"
 alembic = "*"
 ruff = "*"
 argon2-cffi = "*"
+fastapi-jwt-auth = "*"
 
 [dev-packages]
 pytest = "*"

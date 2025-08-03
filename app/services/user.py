@@ -1,5 +1,3 @@
-from argon2 import PasswordHasher
-
 from app.errors.user import (
     RoleNotFoundException,
     UsernameAlreadyExistsException,
@@ -8,6 +6,7 @@ from app.errors.user import (
 from app.models.users import User
 from app.repositories.user import UserRepository
 from app.schemas.user import RoleEnum, UserCreateSchema, UserSchema, UserUpdateSchema
+from app.utils.auth import AuthUtils
 
 
 class UserService:
@@ -46,8 +45,7 @@ class UserService:
         if self.repository.get_by_username(data.username):
             raise UsernameAlreadyExistsException
 
-        ph = PasswordHasher()
-        hashed_password = ph.hash(data.password)
+        hashed_password = AuthUtils.hash_password(data.password)
 
         user = User(username=data.username, name=data.name, surnames=data.surnames, password=hashed_password, role=role)
 
