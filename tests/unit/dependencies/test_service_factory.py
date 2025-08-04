@@ -5,7 +5,7 @@ from app.services import AuthService, UserService
 
 
 class TestServiceFactory:
-    """Clase de pruebas para la factoría de servicios."""
+    """Class of tests for the service factory."""
 
     @patch("app.dependencies.service_factory.RepositoryFactory.user_repository")
     def test_user_service(self, mock_user_repository):

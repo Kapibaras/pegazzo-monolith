@@ -1,11 +1,9 @@
 from .constants import AppConfig
 from .variables import (
+    AUTHORIZATION,
     DATABASE_URL,
     DEBUG,
     ENVIRONMENT,
-    JWT_ACCESS_TOKEN_EXPIRES_MIN,
-    JWT_REFRESH_TOKEN_EXPIRES_DAYS,
-    JWT_SECRET_KEY,
 )
 
 __all__ = [
@@ -13,7 +11,5 @@ __all__ = [
     "DATABASE_URL",
     "DEBUG",
     "ENVIRONMENT",
-    "JWT_ACCESS_TOKEN_EXPIRES_MIN",
-    "JWT_REFRESH_TOKEN_EXPIRES_DAYS",
-    "JWT_SECRET_KEY",
+    "AUTHORIZATION",
 ]

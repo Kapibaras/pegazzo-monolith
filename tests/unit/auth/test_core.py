@@ -7,7 +7,7 @@ from app.auth.core import Settings
 
 @pytest.fixture
 def env_vars(monkeypatch):
-    """Fixture que simula las variables de entorno para configuración JWT."""
+    """Fixture that simulates environment variables for JWT configuration."""
     monkeypatch.setenv("JWT_SECRET_KEY", "testsecret")
     monkeypatch.setenv("JWT_ACCESS_TOKEN_EXPIRES_MIN", "15")
     monkeypatch.setenv("JWT_REFRESH_TOKEN_EXPIRES_DAYS", "7")
@@ -16,14 +16,14 @@ def env_vars(monkeypatch):
 
 @pytest.fixture
 def settings(env_vars):
-    """Fixture que retorna una instancia de Settings con variables mockeadas."""
+    """Fixture that returns a Settings instance with mocked variables."""
 
     _ = env_vars
     return Settings()
 
 
 class TestAuthJWTSettings:
-    """Clase de pruebas para la configuración de AuthJWT."""
+    """Class of tests for AuthJWT configuration."""
 
     def test_settings_instance(self, settings):
         assert isinstance(settings, Settings)

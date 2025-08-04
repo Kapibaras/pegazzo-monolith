@@ -3,7 +3,7 @@ from datetime import timedelta
 from argon2 import PasswordHasher
 from fastapi_jwt_auth import AuthJWT
 
-from app.config import JWT_ACCESS_TOKEN_EXPIRES_MIN, JWT_REFRESH_TOKEN_EXPIRES_DAYS
+from app.config import AUTHORIZATION
 
 
 class AuthUtils:
@@ -23,9 +23,9 @@ class AuthUtils:
 
     @staticmethod
     def create_access_token(username: str, role: str, authorize: AuthJWT) -> tuple[str, str]:
-        """Crea y devuelve una tupla (access_token, refresh_token)."""
-        access_token_expires = timedelta(minutes=int(JWT_ACCESS_TOKEN_EXPIRES_MIN))
-        refresh_token_expires = timedelta(days=int(JWT_REFRESH_TOKEN_EXPIRES_DAYS))
+        """Create and return a tuple (access_token, refresh_token)."""
+        access_token_expires = timedelta(minutes=int(AUTHORIZATION.JWT_ACCESS_TOKEN_EXPIRES_MIN))
+        refresh_token_expires = timedelta(days=int(AUTHORIZATION.JWT_REFRESH_TOKEN_EXPIRES_DAYS))
 
         access_token = authorize.create_access_token(
             subject=username,

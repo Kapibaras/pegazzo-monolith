@@ -15,7 +15,7 @@ def login(
 ) -> ActionSuccess:
     """Login a user and return an action success response."""
     service.login(username, password)
-    return {"message": "Login successful"}
+    return {"message": "Successful login"}
 
 
 @router.post("/refresh", response_model=ActionSuccess)
@@ -29,4 +29,4 @@ def refresh(service: AuthService = Depends(ServiceFactory.auth_service)) -> Acti
 def logout(service: AuthService = Depends(ServiceFactory.auth_service)) -> ActionSuccess:
     """Logout a user and return an action success response."""
     service.logout()
-    return {"message": "Logout successful"}
+    return {"message": "Successful logout"}

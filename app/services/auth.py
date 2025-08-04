@@ -1,3 +1,4 @@
+from fastapi.responses import JSONResponse
 from fastapi_jwt_auth import AuthJWT
 
 from app.errors.auth import InvalidCredentials, InvalidRefreshToken
@@ -27,14 +28,11 @@ class AuthService:
 
         access_token, refresh_token = AuthUtils.create_access_token(
             username=user.username,
-            role=user.role,
+            role=user.role.name,
             authorize=self.authorize,
         )
-
         self.authorize.set_access_cookies(access_token)
         self.authorize.set_refresh_cookies(refresh_token)
-
-        return
 
     def refresh(self) -> str:
         """Refresh a user's access token and return an action success response."""
@@ -56,10 +54,7 @@ class AuthService:
         self.authorize.set_access_cookies(access_token)
         self.authorize.set_refresh_cookies(refresh_token)
 
-        return
-
     def logout(self) -> str:
         """Logout a user and return an action success response."""
 
         self.authorize.unset_jwt_cookies()
-        return

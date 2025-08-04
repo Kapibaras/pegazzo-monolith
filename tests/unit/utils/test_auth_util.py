@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import ANY, Mock
 
 import pytest
 from argon2.exceptions import VerifyMismatchError
@@ -37,8 +37,17 @@ class TestAuthUtils:
 
         access_token, refresh_token = AuthUtils.create_access_token(username, role, mock_authorize)
 
-        mock_authorize.create_access_token.assert_called_once()
-        mock_authorize.create_refresh_token.assert_called_once()
+        mock_authorize.create_access_token.assert_called_once_with(
+            subject=username,
+            user_claims={"role": role},
+            expires_time=ANY,
+        )
+
+        mock_authorize.create_refresh_token.assert_called_once_with(
+            subject=username,
+            user_claims={"role": role},
+            expires_time=ANY,
+        )
 
         assert access_token == "access"
         assert refresh_token == "refresh"

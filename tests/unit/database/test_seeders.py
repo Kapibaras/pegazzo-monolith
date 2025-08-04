@@ -8,9 +8,9 @@ from app.models.users import Role
 
 @pytest.fixture
 def mock_db():
-    """Fixture que simula una base de datos vacía.
+    """Fixture that simulates an empty database.
 
-    Simula que los roles aún no existen, por lo tanto serán agregados.
+    Simulates that the roles do not exist, so they will be added.
     """
     # Mock
     db = Mock()
@@ -22,9 +22,9 @@ def mock_db():
 
 @pytest.fixture
 def existing_role_db():
-    """Fixture que simula una base de datos con roles ya existentes.
+    """Fixture that simulates a database with existing roles.
 
-    Simula que los roles existen y por lo tanto serán actualizados, no insertados.
+    Simulates that the roles exist and therefore will be updated, not inserted.
     """
     # Mock
     db = Mock()
@@ -36,10 +36,10 @@ def existing_role_db():
 
 @pytest.mark.usefixtures("client")
 class TestSeeders:
-    """Clase de pruebas para la función seeders, que inserta o actualiza roles en la base de datos."""
+    """Class of tests for the seeders function, which inserts or updates roles in the database."""
 
     def test_seed_roles_insert_if_not_exists(self, mock_db):
-        """Verifica que se agregan los roles cuando no existen previamente en la base de datos."""
+        """Verifies that roles are added when they do not exist previously in the database."""
 
         # Act
         seeders(mock_db)
@@ -49,7 +49,7 @@ class TestSeeders:
         mock_db.commit.assert_called_once()
 
     def test_seed_roles_update_if_exists(self, existing_role_db):
-        """Verifica que se actualiza el nombre del rol cuando ya existe en la base de datos."""
+        """Verifies that the role name is updated when it already exists in the database."""
 
         # Act
         seeders(existing_role_db)
