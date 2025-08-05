@@ -1,6 +1,8 @@
 import pytest
+from fastapi_jwt_auth import AuthJWT
 
 from app.schemas.user import ActionSuccess, UserSchema
+from app.utils.auth import AuthUtils
 
 
 @pytest.mark.usefixtures("client")
@@ -9,8 +11,12 @@ class TestUserRouter:
 
     def test_get_all_users(self):
         """Test getting all users."""
+        # Arrange
+        authorize = AuthJWT()
+        access_token, _ = AuthUtils.create_access_token("adminuser", "admin", authorize)
+
         # Act
-        response = self.client.get("/pegazzo/internal/user")
+        response = self.client.get("/pegazzo/internal/user", cookies={"access_token_cookie": access_token})
 
         # Assert
         assert response.status_code == 200
@@ -22,9 +28,11 @@ class TestUserRouter:
         """Test getting all users with role filter."""
         # Arrange
         role = "admin"
+        authorize = AuthJWT()
+        access_token, _ = AuthUtils.create_access_token("adminuser", "admin", authorize)
 
         # Act
-        response = self.client.get(f"/pegazzo/internal/user?role={role}")
+        response = self.client.get(f"/pegazzo/internal/user?role={role}", cookies={"access_token_cookie": access_token})
 
         # Assert
         assert response.status_code == 200
@@ -42,9 +50,11 @@ class TestUserRouter:
             "password": "password123",
             "role": "admin",
         }
+        authorize = AuthJWT()
+        access_token, _ = AuthUtils.create_access_token("adminuser", "admin", authorize)
 
         # Act
-        response = self.client.post("/pegazzo/internal/user", json=user_data)
+        response = self.client.post("/pegazzo/internal/user", json=user_data, cookies={"access_token_cookie": access_token})
 
         # Assert
         assert response.status_code == 201
@@ -54,9 +64,11 @@ class TestUserRouter:
         """Test getting a user by username."""
         # Arrange
         username = "testuser"
+        authorize = AuthJWT()
+        access_token, _ = AuthUtils.create_access_token("adminuser", "admin", authorize)
 
         # Act
-        response = self.client.get(f"/pegazzo/internal/user/{username}")
+        response = self.client.get(f"/pegazzo/internal/user/{username}", cookies={"access_token_cookie": access_token})
 
         # Assert
         assert response.status_code == 200
@@ -73,9 +85,13 @@ class TestUserRouter:
             "surnames": "User",
             "role": "admin",
         }
+        authorize = AuthJWT()
+        access_token, _ = AuthUtils.create_access_token("adminuser", "admin", authorize)
 
         # Act
-        response = self.client.put(f"/pegazzo/internal/user/{username}", json=update_data)
+        response = self.client.put(
+            f"/pegazzo/internal/user/{username}", json=update_data, cookies={"access_token_cookie": access_token}
+        )
 
         # Assert
         assert response.status_code == 200
@@ -88,12 +104,43 @@ class TestUserRouter:
         """Test deleting a user."""
         # Arrange
         username = "testuser"
+        authorize = AuthJWT()
+        access_token, _ = AuthUtils.create_access_token("adminuser", "admin", authorize)
 
         # Act
-        response = self.client.delete(f"/pegazzo/internal/user/{username}")
+        response = self.client.delete(f"/pegazzo/internal/user/{username}", cookies={"access_token_cookie": access_token})
 
         # Assert
         assert response.status_code == 200
         data = response.json()
         assert data == {"message": f"User '{username}' was successfully deleted.", "extra_data": None}
         assert ActionSuccess.validate(data)
+
+    @pytest.mark.parametrize(
+        ("method", "endpoint"),
+        [
+            ("get", "/pegazzo/internal/user"),
+            ("post", "/pegazzo/internal/user"),
+            ("get", "/pegazzo/internal/user/testuser"),
+            ("put", "/pegazzo/internal/user/testuser"),
+            ("delete", "/pegazzo/internal/user/testuser"),
+        ],
+    )
+    def test_protected_routes_fail_without_auth(self, method, endpoint):
+        """Test that protected routes fail without proper role."""
+        client = getattr(self, "client_no_auth", self.client)
+
+        request_func = getattr(client, method)
+        if method in ("post", "put"):
+            json = {
+                "username": "baduser",
+                "name": "Fake",
+                "surnames": "User",
+                "password": "fake123",
+                "role": "viewer",
+            }
+            response = request_func(endpoint, json=json)
+        else:
+            response = request_func(endpoint)
+
+        assert response.status_code == 401
