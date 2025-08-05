@@ -8,11 +8,11 @@ It includes full support for database migrations, testing, and local development
 
 ## 📦 Tech Stack
 
-* ⚡ **FastAPI** – high-performance async Python web framework
-* 🧱 **SQLAlchemy** – ORM and database management
-* 🐍 **Pipenv** – dependency and virtual environment management
-* 🛠️ **Alembic** – database migrations
-* ✅ **Pytest** – testing framework
+- ⚡ **FastAPI** – high-performance async Python web framework
+- 🧱 **SQLAlchemy** – ORM and database management
+- 🐍 **Pipenv** – dependency and virtual environment management
+- 🛠️ **Alembic** – database migrations
+- ✅ **Pytest** – testing framework
 
 ---
 
@@ -38,10 +38,11 @@ pipenv run setup
 Create a `.env` file in the root directory:
 
 ```env
-ENV=development
+ENVIRONMENT=LOCAL
 DEBUG=true
 DATABASE_URL=sqlite:///./dev.db
 ```
+
 > [!NOTE]
 > 💡 You can also use a PostgreSQL instance:
 >
@@ -54,6 +55,7 @@ DATABASE_URL=sqlite:///./dev.db
 ```bash
 pipenv run dev
 ```
+
 > [!NOTE]
 > By default, the API is available at on all your local network:
 > 👉 [http://localhost:8000](http://localhost:8000)

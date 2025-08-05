@@ -1,6 +1,7 @@
 from fastapi import Depends
+from fastapi_jwt_auth import AuthJWT
 
-from app.services import UserService
+from app.services import AuthService, UserService
 
 from .repository_factory import RepositoryFactory
 
@@ -17,3 +18,13 @@ class ServiceFactory:
         Yields:UserService: An instance of UserService initialized with the provided repository.
         """
         yield UserService(repository)
+
+    @staticmethod
+    def auth_service(authorize=Depends(AuthJWT), repository=Depends(RepositoryFactory.user_repository)):
+        """Provide an instance of AuthService.
+
+        Args:authorize (AuthJWT): An instance of AuthJWT, injected via FastAPI's Depends.
+
+        Yields:AuthService: An instance of AuthService initialized with the provided authorize.
+        """
+        yield AuthService(authorize, repository)
