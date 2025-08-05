@@ -39,8 +39,8 @@ class AuthService:
 
         try:
             self.authorize.jwt_refresh_token_required()
-        except Exception:
-            raise InvalidRefreshToken from None
+        except Exception as ex:
+            raise InvalidRefreshToken from ex
 
         current_user = self.authorize.get_jwt_subject()
         claims = self.authorize.get_raw_jwt()

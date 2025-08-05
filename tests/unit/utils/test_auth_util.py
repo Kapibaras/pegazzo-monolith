@@ -18,7 +18,7 @@ class TestAuthUtils:
         assert AuthUtils.verify_password(plain_password, hashed)
 
     def test_verify_password_fail(self):
-        """Debe fallar si la contraseña no coincide."""
+        """Test verify password fail."""
         plain_password = "mypassword"
         wrong_password = "wrong"
         hashed = AuthUtils.hash_password(plain_password)
@@ -27,7 +27,7 @@ class TestAuthUtils:
             AuthUtils.verify_password(wrong_password, hashed)
 
     def test_create_access_token_calls_authorize_methods(self):
-        """Debe crear access y refresh tokens usando authorize."""
+        """Test create access and refresh tokens using authorize."""
         mock_authorize = Mock()
         mock_authorize.create_access_token.return_value = "access"
         mock_authorize.create_refresh_token.return_value = "refresh"
