@@ -1,8 +1,6 @@
 from fastapi import HTTPException, status
 from fastapi_jwt_auth.exceptions import AuthJWTException
 
-from app.utils.logging_config import logger
-
 
 class InvalidCredentials(HTTPException):
     """Invalid credentials error."""
@@ -24,9 +22,8 @@ class InvalidRefreshToken(HTTPException):
 class InvalidOrMissingToken(HTTPException):
     """Exception raised when the JWT token is invalid or missing."""
 
-    def __init__(self, exc: AuthJWTException):
-        """Initialize with the message from AuthJWTException."""
-        logger.error("JWT error: %s", exc, exc_info=True)
+    def __init__(self, _exc: AuthJWTException):
+        """Initialize the exception with a detail message."""
         super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or missing authentication token")
 
 

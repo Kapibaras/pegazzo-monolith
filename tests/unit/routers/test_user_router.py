@@ -3,13 +3,12 @@ import pytest
 from app.schemas.user import ActionSuccess, UserSchema
 
 
-@pytest.mark.usefixtures("authorized_client", "client_no_auth")
+@pytest.mark.usefixtures("authorized_client", "client")
 class TestUserRouter:
     """Tests for the internal UserRouter endpoints."""
 
     def test_get_all_users(self, authorized_client):
         """Test getting all users."""
-        # Arrange
 
         # Act
         response = authorized_client.get("/pegazzo/internal/user")
@@ -113,10 +112,8 @@ class TestUserRouter:
             ("delete", "/pegazzo/internal/user/testuser"),
         ],
     )
-    def test_protected_routes_fail_without_auth(self, method, endpoint, client_no_auth):
+    def test_protected_routes_fail_without_auth(self, method, endpoint, client):
         """Test that protected routes fail without proper role."""
-
-        client = client_no_auth
 
         request_func = getattr(client, method)
         if method in ("post", "put"):

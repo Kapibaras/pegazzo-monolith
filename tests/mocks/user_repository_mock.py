@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from app.errors.user import UserNotFoundException
 from app.models.users import Role, User
+from app.schemas.user import RoleEnum
 
 
 class UserRepositoryMock:
@@ -10,8 +11,8 @@ class UserRepositoryMock:
     def __init__(self):
         """Initialize the mock repository with sample data."""
         self.roles = {
-            "administrator": Role(id=1, name="administrator"),
-            "employee": Role(id=2, name="employee"),
+            "administrator": Role(id=1, name=RoleEnum.ADMIN),
+            "employee": Role(id=2, name=RoleEnum.EMPLOYEE),
         }
         self.users = [
             User(
@@ -28,7 +29,6 @@ class UserRepositoryMock:
 
     def get_role_by_name(self, role_name: str) -> Role | None:
         """Get role by name."""
-        print("role_name", role_name)
         return self.roles.get(role_name)
 
     def get_by_username(self, username: str) -> User | None:
@@ -55,15 +55,9 @@ class UserRepositoryMock:
         if not existing_user:
             raise UserNotFoundException
 
-        print(user.name)
-        print(user.surnames)
-        print(user.role)
-
         existing_user.name = user.name
         existing_user.surnames = user.surnames
-        print(user.role.name)
         existing_user.role = self.get_role_by_name(user.role.name)
-        print(existing_user.role)
         existing_user.role_id = existing_user.role.id
         existing_user.updated_at = datetime.now(timezone.utc)
         return existing_user
