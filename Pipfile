@@ -32,3 +32,5 @@ python_version = "3.12"
 
 [scripts]
 test = "pytest"
+seeders = "python -m app.database.seeders"
+

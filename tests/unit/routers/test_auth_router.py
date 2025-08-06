@@ -10,13 +10,13 @@ class TestAuthRouter:
     """Tests for the internal AuthRouter endpoints."""
 
     @patch("app.utils.auth.AuthUtils.verify_password", return_value=True)
-    def test_login_success(self, mock_verify_password):
+    def test_login_success(self, mock_verify_password, client_no_auth):
         """Test login endpoint."""
         # Arrange
-        user_data = {"username": "testuser", "password": "password123", "role": RoleEnum.admin}
+        user_data = {"username": "testuser", "password": "password123", "role": RoleEnum.ADMIN}
 
         # Act
-        response = self.client.post("/pegazzo/internal/auth/login", json=user_data)
+        response = client_no_auth.post("/pegazzo/internal/auth/login", json=user_data)
 
         # Assert
         assert response.status_code == 200
@@ -27,13 +27,13 @@ class TestAuthRouter:
         assert ActionSuccess.validate(data)
         mock_verify_password.assert_called_once_with("password123", "hashed_password")
 
-    def test_refresh_token(self):
+    def test_refresh_token(self, client_no_auth):
         """Test refresh token endpoint with real logic to verify cookies."""
         # Arrange
-        user_data = {"username": "testuser", "password": "password123", "role": RoleEnum.admin}
+        user_data = {"username": "testuser", "password": "password123", "role": RoleEnum.ADMIN}
 
         with patch("app.utils.auth.AuthUtils.verify_password", return_value=True):
-            login_response = self.client.post("/pegazzo/internal/auth/login", json=user_data)
+            login_response = client_no_auth.post("/pegazzo/internal/auth/login", json=user_data)
 
         assert login_response.status_code == 200
 
@@ -50,7 +50,7 @@ class TestAuthRouter:
             "refresh_token_cookie": refresh_cookie,
         }
 
-        response = self.client.post("/pegazzo/internal/auth/refresh", cookies=cookies)
+        response = client_no_auth.post("/pegazzo/internal/auth/refresh", cookies=cookies)
 
         # Assert
         assert response.status_code == 200
@@ -62,10 +62,10 @@ class TestAuthRouter:
         assert ActionSuccess.validate(data)
 
     @patch("app.services.auth.AuthService.logout")
-    def test_logout(self, mock_logout):
+    def test_logout(self, mock_logout, client_no_auth):
         """Test logout endpoint."""
         # Act
-        response = self.client.post("/pegazzo/internal/auth/logout")
+        response = client_no_auth.post("/pegazzo/internal/auth/logout")
 
         # Assert
         assert response.status_code == 200

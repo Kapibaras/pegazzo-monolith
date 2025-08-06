@@ -57,13 +57,13 @@ class TestUserService:
         """Test getting all users filtered by role."""
         # Arrange
         self.mock_repo.get_role_by_name.return_value = Mock(id=2)
-        self.mock_repo.get_all_users.return_value = [User(username="admin")]
+        self.mock_repo.get_all_users.return_value = [User(username="administrator")]
         # Act
-        result = self.service.get_all_users(role_name=RoleEnum.admin)
+        result = self.service.get_all_users(role_name=RoleEnum.ADMIN)
         # Assert
-        self.mock_repo.get_role_by_name.assert_called_once_with("admin")
+        self.mock_repo.get_role_by_name.assert_called_once_with("administrator")
         self.mock_repo.get_all_users.assert_called_once_with(role_id=2)
-        assert result[0].username == "admin"
+        assert result[0].username == "administrator"
 
     def test_get_all_users_role_not_found(self):
         """Test error when role does not exist."""
@@ -71,12 +71,12 @@ class TestUserService:
         self.mock_repo.get_role_by_name.return_value = None
         # Act & Assert
         with pytest.raises(RoleNotFoundException):
-            self.service.get_all_users(role_name=RoleEnum.admin)
+            self.service.get_all_users(role_name=RoleEnum.ADMIN)
 
     def test_create_user(self):
         """Test creating a new user."""
         # Arrange
-        data = UserCreateSchema(username="newuser", name="Test", surnames="User", password="123456", role="admin")
+        data = UserCreateSchema(username="newuser", name="Test", surnames="User", password="123456", role="administrator")
 
         role_mock = Mock()
         self.mock_repo.get_role_by_name.return_value = role_mock
@@ -88,7 +88,7 @@ class TestUserService:
         result = self.service.create_user(data)
 
         # Assert
-        self.mock_repo.get_role_by_name.assert_called_once_with("admin")
+        self.mock_repo.get_role_by_name.assert_called_once_with("administrator")
         self.mock_repo.get_by_username.assert_called_once_with("newuser")
         self.mock_repo.create_user.assert_called_once()
         assert result.username == "newuser"
@@ -97,7 +97,7 @@ class TestUserService:
     def test_create_user_already_exists(self):
         """Test creating a user that already exists."""
         # Arrange
-        data = UserCreateSchema(username="existinguser", name="Test", surnames="User", password="123456", role="admin")
+        data = UserCreateSchema(username="existinguser", name="Test", surnames="User", password="123456", role="administrator")
         self.mock_repo.get_role_by_name.return_value = Mock()
         self.mock_repo.get_by_username.return_value = User(username="existinguser")
 
@@ -108,7 +108,7 @@ class TestUserService:
     def test_update_user(self):
         """Test updating an existing user."""
         # Arrange
-        data = UserUpdateSchema(name="Updated", surnames="User", role="admin")
+        data = UserUpdateSchema(name="Updated", surnames="User", role="administrator")
         role_mock = Mock()
         user_mock = User(username="testuser", name="Old", surnames="Old", role=role_mock)
 
@@ -128,7 +128,7 @@ class TestUserService:
     def test_update_user_not_found(self):
         """Test error when updating a non-existent user."""
         # Arrange
-        data = UserUpdateSchema(name="Name", surnames="Surnames", role="admin")
+        data = UserUpdateSchema(name="Name", surnames="Surnames", role="administrator")
         self.mock_repo.get_by_username.return_value = None
         self.mock_repo.get_role_by_name.return_value = Mock()
 

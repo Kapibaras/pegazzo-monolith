@@ -13,7 +13,8 @@ class UserRepository(DBRepository):
 
         Args: role_name (str): The name of the role to retrieve.
         """
-        return self.db.query(Role).filter_by(name=role_name).first()
+        print(role_name)
+        return self.db.query(Role).filter_by(name=role_name.value).first()
 
     def get_by_username(self, username: str):
         """Retrieve a user by their username.

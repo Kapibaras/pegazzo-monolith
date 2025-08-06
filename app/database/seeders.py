@@ -1,12 +1,13 @@
 from app.database.session import SessionLocal
 from app.models.users import Role
+from app.schemas.user import RoleEnum
 
 
 def seeders(db: SessionLocal):
     """Seed roles into the database."""
     roles = [
-        Role(id=1, name="admin"),
-        Role(id=2, name="user"),
+        Role(id=1, name=RoleEnum.ADMIN),
+        Role(id=2, name=RoleEnum.EMPLOYEE),
     ]
 
     for role in roles:

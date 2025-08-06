@@ -1,9 +1,13 @@
 from fastapi import FastAPI
 from mangum import Mangum
 
+import app.auth.core
 from app.config import DEBUG, AppConfig
 from app.database.core import test_connection
 from app.routers import auth_router, user_router
+from app.utils.logging_config import setup_logger
+
+setup_logger()
 
 app = FastAPI(
     debug=DEBUG,

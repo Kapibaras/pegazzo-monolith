@@ -1,6 +1,8 @@
 from fastapi import HTTPException, status
 from fastapi_jwt_auth.exceptions import AuthJWTException
 
+from app.utils.logging_config import logger
+
 
 class InvalidCredentials(HTTPException):
     """Invalid credentials error."""
@@ -24,8 +26,8 @@ class InvalidOrMissingToken(HTTPException):
 
     def __init__(self, exc: AuthJWTException):
         """Initialize with the message from AuthJWTException."""
-        msg = getattr(exc, "message", None) or getattr(exc, "detail", None) or repr(exc)
-        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=msg)
+        logger.error("JWT error: %s", exc, exc_info=True)
+        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or missing authentication token")
 
 
 class InvalidTokenException(HTTPException):
@@ -39,6 +41,9 @@ class InvalidTokenException(HTTPException):
 class ForbiddenRoleException(HTTPException):
     """Exception raised when a user is not authorized to access a resource."""
 
-    def __init__(self):
+    def __init__(self, role: str, allowed_roles: list[str]):
         """Initialize the exception with a detail message."""
-        super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden role provided.")
+        super().__init__(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Forbidden role provided. Role: {role}, Allowed roles: {allowed_roles}",
+        )

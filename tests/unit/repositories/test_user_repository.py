@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.errors.database import DBOperationError
 from app.models.users import Role, User
 from app.repositories.user import UserRepository
+from app.schemas.user import RoleEnum
 
 
 @pytest.fixture
@@ -86,11 +87,11 @@ class TestUserRepository:
         self.mock_filter.first.return_value = sample_role
 
         # Act
-        result = self.repository.get_role_by_name("ADMIN")
+        result = self.repository.get_role_by_name(RoleEnum.ADMIN)
 
         # Assert
         self.mock_db.query.assert_called_once_with(Role)
-        self.mock_query.filter_by.assert_called_once_with(name="ADMIN")
+        self.mock_query.filter_by.assert_called_once_with(name="administrator")
         self.mock_filter.first.assert_called_once()
         assert result == sample_role
 
