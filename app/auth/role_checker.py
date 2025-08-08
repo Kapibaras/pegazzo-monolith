@@ -19,7 +19,7 @@ class RoleChecker:
         try:
             authorize.jwt_required()
         except AuthJWTException as e:
-            raise InvalidOrMissingToken(e) from e
+            raise InvalidOrMissingToken from e
 
         claims = authorize.get_raw_jwt()
         username = claims.get("sub")
