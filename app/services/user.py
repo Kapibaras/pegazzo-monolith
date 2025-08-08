@@ -42,13 +42,13 @@ class UserService:
 
         role = self.repository.get_role_by_name(data.role)
 
+        if not role:
+            raise RoleNotFoundException
+
         if self.repository.get_by_username(data.username):
             raise UsernameAlreadyExistsException
-
         hashed_password = AuthUtils.hash_password(data.password)
-
         user = User(username=data.username, name=data.name, surnames=data.surnames, password=hashed_password, role=role)
-
         return self.repository.create_user(user)
 
     def update_user(self, username: str, data: UserUpdateSchema) -> UserSchema:

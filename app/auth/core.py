@@ -17,6 +17,8 @@ class Settings(BaseModel):
     authjwt_cookie_httponly: bool = True
     authjwt_access_token_expires: timedelta = timedelta(minutes=(AUTHORIZATION.JWT_ACCESS_TOKEN_EXPIRES_MIN))
     authjwt_refresh_token_expires: timedelta = timedelta(days=(AUTHORIZATION.JWT_REFRESH_TOKEN_EXPIRES_DAYS))
+    authjwt_access_cookie_key: str = "access_token_cookie"
+    authjwt_refresh_cookie_key: str = "refresh_token_cookie"
 
 
 @AuthJWT.load_config

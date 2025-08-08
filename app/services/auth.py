@@ -1,4 +1,3 @@
-from fastapi.responses import JSONResponse
 from fastapi_jwt_auth import AuthJWT
 
 from app.errors.auth import InvalidCredentials, InvalidRefreshToken

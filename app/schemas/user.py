@@ -10,25 +10,25 @@ from pydantic import BaseModel, Field
 class RoleEnum(str, Enum):
     """Enum for role names."""
 
-    admin = "admin"
-    user = "user"
+    ADMIN = "administrator"
+    EMPLOYEE = "employee"
 
 
 # * MODEL SCHEMAS * #
 
 
 class UserSchema(BaseModel):
-    """Schema for user-related operations."""
+    """Schema for a user."""
 
     username: str = Field(..., description="Username of the user")
     name: str = Field(..., description="Name of the user")
     surnames: str = Field(..., description="Surnames of the user")
-    role_name: RoleEnum = Field(..., description="Role of the user", alias="role")
+    role_name: RoleEnum = Field(..., alias="role", description="Role of the user")
     created_at: datetime = Field(..., description="User creation timestamp")
     updated_at: datetime = Field(..., description="User update timestamp")
 
     class Config:
-        """Configuration for the UserSchema."""
+        """Pydantic model configuration."""
 
         orm_mode = True
         allow_population_by_field_name = True
