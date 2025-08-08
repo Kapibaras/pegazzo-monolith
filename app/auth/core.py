@@ -1,14 +1,9 @@
 from datetime import timedelta
 
-from fastapi import FastAPI, Request
 from fastapi_jwt_auth import AuthJWT
-from fastapi_jwt_auth.exceptions import AuthJWTException
 from pydantic import BaseModel
 
 from app.config import AUTHORIZATION, ENVIRONMENT
-from app.errors.auth import InvalidOrMissingToken
-
-app = FastAPI()
 
 
 class Settings(BaseModel):
@@ -30,10 +25,3 @@ class Settings(BaseModel):
 def get_config():
     """Get the configuration for the AuthJWT library."""
     return Settings()
-
-
-@app.exception_handler(AuthJWTException)
-def authjwt_exception_handler(_request: Request, exc: AuthJWTException):
-    """Handle AuthJWT exceptions."""
-
-    raise InvalidOrMissingToken(exc)

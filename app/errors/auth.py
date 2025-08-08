@@ -22,7 +22,7 @@ class InvalidRefreshToken(HTTPException):
 class InvalidOrMissingToken(HTTPException):
     """Exception raised when the JWT token is invalid or missing."""
 
-    def __init__(self, _exc: AuthJWTException):
+    def __init__(self):
         """Initialize the exception with a detail message."""
         super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or missing authentication token")
 

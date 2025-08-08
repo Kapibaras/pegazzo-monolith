@@ -28,7 +28,7 @@ class UserService:
         """Get all users, optionally filtered by role name."""
 
         if role_name:
-            role = self.repository.get_role_by_name(role_name)
+            role = self.repository.get_role_by_name(role_name.value)
             if not role:
                 raise RoleNotFoundException
             role_id = role.id
