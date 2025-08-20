@@ -10,8 +10,9 @@ from pydantic import BaseModel, Field
 class RoleEnum(str, Enum):
     """Enum for role names."""
 
-    ADMIN = "administrator"
-    EMPLOYEE = "employee"
+    OWNER = "propietario"
+    ADMIN = "administrador"
+    EMPLOYEE = "empleado"
 
 
 # * MODEL SCHEMAS * #

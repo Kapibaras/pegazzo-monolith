@@ -33,7 +33,7 @@ class TestAuthUtils:
         mock_authorize.create_refresh_token.return_value = "refresh"
 
         username = "testuser"
-        role = "admin"
+        role = "propietario"
 
         access_token, refresh_token = AuthUtils.create_access_token(username, role, mock_authorize)
 
