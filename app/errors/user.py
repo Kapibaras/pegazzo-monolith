@@ -24,3 +24,8 @@ class UserNotFoundException(HTTPException):
 class RoleNotFoundException(HTTPException):
     def __init__(self):
         super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found.")
+
+
+class ForbiddenRoleException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden role provided.")

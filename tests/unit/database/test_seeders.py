@@ -30,7 +30,7 @@ def existing_role_db():
     db = Mock()
     db.query.return_value = db
     db.filter_by.side_effect = lambda id=None: db
-    db.first.side_effect = lambda: Role(id=1, name="old_admin") if db.query.call_count == 1 else Role(id=2, name="old_user")
+    db.first.side_effect = lambda: Role(id=1, name="old_owner") if db.query.call_count == 1 else Role(id=2, name="old_user")
     return db
 
 
@@ -45,7 +45,7 @@ class TestSeeders:
         seeders(mock_db)
 
         # Assert
-        assert mock_db.add.call_count == 2
+        assert mock_db.add.call_count == 3
         mock_db.commit.assert_called_once()
 
     def test_seed_roles_update_if_exists(self, existing_role_db):

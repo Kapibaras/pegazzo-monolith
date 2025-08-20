@@ -13,7 +13,7 @@ class TestAuthRouter:
     def test_login_success(self, mock_verify_password, client):
         """Test login endpoint."""
         # Arrange
-        user_data = {"username": "testuser", "password": "password123", "role": RoleEnum.ADMIN}
+        user_data = {"username": "testuser", "password": "password123", "role": RoleEnum.OWNER}
 
         # Act
         response = client.post("/pegazzo/internal/auth/login", json=user_data)
@@ -30,7 +30,7 @@ class TestAuthRouter:
     def test_refresh_token(self, client):
         """Test refresh token endpoint with real logic to verify cookies."""
         # Arrange
-        user_data = {"username": "testuser", "password": "password123", "role": RoleEnum.ADMIN}
+        user_data = {"username": "testuser", "password": "password123", "role": RoleEnum.OWNER}
 
         with patch("app.utils.auth.AuthUtils.verify_password", return_value=True):
             login_response = client.post("/pegazzo/internal/auth/login", json=user_data)

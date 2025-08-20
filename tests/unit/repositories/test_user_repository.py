@@ -26,7 +26,7 @@ def sample_role():
     """Create a sample role object for testing."""
     role = Role()
     role.id = 1
-    role.name = "ADMIN"
+    role.name = "propietario"
     return role
 
 
@@ -87,11 +87,11 @@ class TestUserRepository:
         self.mock_filter.first.return_value = sample_role
 
         # Act
-        result = self.repository.get_role_by_name(RoleEnum.ADMIN)
+        result = self.repository.get_role_by_name(RoleEnum.OWNER)
 
         # Assert
         self.mock_db.query.assert_called_once_with(Role)
-        self.mock_query.filter_by.assert_called_once_with(name="administrator")
+        self.mock_query.filter_by.assert_called_once_with(name="propietario")
         self.mock_filter.first.assert_called_once()
         assert result == sample_role
 

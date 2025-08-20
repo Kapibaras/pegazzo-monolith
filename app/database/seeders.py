@@ -6,8 +6,9 @@ from app.schemas.user import RoleEnum
 def seeders(db: SessionLocal):
     """Seed roles into the database."""
     roles = [
-        Role(id=1, name=RoleEnum.ADMIN),
-        Role(id=2, name=RoleEnum.EMPLOYEE),
+        Role(id=1, name=RoleEnum.OWNER),
+        Role(id=2, name=RoleEnum.ADMIN),
+        Role(id=3, name=RoleEnum.EMPLOYEE),
     ]
 
     for role in roles:

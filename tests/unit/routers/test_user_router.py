@@ -22,7 +22,7 @@ class TestUserRouter:
     def test_get_all_users_with_role_filter(self, authorized_client):
         """Test getting all users with role filter."""
         # Arrange
-        role = "administrator"
+        role = "propietario"
 
         # Act
         response = authorized_client.get(f"/pegazzo/internal/user?role={role}")
@@ -41,7 +41,7 @@ class TestUserRouter:
             "name": "Test",
             "surnames": "User",
             "password": "password123",
-            "role": "administrator",
+            "role": "administrador",
         }
 
         # Act
@@ -72,7 +72,7 @@ class TestUserRouter:
         update_data = {
             "name": "Updated",
             "surnames": "User",
-            "role": "administrator",
+            "role": "propietario",
         }
 
         # Act

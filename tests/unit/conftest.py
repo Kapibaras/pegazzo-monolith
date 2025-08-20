@@ -21,14 +21,14 @@ def client():
 
 @pytest.fixture
 def authorized_client():
-    """Client with valid JWT cookie for user 'adminuser' role 'administrator'."""
+    """Client with valid JWT cookie for user 'owneruser' role 'owner'."""
     app.dependency_overrides = MOCK_LINKING
     client_instance = TestClient(app)
 
     authorize = AuthJWT()
     access_token, refresh_token = AuthUtils.create_access_token(
-        username="adminuser",
-        role="administrator",
+        username="owneruser",
+        role="propietario",
         authorize=authorize,
     )
     client_instance.cookies.set("access_token_cookie", access_token)

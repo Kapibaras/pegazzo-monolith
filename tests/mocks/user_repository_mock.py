@@ -11,8 +11,9 @@ class UserRepositoryMock:
     def __init__(self):
         """Initialize the mock repository with sample data."""
         self.roles = {
-            "administrator": Role(id=1, name=RoleEnum.ADMIN),
-            "employee": Role(id=2, name=RoleEnum.EMPLOYEE),
+            "propietario": Role(id=1, name=RoleEnum.OWNER),
+            "administrador": Role(id=2, name=RoleEnum.ADMIN),
+            "empleado": Role(id=3, name=RoleEnum.EMPLOYEE),
         }
         self.users = [
             User(
@@ -21,7 +22,7 @@ class UserRepositoryMock:
                 surnames="User",
                 password="hashed_password",
                 role_id=1,
-                role=self.roles["administrator"],
+                role=self.roles["propietario"],
                 created_at=datetime.now(timezone.utc),
                 updated_at=datetime.now(timezone.utc),
             ),
@@ -45,7 +46,7 @@ class UserRepositoryMock:
         """Simulate user creation."""
         user.created_at = datetime.now(timezone.utc)
         user.updated_at = datetime.now(timezone.utc)
-        user.role = self.get_role_by_name(user.role.name) or self.roles["employee"]
+        user.role = self.get_role_by_name(user.role.name) or self.roles["empleado"]
         self.users.append(user)
         return user
 

@@ -30,7 +30,7 @@ class TestAuthService:
     def test_login_success(self, mock_create_token, mock_verify_password):
         """Test successful login sets cookies correctly."""
         # Arrange
-        user = User(username="testuser", password="hashed", role=RoleEnum.ADMIN)
+        user = User(username="testuser", password="hashed", role=RoleEnum.OWNER)
         self.mock_repo.get_by_username.return_value = user
 
         # Act
@@ -62,7 +62,7 @@ class TestAuthService:
         """Test successful refresh generates new tokens and sets them."""
         # Arrange
         self.mock_authorize.get_jwt_subject.return_value = "testuser"
-        self.mock_authorize.get_raw_jwt.return_value = {"role": RoleEnum.ADMIN}
+        self.mock_authorize.get_raw_jwt.return_value = {"role": RoleEnum.OWNER}
 
         # Act
         result = self.service.refresh()
@@ -71,7 +71,7 @@ class TestAuthService:
         self.mock_authorize.jwt_refresh_token_required.assert_called_once()
         self.mock_authorize.get_jwt_subject.assert_called_once()
         self.mock_authorize.get_raw_jwt.assert_called_once()
-        mock_create_token.assert_called_once_with(username="testuser", role=RoleEnum.ADMIN, authorize=self.mock_authorize)
+        mock_create_token.assert_called_once_with(username="testuser", role=RoleEnum.OWNER, authorize=self.mock_authorize)
         self.mock_authorize.set_access_cookies.assert_called_once_with("new_access")
         self.mock_authorize.set_refresh_cookies.assert_called_once_with("new_refresh")
         assert result is None
