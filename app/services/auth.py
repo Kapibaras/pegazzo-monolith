@@ -2,6 +2,7 @@ from fastapi_jwt_auth import AuthJWT
 
 from app.errors.auth import InvalidCredentials, InvalidRefreshToken
 from app.errors.user import UserNotFoundException
+from app.models.users import User
 from app.repositories.user import UserRepository
 from app.utils.auth import AuthUtils
 
@@ -57,3 +58,16 @@ class AuthService:
         """Logout a user and return an action success response."""
 
         self.authorize.unset_jwt_cookies()
+
+    def get_current_user(self) -> User:
+        """Get the current user from the DB."""
+        username = self.authorize.get_jwt_subject()
+        return self.repository.get_by_username(username)
+
+    def get_permissions(self) -> dict:
+        """Get the current user's role and permissions from the DB."""
+        user = self.get_current_user()
+        return {
+            "role": user.role.name,
+            "permissions": [perm.name for perm in user.role.permissions],
+        }

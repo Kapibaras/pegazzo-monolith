@@ -28,7 +28,7 @@ class RoleChecker:
         if not username or not role:
             raise InvalidTokenException
 
-        if role not in self.allowed_roles:
+        if self.allowed_roles and role not in self.allowed_roles:
             raise ForbiddenRoleException(role, self.allowed_roles)
 
         return username, role
