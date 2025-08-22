@@ -71,6 +71,13 @@ class UserUpdateSchema(BaseModel):
 # * RESPONSE SCHEMAS * #
 
 
+class PermissionsResponse(BaseModel):
+    """Schema for permissions responses."""
+
+    role: str
+    permissions: list[str]
+
+
 class ActionSuccess(BaseModel):
     """Schema for successful action responses (e.g., DELETE).
 
