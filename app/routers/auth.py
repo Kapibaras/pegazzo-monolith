@@ -11,7 +11,7 @@ router = APIRouter(prefix="/internal/auth", tags=["Auth"])
 @router.get("/permissions", response_model=PermissionsResponse)
 def permissions(
     service: AuthService = Depends(ServiceFactory.auth_service),
-    user=Depends(RoleChecker([])),
+    user=Depends(RoleChecker()),
 ) -> PermissionsResponse:
     """Get the current user's permissions."""
     return service.get_permissions()

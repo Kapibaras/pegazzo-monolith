@@ -111,7 +111,7 @@ def test_role_checker_valid_when_role_last_in_allowed_list():
 
 
 def test_role_checker_allows_any_role_when_no_allowed_roles_defined():
-    """Si no hay roles definidos en allowed_roles, cualquier role debe pasar."""
+    """Test that any role is allowed when no allowed roles are defined."""
     mock_authorize = MagicMock()
     mock_authorize.jwt_required.return_value = None
     mock_authorize.get_raw_jwt.return_value = {"sub": "any_user", "role": "random_role"}

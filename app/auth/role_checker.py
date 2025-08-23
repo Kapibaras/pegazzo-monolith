@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from fastapi import Depends
 from fastapi_jwt_auth import AuthJWT
@@ -10,9 +10,9 @@ from app.errors.auth import ForbiddenRoleException, InvalidOrMissingToken, Inval
 class RoleChecker:
     """Role checker class."""
 
-    def __init__(self, allowed_roles: List[str]):
+    def __init__(self, allowed_roles: Optional[List[str]] = None) -> None:
         """Initialize the role checker."""
-        self.allowed_roles = allowed_roles
+        self.allowed_roles = allowed_roles or []
 
     def __call__(self, authorize: AuthJWT = Depends()) -> Tuple[str, str]:
         """Check if the role is allowed."""
@@ -28,7 +28,10 @@ class RoleChecker:
         if not username or not role:
             raise InvalidTokenException
 
-        if self.allowed_roles and role not in self.allowed_roles:
+        if not self.allowed_roles:
+            raise ForbiddenRoleException(role, [])
+
+        if role not in self.allowed_roles:
             raise ForbiddenRoleException(role, self.allowed_roles)
 
         return username, role

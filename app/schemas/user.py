@@ -74,8 +74,8 @@ class UserUpdateSchema(BaseModel):
 class PermissionsResponse(BaseModel):
     """Schema for permissions responses."""
 
-    role: str
-    permissions: list[str]
+    role: str = Field(..., description="Role of the user")
+    permissions: list[str] = Field(..., description="Permissions of the user")
 
 
 class ActionSuccess(BaseModel):
