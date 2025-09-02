@@ -32,8 +32,8 @@ class User(Base):
     password = Column(String(128), nullable=False)
     role_id = Column(Integer, ForeignKey("role.id"), nullable=False)
     role = relationship("Role")
-    created_at = Column(DateTime(timezone=True), default=func.now())
-    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
 
 
 class Permission(Base):
