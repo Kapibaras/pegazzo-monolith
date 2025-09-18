@@ -81,5 +81,8 @@ class Associate(Base):
     __tablename__ = "associate"
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String(50), nullable=False)
+    surnames = Column(String(100), nullable=False)
     telephones = Column(ARRAY(String), nullable=False)
     cars = relationship("Car", secondary=associate_car, back_populates="associate")
+    created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)

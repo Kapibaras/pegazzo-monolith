@@ -27,4 +27,5 @@ class Incidence(Base):
     driver_id = Column(String(15), ForeignKey("driver.id"), nullable=True)
     car = relationship("Car")
     driver = relationship("Driver")
+    documents = relationship("Document", secondary=incidence_document_table)
     created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)

@@ -1,5 +1,6 @@
 from sqlalchemy import Column, ForeignKey, Integer, String, Table
 from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.types import DateTime
 
@@ -33,6 +34,13 @@ references_document_table = Table(
     Column("document_id", Integer, ForeignKey("document.id"), primary_key=True, nullable=False),
 )
 
+driver_reference_table = Table(
+    "driver_reference",
+    Base.metadata,
+    Column("driver_id", String(15), ForeignKey("driver.id"), primary_key=True, nullable=False),
+    Column("reference_id", Integer, ForeignKey("reference.id"), primary_key=True, nullable=False),
+)
+
 
 class Driver(Base):
     """Driver model class."""
@@ -47,6 +55,9 @@ class Driver(Base):
     license_validity = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     identification_number = Column(String(20), nullable=False)
     address = Column(String(255), nullable=False)
+    references = relationship("Reference", secondary=driver_reference_table)
+    documents = relationship("Document", secondary=driver_document_table)
+    guarantors = relationship("Guarantor", secondary=driver_guarantor_table)
     garage_address = Column(ARRAY(String(255)), nullable=False)
     created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
@@ -75,5 +86,6 @@ class Guarantor(Base):
     telephones = Column(ARRAY(String), nullable=False)
     address = Column(String(255), nullable=False)
     relation = Column(String(10), nullable=False)
+    documents = relationship("Document", secondary=guarantor_document_table)
     created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
