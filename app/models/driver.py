@@ -52,7 +52,7 @@ class Driver(Base):
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
 
 
-class References(Base):
+class Reference(Base):
     """References model class."""
 
     __tablename__ = "references"
