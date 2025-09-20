@@ -1,8 +1,5 @@
 from unittest.mock import ANY, Mock
 
-import pytest
-from argon2.exceptions import VerifyMismatchError
-
 from app.utils.auth import AuthUtils
 
 
@@ -23,8 +20,7 @@ class TestAuthUtils:
         wrong_password = "wrong"
         hashed = AuthUtils.hash_password(plain_password)
 
-        with pytest.raises(VerifyMismatchError):
-            AuthUtils.verify_password(wrong_password, hashed)
+        assert AuthUtils.verify_password(wrong_password, hashed) is False
 
     def test_create_access_token_calls_authorize_methods(self):
         """Test create access and refresh tokens using authorize."""

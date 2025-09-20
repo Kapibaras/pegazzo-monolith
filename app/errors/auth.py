@@ -1,5 +1,4 @@
 from fastapi import HTTPException, status
-from fastapi_jwt_auth.exceptions import AuthJWTException
 
 
 class InvalidCredentials(HTTPException):
@@ -44,3 +43,11 @@ class ForbiddenRoleException(HTTPException):
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Forbidden role provided. Role: {role}, Allowed roles: {allowed_roles}",
         )
+
+
+class AlreadyLoggedOutException(HTTPException):
+    """Exception raised when a user tries to log out but is already logged out."""
+
+    def __init__(self):
+        """Initialize the exception with a detail message."""
+        super().__init__(status_code=status.HTTP_400_BAD_REQUEST, detail="No active session found to log out.")
