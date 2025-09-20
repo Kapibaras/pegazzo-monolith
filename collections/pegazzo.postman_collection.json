@@ -1,0 +1,172 @@
+{
+  "info": {
+    "_postman_id": "8fd4b8c2-5966-4047-8f77-0de9ba3a9185",
+    "name": "Pegazzo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "11466005"
+  },
+  "item": [
+    {
+      "name": "Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const names = ['csrf_access_token', 'csrf_refresh_token'];\r",
+              "\r",
+              "names.forEach((n) => {\r",
+              "  const v = pm.cookies.get(n);          // lee la cookie de la respuesta\r",
+              "  if (v) pm.environment.set(n, v);      // gu\u00e1rdala en variable de entorno\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"username\": \"Ruben35\",\r\n    \"password\": \"1234\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8000/pegazzo/internal/auth/login",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8000",
+          "path": [
+            "pegazzo",
+            "internal",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Logout",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if(pm.response.code != 200){\r",
+              "    console.log(\"No active session...\")\r",
+              "}\r",
+              "\r",
+              "const names = ['csrf_access_token', 'csrf_refresh_token'];\r",
+              "\r",
+              "names.forEach((n) => {\r",
+              "  pm.collectionVariables.unset(n);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-CSRF-ACCESS",
+            "value": "{{csrf_access_token}}",
+            "type": "text"
+          },
+          {
+            "key": "X-CSRF-REFRESH",
+            "value": "{{csrf_refresh_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/pegazzo/internal/auth/logout",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8000",
+          "path": [
+            "pegazzo",
+            "internal",
+            "auth",
+            "logout"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Users",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8000/pegazzo/internal/user",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8000",
+          "path": [
+            "pegazzo",
+            "internal",
+            "user"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "exec": [
+          "const csrf_access = pm.collectionVariables.get('csrf_access_token')\r",
+          "const csrf_refresh = pm.collectionVariables.get('csrf_refresh_token')\r",
+          "\r",
+          "if(csrf_access && csrf_refresh)\r",
+          "    pm.request.headers.upsert({\r",
+          "        'key': 'X-CSRF-ACCESS',\r",
+          "        \"value\": csrf_access\r",
+          "    })\r",
+          "    pm.request.headers.upsert({\r",
+          "        'key': 'X-CSRF-REFRESH',\r",
+          "        \"value\": csrf_refresh\r",
+          "    })\r",
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}
