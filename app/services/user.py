@@ -1,4 +1,5 @@
 from app.errors.user import (
+    ForbiddenRoleException,
     RoleNotFoundException,
     UsernameAlreadyExistsException,
     UserNotFoundException,
@@ -44,6 +45,9 @@ class UserService:
 
         if not role:
             raise RoleNotFoundException
+
+        if role.name == RoleEnum.OWNER.value:
+            raise ForbiddenRoleException
 
         if self.repository.get_by_username(data.username):
             raise UsernameAlreadyExistsException

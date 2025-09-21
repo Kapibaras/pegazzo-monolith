@@ -1,10 +1,20 @@
 from fastapi import APIRouter, Body, Depends
 
+from app.auth.role_checker import RoleChecker
 from app.dependencies import ServiceFactory
-from app.schemas.user import ActionSuccess
+from app.schemas.user import ActionSuccess, PermissionsResponse
 from app.services.auth import AuthService
 
 router = APIRouter(prefix="/internal/auth", tags=["Auth"])
+
+
+@router.get("/permissions", response_model=PermissionsResponse)
+def permissions(
+    service: AuthService = Depends(ServiceFactory.auth_service),
+    user=Depends(RoleChecker()),
+) -> PermissionsResponse:
+    """Get the current user's permissions."""
+    return service.get_permissions()
 
 
 @router.post("/login", response_model=ActionSuccess)

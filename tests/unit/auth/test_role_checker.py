@@ -12,23 +12,23 @@ from app.errors.auth import (
 )
 
 
-def test_role_checker_allows_valid_admin():
+def test_role_checker_allows_valid_owner():
     mock_authorize = MagicMock()
     mock_authorize.jwt_required.return_value = None
-    mock_authorize.get_raw_jwt.return_value = {"sub": "admin_user", "role": "administrator"}
+    mock_authorize.get_raw_jwt.return_value = {"sub": "owner_user", "role": "propietario"}
 
-    checker = RoleChecker(["administrator"])
+    checker = RoleChecker(["propietario"])
     sub, role = checker(authorize=mock_authorize)
 
-    assert sub == "admin_user"
-    assert role == "administrator"
+    assert sub == "owner_user"
+    assert role == "propietario"
 
 
 def test_role_checker_rejects_invalid_token():
     mock_authorize = MagicMock()
     mock_authorize.jwt_required.side_effect = AuthJWTException("Invalid token")
 
-    checker = RoleChecker(["administrator"])
+    checker = RoleChecker(["propietario"])
 
     with pytest.raises(InvalidOrMissingToken):
         checker(authorize=mock_authorize)
@@ -39,7 +39,7 @@ def test_role_checker_missing_claims_raises():
     mock_authorize.jwt_required.return_value = None
     mock_authorize.get_raw_jwt.return_value = {"sub": "user_without_role"}
 
-    checker = RoleChecker(["administrator"])
+    checker = RoleChecker(["propietario"])
 
     with pytest.raises(InvalidTokenException):
         checker(authorize=mock_authorize)
@@ -50,7 +50,7 @@ def test_role_checker_missing_all_claims_raises():
     mock_authorize.jwt_required.return_value = None
     mock_authorize.get_raw_jwt.return_value = {}
 
-    checker = RoleChecker(["administrator"])
+    checker = RoleChecker(["propietario"])
 
     with pytest.raises(InvalidTokenException):
         checker(authorize=mock_authorize)
@@ -59,9 +59,9 @@ def test_role_checker_missing_all_claims_raises():
 def test_role_checker_empty_username_raises():
     mock_authorize = MagicMock()
     mock_authorize.jwt_required.return_value = None
-    mock_authorize.get_raw_jwt.return_value = {"sub": "", "role": "administrator"}
+    mock_authorize.get_raw_jwt.return_value = {"sub": "", "role": "propietario"}
 
-    checker = RoleChecker(["administrator"])
+    checker = RoleChecker(["propietario"])
 
     with pytest.raises(InvalidTokenException):
         checker(authorize=mock_authorize)
@@ -73,7 +73,7 @@ def test_role_checker_invalid_role_value_raises(bad_role):
     mock_authorize.jwt_required.return_value = None
     mock_authorize.get_raw_jwt.return_value = {"sub": "user", "role": bad_role}
 
-    checker = RoleChecker(["administrator"])
+    checker = RoleChecker(["propietario"])
 
     with pytest.raises(InvalidTokenException):
         checker(authorize=mock_authorize)
@@ -82,17 +82,17 @@ def test_role_checker_invalid_role_value_raises(bad_role):
 def test_role_checker_forbidden_role_raises():
     mock_authorize = MagicMock()
     mock_authorize.jwt_required.return_value = None
-    mock_authorize.get_raw_jwt.return_value = {"sub": "normal_user", "role": "employee"}
+    mock_authorize.get_raw_jwt.return_value = {"sub": "normal_user", "role": "empleado"}
 
-    checker = RoleChecker(["administrator"])
+    checker = RoleChecker(["propietario"])
 
     with pytest.raises(ForbiddenRoleException) as exc_info:
         checker(authorize=mock_authorize)
 
     assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
 
-    expected_role = "employee"
-    expected_allowed = ["administrator"]
+    expected_role = "empleado"
+    expected_allowed = ["propietario"]
     assert f"Role: {expected_role}" in exc_info.value.detail
     assert f"Allowed roles: {expected_allowed}" in exc_info.value.detail
 
@@ -100,11 +100,25 @@ def test_role_checker_forbidden_role_raises():
 def test_role_checker_valid_when_role_last_in_allowed_list():
     mock_authorize = MagicMock()
     mock_authorize.jwt_required.return_value = None
-    mock_authorize.get_raw_jwt.return_value = {"sub": "employee_user", "role": "employee"}
+    mock_authorize.get_raw_jwt.return_value = {"sub": "empleado_user", "role": "empleado"}
 
-    checker = RoleChecker(["administrator", "employee"])
+    checker = RoleChecker(["propietario", "administrador", "empleado"])
 
     sub, role = checker(authorize=mock_authorize)
 
-    assert sub == "employee_user"
-    assert role == "employee"
+    assert sub == "empleado_user"
+    assert role == "empleado"
+
+
+def test_role_checker_allows_any_role_when_no_allowed_roles_defined():
+    """Test that any role is allowed when no allowed roles are defined."""
+    mock_authorize = MagicMock()
+    mock_authorize.jwt_required.return_value = None
+    mock_authorize.get_raw_jwt.return_value = {"sub": "any_user", "role": "random_role"}
+
+    checker = RoleChecker([])
+
+    sub, role = checker(authorize=mock_authorize)
+
+    assert sub == "any_user"
+    assert role == "random_role"

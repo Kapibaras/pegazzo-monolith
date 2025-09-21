@@ -30,7 +30,7 @@ class TestAuthService:
     def test_login_success(self, mock_create_token, mock_verify_password):
         """Test successful login sets cookies correctly."""
         # Arrange
-        user = User(username="testuser", password="hashed", role=RoleEnum.ADMIN)
+        user = User(username="testuser", password="hashed", role=RoleEnum.OWNER)
         self.mock_repo.get_by_username.return_value = user
 
         # Act
@@ -62,7 +62,7 @@ class TestAuthService:
         """Test successful refresh generates new tokens and sets them."""
         # Arrange
         self.mock_authorize.get_jwt_subject.return_value = "testuser"
-        self.mock_authorize.get_raw_jwt.return_value = {"role": RoleEnum.ADMIN}
+        self.mock_authorize.get_raw_jwt.return_value = {"role": RoleEnum.OWNER}
 
         # Act
         result = self.service.refresh()
@@ -71,7 +71,7 @@ class TestAuthService:
         self.mock_authorize.jwt_refresh_token_required.assert_called_once()
         self.mock_authorize.get_jwt_subject.assert_called_once()
         self.mock_authorize.get_raw_jwt.assert_called_once()
-        mock_create_token.assert_called_once_with(username="testuser", role=RoleEnum.ADMIN, authorize=self.mock_authorize)
+        mock_create_token.assert_called_once_with(username="testuser", role=RoleEnum.OWNER, authorize=self.mock_authorize)
         self.mock_authorize.set_access_cookies.assert_called_once_with("new_access")
         self.mock_authorize.set_refresh_cookies.assert_called_once_with("new_refresh")
         assert result is None
@@ -90,3 +90,44 @@ class TestAuthService:
         # Assert
         self.mock_authorize.unset_jwt_cookies.assert_called_once()
         assert result is None
+
+    def test_get_current_user_returns_user(self):
+        """Test get_current_user returns the user from the repository."""
+        # Arrange
+        mock_user = Mock(spec=User)
+        self.mock_authorize.get_jwt_subject.return_value = "JuanOvando"
+        self.mock_repo.get_by_username.return_value = mock_user
+
+        # Act
+        result = self.service.get_current_user()
+
+        # Assert
+        self.mock_authorize.get_jwt_subject.assert_called_once()
+        self.mock_repo.get_by_username.assert_called_once_with("JuanOvando")
+        assert result == mock_user
+
+    def test_get_permissions_returns_role_and_permissions(self):
+        """Test get_permissions returns role and permissions of current user."""
+        # Arrange
+        mock_perm1 = Mock()
+        mock_perm1.name = "create_user"
+        mock_perm2 = Mock()
+        mock_perm2.name = "delete_user"
+
+        mock_role = Mock()
+        mock_role.name = "administrador"
+        mock_role.permissions = [mock_perm1, mock_perm2]
+
+        mock_user = Mock()
+        mock_user.role = mock_role
+
+        self.mock_authorize.get_jwt_subject.return_value = "JuanOvando"
+        self.mock_repo.get_by_username.return_value = mock_user
+
+        # Act
+        result = self.service.get_permissions()
+
+        # Assert
+        self.mock_authorize.get_jwt_subject.assert_called_once()
+        self.mock_repo.get_by_username.assert_called_once_with("JuanOvando")
+        assert result == {"role": "administrador", "permissions": ["create_user", "delete_user"]}

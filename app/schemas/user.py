@@ -10,8 +10,9 @@ from pydantic import BaseModel, Field
 class RoleEnum(str, Enum):
     """Enum for role names."""
 
-    ADMIN = "administrator"
-    EMPLOYEE = "employee"
+    OWNER = "propietario"
+    ADMIN = "administrador"
+    EMPLOYEE = "empleado"
 
 
 # * MODEL SCHEMAS * #
@@ -68,6 +69,13 @@ class UserUpdateSchema(BaseModel):
 
 
 # * RESPONSE SCHEMAS * #
+
+
+class PermissionsResponse(BaseModel):
+    """Schema for permissions responses."""
+
+    role: str = Field(..., description="Role of the user")
+    permissions: list[str] = Field(..., description="Permissions of the user")
 
 
 class ActionSuccess(BaseModel):

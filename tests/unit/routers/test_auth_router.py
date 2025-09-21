@@ -2,18 +2,38 @@ from unittest.mock import patch
 
 import pytest
 
-from app.schemas.user import ActionSuccess, RoleEnum
+from app.schemas.user import ActionSuccess, PermissionsResponse, RoleEnum
 
 
-@pytest.mark.usefixtures("client")
+@pytest.mark.usefixtures("authorized_client", "client")
 class TestAuthRouter:
     """Tests for the internal AuthRouter endpoints."""
+
+    @patch("app.services.auth.AuthService.get_permissions")
+    def test_get_permissions(self, mock_get_permissions, authorized_client):
+        """Test permissions endpoint returns user permissions."""
+        # Arrange
+        mock_get_permissions.return_value = {
+            "role": "administrador",
+            "permissions": ["create_user", "delete_user"],
+        }
+
+        # Act
+        response = authorized_client.get("/pegazzo/internal/auth/permissions")
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert data["role"] == "administrador"
+        assert data["permissions"] == ["create_user", "delete_user"]
+        assert PermissionsResponse.validate(data)
+        mock_get_permissions.assert_called_once()
 
     @patch("app.utils.auth.AuthUtils.verify_password", return_value=True)
     def test_login_success(self, mock_verify_password, client):
         """Test login endpoint."""
         # Arrange
-        user_data = {"username": "testuser", "password": "password123", "role": RoleEnum.ADMIN}
+        user_data = {"username": "testuser", "password": "password123", "role": RoleEnum.OWNER}
 
         # Act
         response = client.post("/pegazzo/internal/auth/login", json=user_data)
@@ -30,7 +50,7 @@ class TestAuthRouter:
     def test_refresh_token(self, client):
         """Test refresh token endpoint with real logic to verify cookies."""
         # Arrange
-        user_data = {"username": "testuser", "password": "password123", "role": RoleEnum.ADMIN}
+        user_data = {"username": "testuser", "password": "password123", "role": RoleEnum.OWNER}
 
         with patch("app.utils.auth.AuthUtils.verify_password", return_value=True):
             login_response = client.post("/pegazzo/internal/auth/login", json=user_data)

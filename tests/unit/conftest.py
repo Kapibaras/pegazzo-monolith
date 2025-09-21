@@ -22,14 +22,14 @@ def client():
 
 @pytest.fixture(scope="session")
 def authorized_client():
-    """Client with valid JWT cookie for user 'adminuser' role 'administrator'."""
+    """Client with valid JWT cookie for user 'owneruser' role 'owner'."""
     app.dependency_overrides = MOCK_LINKING
     client_instance = TestClient(app)
 
     with patch("app.utils.auth.AuthUtils.verify_password", return_value=True):
         response = client_instance.post(
             "/pegazzo/internal/auth/login",
-            json={"username": "testuser", "password": "password123", "role": RoleEnum.ADMIN},
+            json={"username": "testuser", "password": "password123", "role": RoleEnum.OWNER},
         )
 
     client_instance.cookies.set("access_token_cookie", response.cookies.get("access_token_cookie"))
