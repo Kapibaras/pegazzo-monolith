@@ -31,9 +31,13 @@ class TestAuthJWTSettings:
     def test_settings_values(self, settings):
         assert settings.authjwt_secret_key == "top_secret"
         assert settings.authjwt_token_location == {"cookies"}
-        assert settings.authjwt_cookie_csrf_protect is False
+        assert settings.authjwt_cookie_csrf_protect is True
         assert settings.authjwt_cookie_secure is True
         assert settings.authjwt_cookie_samesite == "lax"
         assert settings.authjwt_cookie_httponly is True
         assert settings.authjwt_access_token_expires == timedelta(minutes=15)
         assert settings.authjwt_refresh_token_expires == timedelta(days=7)
+        assert settings.authjwt_access_cookie_key == "access_token_cookie"
+        assert settings.authjwt_refresh_cookie_key == "refresh_token_cookie"
+        assert settings.authjwt_access_csrf_header_name == "X-CSRF-ACCESS"
+        assert settings.authjwt_refresh_csrf_header_name == "X-CSRF-REFRESH"

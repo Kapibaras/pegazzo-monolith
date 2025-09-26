@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 from fastapi_jwt_auth import AuthJWT
 
 from app.config import AUTHORIZATION
@@ -19,7 +20,10 @@ class AuthUtils:
     def verify_password(plain_password: str, hashed_password: str) -> bool:
         """Verify a password."""
         ph = PasswordHasher()
-        return ph.verify(hashed_password, plain_password)
+        try:
+            return ph.verify(hashed_password, plain_password)
+        except VerifyMismatchError:
+            return False
 
     @staticmethod
     def create_access_token(username: str, role: str, authorize: AuthJWT) -> tuple[str, str]:

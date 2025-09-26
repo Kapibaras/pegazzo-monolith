@@ -60,9 +60,13 @@ class TestAuthRouter:
         # Act
         access_cookie = login_response.cookies.get("access_token_cookie")
         refresh_cookie = login_response.cookies.get("refresh_token_cookie")
+        csrf_access_cookie = login_response.cookies.get("csrf_access_token")
+        csrf_refresh_cookie = login_response.cookies.get("csrf_refresh_token")
 
         assert access_cookie
         assert refresh_cookie
+        assert csrf_access_cookie
+        assert csrf_refresh_cookie
 
         # Act
         cookies = {
@@ -70,7 +74,12 @@ class TestAuthRouter:
             "refresh_token_cookie": refresh_cookie,
         }
 
-        response = client.post("/pegazzo/internal/auth/refresh", cookies=cookies)
+        headers = {
+            "X-CSRF-ACCESS": csrf_access_cookie,
+            "X-CSRF-REFRESH": csrf_refresh_cookie,
+        }
+
+        response = client.post("/pegazzo/internal/auth/refresh", cookies=cookies, headers=headers)
 
         # Assert
         assert response.status_code == 200

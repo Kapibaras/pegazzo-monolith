@@ -1,6 +1,6 @@
 from fastapi_jwt_auth import AuthJWT
 
-from app.errors.auth import InvalidCredentials, InvalidRefreshToken
+from app.errors.auth import AlreadyLoggedOutException, InvalidCredentials, InvalidRefreshToken
 from app.errors.user import UserNotFoundException
 from app.models.users import User
 from app.repositories.user import UserRepository
@@ -56,6 +56,11 @@ class AuthService:
 
     def logout(self) -> str:
         """Logout a user and return an action success response."""
+
+        try:
+            self.authorize.jwt_refresh_token_required()
+        except Exception as ex:
+            raise AlreadyLoggedOutException from ex
 
         self.authorize.unset_jwt_cookies()
 
