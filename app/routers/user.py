@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body, Depends, Path, Query, status
 
 from app.auth.role_checker import RoleChecker
 from app.dependencies import ServiceFactory
-from app.schemas.user import ActionSuccess, RoleEnum, UserCreateSchema, UserSchema, UserUpdateSchema
+from app.schemas.user import ActionSuccess, RoleEnum, UserCreateSchema, UserSchema, UserUpdatePasswordSchema, UserUpdateSchema
 from app.services import UserService
 
 router = APIRouter(prefix="/internal/user", tags=["User"])
@@ -58,3 +58,14 @@ def delete_user(
     """Delete a user by username."""
     service.delete_user(username)
     return {"message": f"User '{username}' was successfully deleted."}
+
+
+@router.patch("/{username}/password", response_model=UserSchema)
+def update_user_password(
+    username: str = Path(description="Username of the user"),
+    body: UserUpdatePasswordSchema = Body(..., description="New password data"),
+    service: UserService = Depends(ServiceFactory.user_service),
+    user=Depends(RoleChecker(["propietario"])),
+) -> UserSchema:
+    """Update a user password by username."""
+    return service.update_user_password(username, body)

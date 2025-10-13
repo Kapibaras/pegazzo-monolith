@@ -68,6 +68,12 @@ class UserUpdateSchema(BaseModel):
     role: RoleEnum = Field(..., description="Role of the user")
 
 
+class UserUpdatePasswordSchema(BaseModel):
+    """Schema for updating a user's password (admin reset)."""
+
+    new_password: str = Field(..., min_length=6, description="New password for the user")
+
+
 # * RESPONSE SCHEMAS * #
 
 
