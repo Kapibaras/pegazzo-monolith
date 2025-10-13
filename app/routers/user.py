@@ -68,4 +68,5 @@ def update_user_password(
     user=Depends(RoleChecker(["propietario"])),
 ) -> UserSchema:
     """Update a user password by username."""
-    return service.update_user_password(username, body)
+    service.update_user_password(username, body)
+    return {"message": f"User '{username}' password was successfully updated."}
