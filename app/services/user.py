@@ -6,7 +6,7 @@ from app.errors.user import (
 )
 from app.models.users import User
 from app.repositories.user import UserRepository
-from app.schemas.user import RoleEnum, UserCreateSchema, UserSchema, UserUpdateSchema
+from app.schemas.user import RoleEnum, UserCreateSchema, UserSchema, UserUpdatePasswordSchema, UserUpdateSchema
 from app.utils.auth import AuthUtils
 
 
@@ -73,3 +73,13 @@ class UserService:
         if not user:
             raise UserNotFoundException
         self.repository.delete_user(user)
+
+    def update_user_password(self, username: str, data: UserUpdatePasswordSchema) -> UserSchema:
+        """Update a user's password without requiring the old one."""
+        user = self.repository.get_by_username(username)
+        if not user:
+            raise UserNotFoundException
+
+        user.password = AuthUtils.hash_password(data.new_password)
+        self.repository.update_user(user)
+        return user
