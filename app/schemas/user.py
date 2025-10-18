@@ -1,19 +1,9 @@
 from datetime import datetime
-from enum import Enum
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-# * ENUMS * #
-
-
-class RoleEnum(str, Enum):
-    """Enum for role names."""
-
-    OWNER = "propietario"
-    ADMIN = "administrador"
-    EMPLOYEE = "empleado"
-
+from app.auth import Role
 
 # * MODEL SCHEMAS * #
 
@@ -24,7 +14,7 @@ class UserSchema(BaseModel):
     username: str = Field(..., description="Username of the user")
     name: str = Field(..., description="Name of the user")
     surnames: str = Field(..., description="Surnames of the user")
-    role_name: RoleEnum = Field(..., alias="role", description="Role of the user")
+    role_name: Role = Field(..., alias="role", description="Role of the user")
     created_at: datetime = Field(..., description="User creation timestamp")
     updated_at: datetime = Field(..., description="User update timestamp")
 
@@ -57,7 +47,7 @@ class UserCreateSchema(BaseModel):
     name: str = Field(..., description="Name of the user")
     surnames: str = Field(..., description="Surnames of the user")
     password: str = Field(..., description="Password of the user")
-    role: RoleEnum = Field(..., description="Role of the user")
+    role: Role = Field(..., description="Role of the user")
 
 
 class UserUpdateSchema(BaseModel):
@@ -65,7 +55,7 @@ class UserUpdateSchema(BaseModel):
 
     name: str = Field(..., description="Name of the user")
     surnames: str = Field(..., description="Surnames of the user")
-    role: RoleEnum = Field(..., description="Role of the user")
+    role: Role = Field(..., description="Role of the user")
 
 
 class UserUpdatePasswordSchema(BaseModel):
@@ -99,6 +89,3 @@ class ActionSuccess(BaseModel):
         example="User deleted successfully.",
     )
     extra_data: Optional[Any] = Field(default=None, description="Additional data relevant to the action")
-
-
-# Add schemas..

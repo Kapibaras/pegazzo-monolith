@@ -1,20 +1,11 @@
 from fastapi import APIRouter, Body, Depends
 
-from app.auth.role_checker import RoleChecker
+from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
 from app.schemas.user import ActionSuccess, PermissionsResponse
 from app.services.auth import AuthService
 
 router = APIRouter(prefix="/internal/auth", tags=["Auth"])
-
-
-@router.get("/permissions", response_model=PermissionsResponse)
-def permissions(
-    service: AuthService = Depends(ServiceFactory.auth_service),
-    user=Depends(RoleChecker()),
-) -> PermissionsResponse:
-    """Get the current user's permissions."""
-    return service.get_permissions()
 
 
 @router.post("/login", response_model=ActionSuccess)
@@ -40,3 +31,12 @@ def logout(service: AuthService = Depends(ServiceFactory.auth_service)) -> Actio
     """Logout a user and return an action success response."""
     service.logout()
     return {"message": "Successful logout"}
+
+
+@router.get("/permissions", response_model=PermissionsResponse)
+def permissions(
+    service: AuthService = Depends(ServiceFactory.auth_service),
+    _user: AuthUser = Depends(RequiresAuth()),
+) -> PermissionsResponse:
+    """Get the current user's permissions."""
+    return service.get_permissions()

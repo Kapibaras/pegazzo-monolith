@@ -3,10 +3,10 @@ from unittest.mock import Mock
 import pytest
 from sqlalchemy.orm import Session
 
+from app.auth import Role as RoleEnum
 from app.errors.database import DBOperationError
 from app.models.users import Role, User
 from app.repositories.user import UserRepository
-from app.schemas.user import RoleEnum
 
 
 @pytest.fixture

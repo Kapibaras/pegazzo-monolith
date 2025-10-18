@@ -3,9 +3,9 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
+from app.auth import Role
 from app.dependencies import RepositoryFactory
 from app.main import app
-from app.schemas.user import RoleEnum
 from tests.mocks import UserRepositoryMock
 
 MOCK_LINKING = {
@@ -29,7 +29,7 @@ def authorized_client():
     with patch("app.utils.auth.AuthUtils.verify_password", return_value=True):
         response = client_instance.post(
             "/pegazzo/internal/auth/login",
-            json={"username": "testuser", "password": "password123", "role": RoleEnum.OWNER},
+            json={"username": "testuser", "password": "password123", "role": Role.OWNER},
         )
 
     client_instance.cookies.set("access_token_cookie", response.cookies.get("access_token_cookie"))
