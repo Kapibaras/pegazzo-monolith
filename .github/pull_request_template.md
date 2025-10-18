@@ -23,3 +23,4 @@
 - [ ] 📝 PR Template has been **filled out**.
 - [ ] 🗃️ **Updated migrations** from changes on database schema. (If necessary)
 - [ ] ✏️ Endpoints and Schemas have complete and **well-written documentation**. (If necessary)
+- [ ] 📷 Evidence of changes on the endpoints (requests and response) (If necessary)
