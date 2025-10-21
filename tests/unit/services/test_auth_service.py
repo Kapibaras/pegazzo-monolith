@@ -2,11 +2,11 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from app.auth import Role
 from app.errors.auth import InvalidCredentials, InvalidRefreshToken
 from app.errors.user import UserNotFoundException
 from app.models.users import User
 from app.repositories.user import UserRepository
-from app.schemas.user import RoleEnum
 from app.services.auth import AuthService
 
 
@@ -30,7 +30,7 @@ class TestAuthService:
     def test_login_success(self, mock_create_token, mock_verify_password):
         """Test successful login sets cookies correctly."""
         # Arrange
-        user = User(username="testuser", password="hashed", role=RoleEnum.OWNER)
+        user = User(username="testuser", password="hashed", role=Role.OWNER)
         self.mock_repo.get_by_username.return_value = user
 
         # Act
@@ -53,7 +53,7 @@ class TestAuthService:
     @patch("app.services.auth.AuthUtils.verify_password", return_value=False)
     def test_login_invalid_password(self, _):
         """Test login with wrong password raises InvalidCredentials."""
-        self.mock_repo.get_by_username.return_value = User(username="testuser", password="hashed", role=RoleEnum.EMPLOYEE)
+        self.mock_repo.get_by_username.return_value = User(username="testuser", password="hashed", role=Role.EMPLOYEE)
         with pytest.raises(InvalidCredentials):
             self.service.login("testuser", "wrongpass")
 
@@ -62,7 +62,7 @@ class TestAuthService:
         """Test successful refresh generates new tokens and sets them."""
         # Arrange
         self.mock_authorize.get_jwt_subject.return_value = "testuser"
-        self.mock_authorize.get_raw_jwt.return_value = {"role": RoleEnum.OWNER}
+        self.mock_authorize.get_raw_jwt.return_value = {"role": Role.OWNER}
 
         # Act
         result = self.service.refresh()
@@ -71,7 +71,7 @@ class TestAuthService:
         self.mock_authorize.jwt_refresh_token_required.assert_called_once()
         self.mock_authorize.get_jwt_subject.assert_called_once()
         self.mock_authorize.get_raw_jwt.assert_called_once()
-        mock_create_token.assert_called_once_with(username="testuser", role=RoleEnum.OWNER, authorize=self.mock_authorize)
+        mock_create_token.assert_called_once_with(username="testuser", role=Role.OWNER, authorize=self.mock_authorize)
         self.mock_authorize.set_access_cookies.assert_called_once_with("new_access")
         self.mock_authorize.set_refresh_cookies.assert_called_once_with("new_refresh")
         assert result is None

@@ -33,7 +33,7 @@ extend-select = [
     "TRY",  # Try-except checks
 ]
 
-fixable = ["I"]
+fixable = ["I", "F401"]
 extend-ignore = [
     "D100", # ignore missing-module-docstring
     "B008", # ignore function call in argument defaults
@@ -47,4 +47,5 @@ extend-ignore = [
     "ANN003", # ignore annotations in tests
     "D102",   # ignore missing docstring in public method
     "D103",   # ignore missing docstring in public function
+    "PT019",  # ignore pytest fixtures without 'self' parameter
 ]

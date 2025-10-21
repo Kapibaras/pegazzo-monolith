@@ -1,3 +1,4 @@
+from app.auth import Role
 from app.errors.user import (
     ForbiddenRoleException,
     RoleNotFoundException,
@@ -6,7 +7,7 @@ from app.errors.user import (
 )
 from app.models.users import User
 from app.repositories.user import UserRepository
-from app.schemas.user import RoleEnum, UserCreateSchema, UserSchema, UserUpdatePasswordSchema, UserUpdateSchema
+from app.schemas.user import UserCreateSchema, UserSchema, UserUpdatePasswordSchema, UserUpdateSchema
 from app.utils.auth import AuthUtils
 
 
@@ -25,7 +26,7 @@ class UserService:
             raise UserNotFoundException
         return user
 
-    def get_all_users(self, role_name: RoleEnum = None):
+    def get_all_users(self, role_name: Role = None):
         """Get all users, optionally filtered by role name."""
 
         if role_name:
@@ -46,7 +47,7 @@ class UserService:
         if not role:
             raise RoleNotFoundException
 
-        if role.name == RoleEnum.OWNER.value:
+        if role.name == Role.OWNER.value:
             raise ForbiddenRoleException
 
         if self.repository.get_by_username(data.username):

@@ -23,7 +23,7 @@ class InvalidOrMissingToken(HTTPException):
 
     def __init__(self):
         """Initialize the exception with a detail message."""
-        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or missing authentication token")
+        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token or missing authentication")
 
 
 class InvalidTokenException(HTTPException):

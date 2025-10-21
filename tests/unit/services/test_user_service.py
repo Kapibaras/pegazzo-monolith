@@ -2,10 +2,11 @@ from unittest.mock import Mock
 
 import pytest
 
+from app.auth import Role
 from app.errors.user import RoleNotFoundException, UsernameAlreadyExistsException, UserNotFoundException
 from app.models.users import User
 from app.repositories.user import UserRepository
-from app.schemas.user import RoleEnum, UserCreateSchema, UserUpdateSchema
+from app.schemas.user import UserCreateSchema, UserUpdateSchema
 from app.services.user import UserService
 
 
@@ -59,7 +60,7 @@ class TestUserService:
         self.mock_repo.get_role_by_name.return_value = Mock(id=2)
         self.mock_repo.get_all_users.return_value = [User(username="propietario")]
         # Act
-        result = self.service.get_all_users(role_name=RoleEnum.OWNER)
+        result = self.service.get_all_users(role_name=Role.OWNER)
         # Assert
         self.mock_repo.get_role_by_name.assert_called_once_with("propietario")
         self.mock_repo.get_all_users.assert_called_once_with(role_id=2)
@@ -71,7 +72,7 @@ class TestUserService:
         self.mock_repo.get_role_by_name.return_value = None
         # Act & Assert
         with pytest.raises(RoleNotFoundException):
-            self.service.get_all_users(role_name=RoleEnum.OWNER)
+            self.service.get_all_users(role_name=Role.OWNER)
 
     def test_create_user(self):
         """Test creating a new user."""

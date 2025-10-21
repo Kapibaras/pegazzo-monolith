@@ -1,6 +1,6 @@
+from app.auth import Role as RoleEnum
 from app.database.session import SessionLocal
 from app.models.users import Role
-from app.schemas.user import RoleEnum
 
 
 def seeders(db: SessionLocal):
