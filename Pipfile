@@ -4,7 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-fastapi = "==0.95.0"
+fastapi = "==0.119.1"
+fastapi-jwt-auth-compat = "*"
 fastapi-cloudauth = "==0.4.3"
 fastapi-pagination = "==0.12.21"
 mangum = "==0.17.0"
@@ -17,7 +18,6 @@ httpx = "==0.24.1"
 alembic = "*"
 ruff = "*"
 argon2-cffi = "*"
-fastapi-jwt-auth = "*"
 
 [dev-packages]
 pytest = "*"
