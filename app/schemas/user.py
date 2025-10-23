@@ -1,9 +1,11 @@
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic.alias_generators import to_camel
 
 from app.auth import Role
+from app.models.users import Role as RoleModel
 
 # * MODEL SCHEMAS * #
 
@@ -14,27 +16,23 @@ class UserSchema(BaseModel):
     username: str = Field(..., description="Username of the user")
     name: str = Field(..., description="Name of the user")
     surnames: str = Field(..., description="Surnames of the user")
-    role_name: Role = Field(..., alias="role", description="Role of the user")
+    role: Role = Field(..., description="Role of the user")
     created_at: datetime = Field(..., description="User creation timestamp")
     updated_at: datetime = Field(..., description="User update timestamp")
 
-    class Config:
-        """Pydantic model configuration."""
+    model_config = ConfigDict(
+        use_enum_values=True,
+        from_attributes=True,
+        populate_by_name=True,
+        alias_generator=to_camel,
+    )
 
-        orm_mode = True
-        allow_population_by_field_name = True
-
+    @field_validator("role", mode="before")
     @classmethod
-    def from_orm(cls, obj):
-        """Convert a User model instance to a UserSchema."""
-        return cls(
-            username=obj.username,
-            name=obj.name,
-            surnames=obj.surnames,
-            role=obj.role.name,
-            created_at=obj.created_at,
-            updated_at=obj.updated_at,
-        )
+    def _coerce_role(cls, role: str | RoleModel) -> str:
+        if isinstance(role, RoleModel):
+            return role.name
+        return role
 
 
 # * BODY SCHEMAS * #
