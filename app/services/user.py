@@ -91,6 +91,6 @@ class UserService:
         if not user:
             raise UserNotFoundException
 
-        user.password = AuthUtils.hash_password(data.new_password)
+        user.password = AuthUtils.hash_password(data.password)
         self.repository.update_user(user)
         return user

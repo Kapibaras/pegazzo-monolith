@@ -56,7 +56,7 @@ def delete_user(
     return {"message": f"User '{username}' was successfully deleted."}
 
 
-@router.patch("/{username}/name", response_model=UserSchema)
+@router.patch("/{username}/name", response_model=ActionSuccess)
 def update_user_name(
     username: str = Path(description="Username of the user"),
     body: UserUpdateNameSchema = Body(..., description="User data to update"),
@@ -68,7 +68,7 @@ def update_user_name(
     return {"message": f"User '{username}' name was successfully updated."}
 
 
-@router.patch("/{username}/role", response_model=UserSchema)
+@router.patch("/{username}/role", response_model=ActionSuccess)
 def update_user_role(
     username: str = Path(description="Username of the user"),
     body: UserUpdateRoleSchema = Body(..., description="User data to update"),
@@ -80,7 +80,7 @@ def update_user_role(
     return {"message": f"User '{username}' role was successfully updated."}
 
 
-@router.patch("/{username}/password", response_model=UserSchema)
+@router.patch("/{username}/password", response_model=ActionSuccess)
 def update_user_password(
     username: str = Path(description="Username of the user"),
     body: UserUpdatePasswordSchema = Body(..., description="New password data"),
