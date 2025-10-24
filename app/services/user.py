@@ -7,7 +7,7 @@ from app.errors.user import (
 )
 from app.models.users import User
 from app.repositories.user import UserRepository
-from app.schemas.user import UserCreateSchema, UserSchema, UserUpdatePasswordSchema, UserUpdateSchema
+from app.schemas.user import UserCreateSchema, UserSchema, UserUpdateNameSchema, UserUpdatePasswordSchema, UserUpdateRoleSchema
 from app.utils.auth import AuthUtils
 
 
@@ -56,24 +56,34 @@ class UserService:
         user = User(username=data.username, name=data.name, surnames=data.surnames, password=hashed_password, role=role)
         return self.repository.create_user(user)
 
-    def update_user(self, username: str, data: UserUpdateSchema) -> UserSchema:
-        """Update a user by their username."""
-        role = self.repository.get_role_by_name(data.role)
-        user = self.repository.get_by_username(username)
-        if not user:
-            raise UserNotFoundException
-        user.name = data.name
-        user.surnames = data.surnames
-        user.role = role
-        self.repository.update_user(user)
-        return user
-
     def delete_user(self, username: str):
         """Delete a user by their username."""
         user = self.repository.get_by_username(username)
         if not user:
             raise UserNotFoundException
         self.repository.delete_user(user)
+
+    def update_user_name(self, username: str, data: UserUpdateNameSchema) -> UserSchema:
+        """Update a user's name by username."""
+        user = self.repository.get_by_username(username)
+        if not user:
+            raise UserNotFoundException
+        user.name = data.name
+        user.surnames = data.surnames
+        self.repository.update_user(user)
+        return user
+
+    def update_user_role(self, username: str, data: UserUpdateRoleSchema) -> UserSchema:
+        """Update a user's role by username."""
+        user = self.repository.get_by_username(username)
+        if not user:
+            raise UserNotFoundException
+        role = self.repository.get_role_by_name(data.role)
+        if not role:
+            raise RoleNotFoundException
+        user.role = role
+        self.repository.update_user(user)
+        return user
 
     def update_user_password(self, username: str, data: UserUpdatePasswordSchema) -> UserSchema:
         """Update a user's password without requiring the old one."""
