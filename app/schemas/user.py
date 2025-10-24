@@ -48,18 +48,23 @@ class UserCreateSchema(BaseModel):
     role: Role = Field(..., description="Role of the user")
 
 
-class UserUpdateSchema(BaseModel):
-    """Schema for updating a user."""
+class UserUpdateNameSchema(BaseModel):
+    """Schema for updating a user's name."""
 
     name: str = Field(..., description="Name of the user")
     surnames: str = Field(..., description="Surnames of the user")
+
+
+class UserUpdateRoleSchema(BaseModel):
+    """Schema for updating a user's role."""
+
     role: Role = Field(..., description="Role of the user")
 
 
 class UserUpdatePasswordSchema(BaseModel):
     """Schema for updating a user's password (admin reset)."""
 
-    new_password: str = Field(..., min_length=6, description="New password for the user")
+    password: str = Field(..., min_length=6, description="New password for the user")
 
 
 # * RESPONSE SCHEMAS * #

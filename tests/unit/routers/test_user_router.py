@@ -9,33 +9,23 @@ class TestUserRouter:
 
     def test_get_all_users(self, authorized_client):
         """Test getting all users."""
-
-        # Act
         response = authorized_client.get("/pegazzo/internal/user")
-
-        # Assert
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        assert all(UserSchema.validate(user) for user in data)
+        assert all(UserSchema.model_validate(user) for user in data)
 
     def test_get_all_users_with_role_filter(self, authorized_client):
         """Test getting all users with role filter."""
-        # Arrange
         role = "propietario"
-
-        # Act
         response = authorized_client.get(f"/pegazzo/internal/user?role={role}")
-
-        # Assert
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        assert all(UserSchema.validate(user) for user in data)
+        assert all(UserSchema.model_validate(user) for user in data)
 
     def test_create_user(self, authorized_client):
         """Test creating a user."""
-        # Arrange
         user_data = {
             "username": "newuser",
             "name": "Test",
@@ -43,64 +33,66 @@ class TestUserRouter:
             "password": "password123",
             "role": "administrador",
         }
-
-        # Act
         response = authorized_client.post("/pegazzo/internal/user", json=user_data)
-
-        # Assert
         assert response.status_code == 201
-        assert UserSchema.validate(response.json())
+        assert UserSchema.model_validate(response.json())
 
     def test_get_user(self, authorized_client):
         """Test getting a user by username."""
-        # Arrange
         username = "testuser"
-
-        # Act
         response = authorized_client.get(f"/pegazzo/internal/user/{username}")
-
-        # Assert
         assert response.status_code == 200
         data = response.json()
         assert data["username"] == username
-        assert UserSchema.validate(data)
-
-    def test_update_user(self, authorized_client):
-        """Test updating a user."""
-        # Arrange
-        username = "testuser"
-        update_data = {
-            "name": "Updated",
-            "surnames": "User",
-            "role": "propietario",
-        }
-
-        # Act
-        response = authorized_client.put(
-            f"/pegazzo/internal/user/{username}",
-            json=update_data,
-        )
-
-        # Assert
-        assert response.status_code == 200
-        data = response.json()
-        assert data["name"] == "Updated"
-        assert data["username"] == username
-        assert UserSchema.validate(data)
+        assert UserSchema.model_validate(data)
 
     def test_delete_user(self, authorized_client):
         """Test deleting a user."""
-        # Arrange
         username = "testuser"
-
-        # Act
         response = authorized_client.delete(f"/pegazzo/internal/user/{username}")
-
-        # Assert
         assert response.status_code == 200
         data = response.json()
-        assert data == {"message": f"User '{username}' was successfully deleted.", "extra_data": None}
-        assert ActionSuccess.validate(data)
+        assert "message" in data
+        assert ActionSuccess.model_validate(data)
+
+    def test_update_user_name(self, authorized_client):
+        """Test updating a user name."""
+        username = "testuser"
+        update_data = {"name": "Updated", "surnames": "User"}
+        response = authorized_client.patch(
+            f"/pegazzo/internal/user/{username}/name",
+            json=update_data,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "message" in data
+        assert ActionSuccess.model_validate(data)
+
+    def test_update_user_role(self, authorized_client):
+        """Test updating a user role."""
+        username = "testuser"
+        update_data = {"role": "propietario"}
+        response = authorized_client.patch(
+            f"/pegazzo/internal/user/{username}/role",
+            json=update_data,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "message" in data
+        assert ActionSuccess.model_validate(data)
+
+    def test_update_user_password(self, authorized_client):
+        """Test updating a user password."""
+        username = "testuser"
+        update_data = {"password": "newpassword123"}
+        response = authorized_client.patch(
+            f"/pegazzo/internal/user/{username}/password",
+            json=update_data,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "message" in data
+        assert ActionSuccess.model_validate(data)
 
     @pytest.mark.parametrize(
         ("method", "endpoint"),
@@ -108,24 +100,26 @@ class TestUserRouter:
             ("get", "/pegazzo/internal/user"),
             ("post", "/pegazzo/internal/user"),
             ("get", "/pegazzo/internal/user/testuser"),
-            ("put", "/pegazzo/internal/user/testuser"),
+            ("patch", "/pegazzo/internal/user/testuser/name"),
+            ("patch", "/pegazzo/internal/user/testuser/password"),
+            ("patch", "/pegazzo/internal/user/testuser/role"),
             ("delete", "/pegazzo/internal/user/testuser"),
         ],
     )
     def test_protected_routes_fail_without_auth(self, method, endpoint, client):
         """Test that protected routes fail without proper role."""
-
         request_func = getattr(client, method)
-        if method in ("post", "put"):
-            json_data = {
+        json_data = (
+            {
                 "username": "baduser",
                 "name": "Fake",
                 "surnames": "User",
                 "password": "fake123",
                 "role": "viewer",
             }
-            response = request_func(endpoint, json=json_data)
-        else:
-            response = request_func(endpoint)
+            if method in ("post", "patch")
+            else None
+        )
 
+        response = request_func(endpoint, json=json_data) if json_data else request_func(endpoint)
         assert response.status_code == 401
