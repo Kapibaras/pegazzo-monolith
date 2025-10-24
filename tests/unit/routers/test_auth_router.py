@@ -27,7 +27,7 @@ class TestAuthRouter:
         data = response.json()
         assert data["role"] == "administrador"
         assert data["permissions"] == ["create_user", "delete_user"]
-        assert PermissionsResponse.validate(data)
+        assert PermissionsResponse.model_validate(data)
         mock_get_permissions.assert_called_once()
 
     @patch("app.utils.auth.AuthUtils.verify_password", return_value=True)
@@ -45,7 +45,7 @@ class TestAuthRouter:
         assert response.cookies.get("refresh_token_cookie")
         data = response.json()
         assert data["message"] == "Successful login"
-        assert ActionSuccess.validate(data)
+        assert ActionSuccess.model_validate(data)
         mock_verify_password.assert_called_once_with("password123", "hashed_password")
 
     def test_refresh_token(self, client):
@@ -89,7 +89,7 @@ class TestAuthRouter:
 
         data = response.json()
         assert data["message"] == "Token refreshed successfully"
-        assert ActionSuccess.validate(data)
+        assert ActionSuccess.model_validate(data)
 
     @patch("app.services.auth.AuthService.logout")
     def test_logout(self, mock_logout, client):
@@ -101,5 +101,5 @@ class TestAuthRouter:
         assert response.status_code == 200
         data = response.json()
         assert data["message"] == "Successful logout"
-        assert ActionSuccess.validate(data)
+        assert ActionSuccess.model_validate(data)
         mock_logout.assert_called_once()

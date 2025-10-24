@@ -6,7 +6,7 @@ from app.auth import Role
 from app.errors.user import RoleNotFoundException, UsernameAlreadyExistsException, UserNotFoundException
 from app.models.users import User
 from app.repositories.user import UserRepository
-from app.schemas.user import UserCreateSchema, UserUpdateSchema
+from app.schemas.user import UserCreateSchema, UserUpdateNameSchema, UserUpdatePasswordSchema, UserUpdateRoleSchema
 from app.services.user import UserService
 
 
@@ -106,37 +106,6 @@ class TestUserService:
         with pytest.raises(UsernameAlreadyExistsException):
             self.service.create_user(data)
 
-    def test_update_user(self):
-        """Test updating an existing user."""
-        # Arrange
-        data = UserUpdateSchema(name="Updated", surnames="User", role="propietario")
-        role_mock = Mock()
-        user_mock = User(username="testuser", name="Old", surnames="Old", role=role_mock)
-
-        self.mock_repo.get_role_by_name.return_value = role_mock
-        self.mock_repo.get_by_username.return_value = user_mock
-
-        # Act
-        result = self.service.update_user("testuser", data)
-
-        # Assert
-        self.mock_repo.get_by_username.assert_called_once_with("testuser")
-        self.mock_repo.update_user.assert_called_once_with(user_mock)
-        assert result.name == "Updated"
-        assert result.surnames == "User"
-        assert result.role == role_mock
-
-    def test_update_user_not_found(self):
-        """Test error when updating a non-existent user."""
-        # Arrange
-        data = UserUpdateSchema(name="Name", surnames="Surnames", role="propietario")
-        self.mock_repo.get_by_username.return_value = None
-        self.mock_repo.get_role_by_name.return_value = Mock()
-
-        # Act & Assert
-        with pytest.raises(UserNotFoundException):
-            self.service.update_user("nouser", data)
-
     def test_delete_user(self):
         """Test deleting a user by username."""
         # Arrange
@@ -158,3 +127,80 @@ class TestUserService:
         # Act & Assert
         with pytest.raises(UserNotFoundException):
             self.service.delete_user("nouser")
+
+    def test_update_user_name(self):
+        """Test updating a user's name by username."""
+        # Arrange
+        user_mock = User(username="testuser", name="Old", surnames="Old")
+        self.mock_repo.get_by_username.return_value = user_mock
+
+        # Act
+        result = self.service.update_user_name("testuser", UserUpdateNameSchema(name="New", surnames="New"))
+
+        # Assert
+        self.mock_repo.get_by_username.assert_called_once_with("testuser")
+        self.mock_repo.update_user.assert_called_once_with(user_mock)
+        assert result.name == "New"
+        assert result.surnames == "New"
+
+    def test_update_user_name_not_found(self):
+        """Test error when updating a non-existent user's name."""
+        # Arrange
+        self.mock_repo.get_by_username.return_value = None
+
+        # Act & Assert
+        with pytest.raises(UserNotFoundException):
+            self.service.update_user_name("nouser", UserUpdateNameSchema(name="New", surnames="New"))
+
+    def test_update_user_role(self):
+        """Test updating a user's role by username."""
+        # Arrange
+        role_mock = Mock()
+        role_mock.name = "propietario"
+
+        user_mock = User(username="testuser", name="Old", surnames="Old", role=role_mock)
+
+        self.mock_repo.get_by_username.return_value = user_mock
+        self.mock_repo.get_role_by_name.return_value = role_mock
+
+        # Act
+        result = self.service.update_user_role("testuser", UserUpdateRoleSchema(role="propietario"))
+
+        # Assert
+        self.mock_repo.get_by_username.assert_called_once_with("testuser")
+        self.mock_repo.update_user.assert_called_once_with(user_mock)
+        assert result.role.name == "propietario"
+
+    def test_update_user_role_not_found(self):
+        """Test error when updating a non-existent user's role."""
+        # Arrange
+        self.mock_repo.get_by_username.return_value = None
+
+        # Act & Assert
+        with pytest.raises(UserNotFoundException):
+            self.service.update_user_role("nouser", UserUpdateRoleSchema(role="propietario"))
+
+    def test_update_user_password(self):
+        """Test updating a user's password by username."""
+        # Arrange
+        user_mock = User(username="testuser", name="Old", surnames="Old", password="Old")
+        self.mock_repo.get_by_username.return_value = user_mock
+
+        # Act
+        result = self.service.update_user_password("testuser", UserUpdatePasswordSchema(password="NewPassword"))
+
+        # Assert
+        self.mock_repo.get_by_username.assert_called_once_with("testuser")
+        self.mock_repo.update_user.assert_called_once_with(user_mock)
+
+        assert result.password != "Old"
+        assert result.password != "NewPassword"
+
+    def test_update_user_password_not_found(self):
+        """Test error when updating a non-existent user's password."""
+        # Arrange
+        self.mock_repo.get_by_username.return_value = None
+
+        # Act & Assert
+        with pytest.raises(UserNotFoundException):
+            self.service.update_user_password("nouser", UserUpdatePasswordSchema(password="NewPassword"))
