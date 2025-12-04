@@ -2,7 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from app.auth import Role
+from app.enum.auth import Role
 from app.errors.user import RoleNotFoundException, UsernameAlreadyExistsException, UserNotFoundException
 from app.models.users import User
 from app.repositories.user import UserRepository

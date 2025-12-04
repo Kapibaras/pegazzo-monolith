@@ -1,4 +1,4 @@
-from app.auth import Role
+from app.enum.auth import Role
 from app.errors.user import (
     ForbiddenRoleException,
     RoleNotFoundException,

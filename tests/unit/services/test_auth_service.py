@@ -2,7 +2,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from app.auth import Role
+from app.enum.auth import Role
 from app.errors.auth import InvalidCredentials, InvalidRefreshToken
 from app.errors.user import UserNotFoundException
 from app.models.users import User

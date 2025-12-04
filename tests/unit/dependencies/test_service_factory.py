@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from app.dependencies import ServiceFactory
-from app.services import AuthService, UserService
+from app.services import AuthService, BalanceService, UserService
 
 
 class TestServiceFactory:
@@ -24,3 +24,11 @@ class TestServiceFactory:
         assert isinstance(service, AuthService)
         assert service.authorize == mock_authjwt
         assert service.repository == mock_user_repository
+
+    @patch("app.dependencies.service_factory.RepositoryFactory.balance_repository")
+    def test_balance_service(self, mock_balance_repository):
+        service_generator = ServiceFactory.balance_service(mock_balance_repository)
+        service = next(service_generator)
+
+        assert isinstance(service, BalanceService)
+        assert service.repository == mock_balance_repository

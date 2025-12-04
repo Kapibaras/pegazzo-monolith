@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Body, Depends, Path, Query, status
 
-from app.auth import AuthUser, RequiresAuth, Role
+from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
+from app.enum.auth import Role
 from app.schemas.user import (
     ActionSuccess,
     UserCreateSchema,
