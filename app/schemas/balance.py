@@ -13,7 +13,7 @@ class TransactionSchema(BaseModel):
     """Schema for creating a transaction."""
 
     amount: int = Field(..., description="Amount of the transaction")
-    date: datetime = Field(..., description="Date of the transaction")
+    date: datetime | None = Field(default=None, description="Date of the transaction")
     type: Type = Field(..., description="Type of the transaction")
     description: str = Field(..., description="Description of the transaction")
     payment_method: PaymentMethod = Field(..., description="Payment method of the transaction")

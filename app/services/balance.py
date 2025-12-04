@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from app.enum.balance import PaymentMethod, Type
 from app.errors.balance import (
     InvalidDescriptionLengthException,
@@ -32,7 +34,7 @@ class BalanceService:
         transaction = Transaction(
             amount=data.amount,
             reference=generate_reference(data.type, data.payment_method),
-            date=data.date,
+            date=data.date if data.date else datetime.now(timezone.utc),
             type=data.type,
             description=data.description,
             payment_method=data.payment_method,
