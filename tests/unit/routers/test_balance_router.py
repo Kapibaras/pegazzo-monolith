@@ -7,6 +7,32 @@ from app.schemas.balance import TransactionResponseSchema
 class TestBalanceRouter:
     """Tests for Balance Router endpoints."""
 
+    def test_get_transaction(self, authorized_client):
+        """Test getting a transaction successfully."""
+        reference = "1739411013"
+        response = authorized_client.get(f"/pegazzo/management/balance/transaction/{reference}")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert TransactionResponseSchema.model_validate(data)
+
+    def test_get_transaction_fail_without_auth(self, client):
+        """Test that get transaction fails without authorization."""
+        reference = "1739411013"
+        response = client.get(f"/pegazzo/management/balance/transaction/{reference}")
+
+        assert response.status_code == 401
+
+    def test_get_transaction_fail_invalid_reference(self, authorized_client):
+        """Test that get transaction fails with invalid reference."""
+
+        reference = "invalid_reference"
+        response = authorized_client.get(f"/pegazzo/management/balance/transaction/{reference}")
+
+        assert response.status_code == 404
+        data = response.json()
+        assert data["detail"] == "Transaction not found"
+
     def test_create_transaction(self, authorized_client):
         """Test creating a transaction successfully."""
 
