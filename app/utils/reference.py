@@ -1,14 +1,14 @@
 from datetime import datetime, timezone
 
 TYPE_MAP = {
-    "cargo": "1",
-    "abono": "2",
+    "debit": "1",
+    "credit": "2",
 }
 
 PAYMENT_MAP = {
-    "efectivo": "01",
-    "transferencia personal": "02",
-    "transferencia pegazzo": "03",
+    "cash": "01",
+    "personal_transfer": "02",
+    "pegazzo_transfer": "03",
 }
 
 

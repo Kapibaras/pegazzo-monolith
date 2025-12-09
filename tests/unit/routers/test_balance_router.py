@@ -13,9 +13,9 @@ class TestBalanceRouter:
         transaction_data = {
             "amount": 1500,
             "date": "2025-01-01T10:30:00",
-            "type": "cargo",
+            "type": "debit",
             "description": "Pago de material",
-            "payment_method": "efectivo",
+            "payment_method": "cash",
         }
 
         response = authorized_client.post(
@@ -41,9 +41,9 @@ class TestBalanceRouter:
                 "amount": 1500,
                 "reference": "XYZ987654",
                 "date": "2025-01-01T08:00:00",
-                "type": "cargo",
+                "type": "debit",
                 "description": "Sin auth",
-                "paymentMethod": "efectivo",
+                "paymentMethod": "cash",
             }
             if method == "post"
             else None

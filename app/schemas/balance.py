@@ -38,27 +38,3 @@ class TransactionResponseSchema(BaseModel):
         populate_by_name=True,
         alias_generator=to_camel,
     )
-
-
-class PermissionsResponse(BaseModel):
-    """Schema for permissions responses."""
-
-    role: str = Field(..., description="Role of the user")
-    permissions: list[str] = Field(..., description="Permissions of the user")
-
-
-class ActionSuccess(BaseModel):
-    """Schema for successful action responses (e.g., DELETE).
-
-    Attributes:
-        message (str): A descriptive message indicating the result of the action.
-        extra_data (Any, optional): Additional data relevant to the action. Defaults to None.
-
-    """
-
-    message: str = Field(
-        ...,
-        description="Message indicating the action was successfully performed",
-        example="User deleted successfully.",
-    )
-    extra_data: Optional[Any] = Field(default=None, description="Additional data relevant to the action")

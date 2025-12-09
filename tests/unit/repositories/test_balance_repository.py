@@ -14,7 +14,7 @@ def sample_transaction():
     tx = Transaction()
     tx.reference = "123456"
     tx.amount = 100
-    tx.type = "cargo"
+    tx.type = "debit"
     return tx
 
 

@@ -24,11 +24,11 @@ def test_generate_reference_structure():
     with patch("app.utils.reference.datetime") as mock_datetime:
         mock_datetime.now.return_value = fake_now
 
-        reference = generate_reference("cargo", "efectivo")
+        reference = generate_reference("debit", "cash")
 
     assert reference.startswith("123456")
-    assert reference[6] == TYPE_MAP["cargo"]
-    assert reference[7:9] == PAYMENT_MAP["efectivo"]
+    assert reference[6] == TYPE_MAP["debit"]
+    assert reference[7:9] == PAYMENT_MAP["cash"]
 
     dv = reference[-1]
     assert len(reference) == 10
@@ -45,11 +45,11 @@ def test_generate_reference_different_maps():
     with patch("app.utils.reference.datetime") as mock_datetime:
         mock_datetime.now.return_value = fake_now
 
-        reference = generate_reference("abono", "transferencia pegazzo")
+        reference = generate_reference("credit", "pegazzo_transfer")
 
     assert reference.startswith("100030")
-    assert reference[6] == TYPE_MAP["abono"]
-    assert reference[7:9] == PAYMENT_MAP["transferencia pegazzo"]
+    assert reference[6] == TYPE_MAP["credit"]
+    assert reference[7:9] == PAYMENT_MAP["pegazzo_transfer"]
     assert reference[-1] == calculate_mod11(reference[:-1])
 
 
@@ -59,7 +59,7 @@ def test_generate_reference_invalid_type():
         mock_datetime.now.return_value = datetime.now(timezone.utc)
 
         with pytest.raises(KeyError):
-            generate_reference("invalido", "efectivo")
+            generate_reference("not_valid", "cash")
 
 
 def test_generate_reference_invalid_payment_method():
@@ -68,4 +68,4 @@ def test_generate_reference_invalid_payment_method():
         mock_datetime.now.return_value = datetime.now(timezone.utc)
 
         with pytest.raises(KeyError):
-            generate_reference("cargo", "nopago")
+            generate_reference("debit", "not_valid")
