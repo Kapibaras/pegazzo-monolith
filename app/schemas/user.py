@@ -4,7 +4,7 @@ from typing import Any, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 
-from app.auth import Role
+from app.enum.auth import Role
 from app.models.users import Role as RoleModel
 
 # * MODEL SCHEMAS * #

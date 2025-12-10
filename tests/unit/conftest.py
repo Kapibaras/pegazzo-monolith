@@ -3,8 +3,8 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
-from app.auth import Role
 from app.dependencies import RepositoryFactory
+from app.enum.auth import Role
 from app.main import app
 from tests.mocks import UserRepositoryMock
 

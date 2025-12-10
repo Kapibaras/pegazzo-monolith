@@ -5,7 +5,7 @@ from mangum import Mangum
 import app.auth.core
 from app.config import DEBUG, ENVIRONMENT, AppConfig
 from app.database.core import test_connection
-from app.routers import auth_router, user_router
+from app.routers import auth_router, balance_router, user_router
 
 app = FastAPI(
     debug=DEBUG,
@@ -46,6 +46,7 @@ def on_startup():
 
 app.include_router(auth_router, prefix="/pegazzo")
 app.include_router(user_router, prefix="/pegazzo")
+app.include_router(balance_router, prefix="/pegazzo")
 
 # * HANDLERS * #
 

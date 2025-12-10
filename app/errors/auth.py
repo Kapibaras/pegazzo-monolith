@@ -31,7 +31,7 @@ class InvalidTokenException(HTTPException):
 
     def __init__(self):
         """Initialize the exception with a detail message."""
-        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token provided.")
+        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token provided")
 
 
 class ForbiddenRoleException(HTTPException):
@@ -50,4 +50,4 @@ class AlreadyLoggedOutException(HTTPException):
 
     def __init__(self):
         """Initialize the exception with a detail message."""
-        super().__init__(status_code=status.HTTP_400_BAD_REQUEST, detail="No active session found to log out.")
+        super().__init__(status_code=status.HTTP_400_BAD_REQUEST, detail="No active session found to log out")

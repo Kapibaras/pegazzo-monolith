@@ -1,5 +1,5 @@
-from app.auth import Role as RoleEnum
 from app.database.session import SessionLocal
+from app.enum.auth import Role as RoleEnum
 from app.models.users import Role
 
 

@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from app.auth import Role
+from app.enum.auth import Role
 from app.schemas.user import ActionSuccess, PermissionsResponse
 
 

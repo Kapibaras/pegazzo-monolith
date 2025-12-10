@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from app.auth import Role as RoleEnum
+from app.enum.auth import Role as RoleEnum
 from app.errors.user import UserNotFoundException
 from app.models.users import Role, User
 
