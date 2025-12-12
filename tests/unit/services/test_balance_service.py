@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from app.enum.balance import PaymentMethod, Type
 from app.errors.balance import (
     InvalidDescriptionLengthException,
+    TransactionNotFoundException,
 )
 from app.models.balance import Transaction
 from app.repositories.balance import BalanceRepository
@@ -25,6 +26,22 @@ def balance_service_test_setup(request):
 @pytest.mark.usefixtures("balance_service_test_setup")
 class TestBalanceService:
     """Tests for BalanceService."""
+
+    def test_get_transaction_success(self):
+        """Test returning a transaction by reference."""
+        fake_tx = Mock()
+        self.mock_repo.get_by_reference.return_value = fake_tx
+
+        result = self.service.get_transaction("REF123")
+        self.mock_repo.get_by_reference.assert_called_once_with("REF123")
+        assert result == fake_tx
+
+    def test_get_transaction_not_found(self):
+        """Should raise exception when reference doesn't exist."""
+        self.mock_repo.get_by_reference.return_value = None
+
+        with pytest.raises(TransactionNotFoundException):
+            self.service.get_transaction("NOEXISTS")
 
     def test_create_transaction_success(self):
         """Test successful creation of a transaction."""

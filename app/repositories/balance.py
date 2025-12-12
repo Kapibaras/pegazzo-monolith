@@ -20,3 +20,10 @@ class BalanceRepository(DBRepository):
             raise DBOperationError(f"Failed to create transaction with reference {transaction.reference}") from ex
 
         return transaction
+
+    def get_by_reference(self, reference: str):
+        """Retrieve a transaction by their reference.
+
+        Args: username (str): The username of the user to retrieve.
+        """
+        return self.db.query(Transaction).filter(Transaction.reference == reference).first()

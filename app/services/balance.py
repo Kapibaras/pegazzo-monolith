@@ -5,6 +5,7 @@ from app.errors.balance import (
     InvalidDescriptionLengthException,
     InvalidPaymentMethodException,
     InvalidTransactionTypeException,
+    TransactionNotFoundException,
 )
 from app.models.balance import Transaction
 from app.repositories.balance import BalanceRepository
@@ -18,6 +19,14 @@ class BalanceService:
     def __init__(self, repository: BalanceRepository):
         """Initialize the balance service with a repository."""
         self.repository = repository
+
+    def get_transaction(self, reference: str) -> TransactionResponseSchema:
+        """Get a transaction by reference."""
+
+        transaction = self.repository.get_by_reference(reference)
+        if not transaction:
+            raise TransactionNotFoundException
+        return transaction
 
     def create_transaction(self, data: TransactionSchema) -> TransactionResponseSchema:
         """Create a new transaction."""
