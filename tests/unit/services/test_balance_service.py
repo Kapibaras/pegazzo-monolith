@@ -27,6 +27,32 @@ def balance_service_test_setup(request):
 class TestBalanceService:
     """Tests for BalanceService."""
 
+    def setup_method(self):
+        self.mock_repo = Mock()
+        self.service = BalanceService(repository=self.mock_repo)
+
+    def test_delete_transaction_success(self):
+        """Test deleting a transaction by reference."""
+        # Arrange
+        mock_transaction = Mock()
+        self.mock_repo.get_by_reference.return_value = mock_transaction
+
+        # Act
+        self.service.delete_transaction("ABC123")
+
+        # Assert
+        self.mock_repo.get_by_reference.assert_called_once_with("ABC123")
+        self.mock_repo.delete_transaction.assert_called_once_with(mock_transaction)
+
+    def test_delete_transaction_not_found(self):
+        """Test error when deleting non-existent transaction."""
+        # Arrange
+        self.mock_repo.get_by_reference.return_value = None
+
+        # Act & Assert
+        with pytest.raises(TransactionNotFoundException):
+            self.service.delete_transaction("NOEXIST")
+
     def test_get_transaction_success(self):
         """Test returning a transaction by reference."""
         fake_tx = Mock()
@@ -48,7 +74,6 @@ class TestBalanceService:
 
         schema = TransactionSchema(
             amount=1200,
-            reference="IGNORED",
             date="2025-01-01T10:00:00",
             type=Type.DEBIT,
             description="Pago de material",
@@ -59,14 +84,14 @@ class TestBalanceService:
         self.mock_repo.create_transaction.side_effect = lambda t: t
 
         with patch("app.services.balance.generate_reference") as mock_ref:
-            mock_ref.return_value = "REF12345"
+            mock_ref.return_value = "0054291019"
 
             result = self.service.create_transaction(schema)
 
         self.mock_repo.create_transaction.assert_called_once()
         assert isinstance(result, Transaction)
         assert result.amount == 1200
-        assert result.reference == "REF12345"
+        assert result.reference == "0054291019"
 
     @pytest.mark.parametrize(
         "invalid_type",

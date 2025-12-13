@@ -1,97 +1,119 @@
-import pytest
-
 from app.schemas.balance import TransactionResponseSchema
+from app.schemas.user import ActionSuccess
 
 
-@pytest.mark.usefixtures("authorized_client", "client")
 class TestBalanceRouter:
-    """Tests for Balance Router endpoints."""
+    """Tests for Balance Router endpoints (with auth required)."""
 
-    def test_get_transaction(self, authorized_client):
-        """Test getting a transaction successfully."""
-        reference = "1739411013"
+    def test_get_transaction_success(self, authorized_client):
+        """Authenticated user can get an existing transaction."""
+
+        create_response = authorized_client.post(
+            "/pegazzo/management/balance/transaction",
+            json={
+                "amount": 1500,
+                "type": "debit",
+                "description": "Pago de material",
+                "payment_method": "cash",
+            },
+        )
+        assert create_response.status_code == 201
+        reference = create_response.json()["reference"]
+
         response = authorized_client.get(f"/pegazzo/management/balance/transaction/{reference}")
 
         assert response.status_code == 200
-        data = response.json()
-        assert TransactionResponseSchema.model_validate(data)
+        assert TransactionResponseSchema.model_validate(response.json())
 
-    def test_get_transaction_fail_without_auth(self, client):
-        """Test that get transaction fails without authorization."""
-        reference = "1739411013"
-        response = client.get(f"/pegazzo/management/balance/transaction/{reference}")
+    def test_get_transaction_unauthorized(self, client):
+        """Unauthenticated user cannot get a transaction."""
+
+        response = client.get("/pegazzo/management/balance/transaction/ANYREF")
 
         assert response.status_code == 401
 
-    def test_get_transaction_fail_invalid_reference(self, authorized_client):
-        """Test that get transaction fails with invalid reference."""
+    def test_get_transaction_not_found(self, authorized_client):
+        """Authenticated user gets 404 for invalid reference."""
 
-        reference = "invalid_reference"
-        response = authorized_client.get(f"/pegazzo/management/balance/transaction/{reference}")
+        response = authorized_client.get("/pegazzo/management/balance/transaction/INVALID_REF")
 
         assert response.status_code == 404
-        data = response.json()
-        assert data["detail"] == "Transaction not found"
+        assert response.json()["detail"] == "Transaction not found"
 
-    def test_create_transaction(self, authorized_client):
-        """Test creating a transaction successfully."""
-
-        transaction_data = {
-            "amount": 1500,
-            "date": "2025-01-01T10:30:00",
-            "type": "debit",
-            "description": "Pago de material",
-            "payment_method": "cash",
-        }
+    def test_create_transaction_success(self, authorized_client):
+        """Authenticated user can create a transaction."""
 
         response = authorized_client.post(
             "/pegazzo/management/balance/transaction",
-            json=transaction_data,
+            json={
+                "amount": 1500,
+                "date": "2025-01-01T10:30:00",
+                "type": "debit",
+                "description": "Pago de material",
+                "payment_method": "cash",
+            },
         )
 
         assert response.status_code == 201
-        data = response.json()
-        assert TransactionResponseSchema.model_validate(data)
+        assert TransactionResponseSchema.model_validate(response.json())
 
-    @pytest.mark.parametrize(
-        ("method", "endpoint"),
-        [
-            ("post", "/pegazzo/management/balance/transaction"),
-        ],
-    )
-    def test_balance_routes_fail_without_auth(self, method, endpoint, client):
-        """Test that balance routes fail without authorization."""
+    def test_create_transaction_unauthorized(self, client):
+        """Unauthenticated user cannot create a transaction."""
 
-        json_data = (
-            {
-                "amount": 1500,
-                "reference": "XYZ987654",
-                "date": "2025-01-01T08:00:00",
+        response = client.post(
+            "/pegazzo/management/balance/transaction",
+            json={
+                "amount": 100,
                 "type": "debit",
-                "description": "Sin auth",
-                "paymentMethod": "cash",
-            }
-            if method == "post"
-            else None
+                "description": "No auth",
+                "payment_method": "cash",
+            },
         )
-
-        request_func = getattr(client, method)
-
-        response = request_func(endpoint, json=json_data) if json_data else request_func(endpoint)
 
         assert response.status_code == 401
 
     def test_create_transaction_invalid_body(self, authorized_client):
-        """Test validation errors when sending bad input."""
-
-        invalid_data = {
-            "amount": "NOT_A_NUMBER",
-            "reference": 1234,
-        }
+        """Authenticated user but invalid payload."""
 
         response = authorized_client.post(
             "/pegazzo/management/balance/transaction",
-            json=invalid_data,
+            json={
+                "amount": "NOT_A_NUMBER",
+            },
         )
 
         assert response.status_code == 422
+
+    def test_delete_transaction_success(self, authorized_client):
+        """Authenticated user can delete a transaction."""
+
+        create_response = authorized_client.post(
+            "/pegazzo/management/balance/transaction",
+            json={
+                "amount": 500,
+                "type": "debit",
+                "description": "To delete",
+                "payment_method": "cash",
+            },
+        )
+        reference = create_response.json()["reference"]
+
+        response = authorized_client.delete(f"/pegazzo/management/balance/transaction/{reference}")
+
+        assert response.status_code == 200
+        assert ActionSuccess.model_validate(response.json())
+
+    def test_delete_transaction_not_found(self, authorized_client):
+        """Authenticated user deleting non-existent transaction."""
+
+        response = authorized_client.delete("/pegazzo/management/balance/transaction/NO_EXIST")
+
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Transaction not found"
+
+    def test_delete_transaction_unauthorized(self, client):
+        """Unauthenticated user cannot delete a transaction."""
+
+        response = client.delete("/pegazzo/management/balance/transaction/ANYREF")
+
+        assert response.status_code == 401
