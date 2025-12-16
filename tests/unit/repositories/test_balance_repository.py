@@ -12,7 +12,7 @@ from app.repositories.balance import BalanceRepository
 def sample_transaction():
     """Create a sample transaction for testing."""
     tx = Transaction()
-    tx.reference = "123456"
+    tx.reference = "0054291019"
     tx.amount = 100
     tx.type = "debit"
     return tx
@@ -31,6 +31,26 @@ def balance_repository_test_setup(request):
 @pytest.mark.usefixtures("balance_repository_test_setup")
 class TestBalanceRepository:
     """Tests for BalanceRepository."""
+
+    def test_delete_transaction_success(self, sample_transaction):
+        """Test successful transaction deletion."""
+        # Act
+        self.repository.delete_transaction(sample_transaction)
+
+        # Assert
+        self.mock_db.delete.assert_called_once_with(sample_transaction)
+        self.mock_db.commit.assert_called_once()
+
+    def test_delete_transaction_failure(self, sample_transaction):
+        """Test deletion failure raises DBOperationError."""
+        # Mock
+        self.mock_db.delete.side_effect = Exception("Delete failed")
+
+        # Act & Assert
+        with pytest.raises(DBOperationError):
+            self.repository.delete_transaction(sample_transaction)
+
+        self.mock_db.rollback.assert_called_once()
 
     def test_create_transaction_success(self, sample_transaction):
         """Test successful creation of a transaction."""

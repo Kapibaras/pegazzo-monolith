@@ -49,3 +49,14 @@ class BalanceService:
             payment_method=data.payment_method,
         )
         return self.repository.create_transaction(transaction)
+
+    def delete_transaction(self, reference: str):
+        """Delete a transaction."""
+        if not reference:
+            raise TransactionNotFoundException
+
+        transaction = self.repository.get_by_reference(reference)
+        if not transaction:
+            raise TransactionNotFoundException
+
+        self.repository.delete_transaction(transaction)

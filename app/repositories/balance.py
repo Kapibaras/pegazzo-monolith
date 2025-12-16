@@ -27,3 +27,12 @@ class BalanceRepository(DBRepository):
         Args: username (str): The username of the user to retrieve.
         """
         return self.db.query(Transaction).filter(Transaction.reference == reference).first()
+
+    def delete_transaction(self, transaction: Transaction):
+        """Delete a transaction."""
+        try:
+            self.db.delete(transaction)
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            raise DBOperationError("Error deleting transaction") from e
