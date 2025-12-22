@@ -5,6 +5,61 @@ from app.schemas.user import ActionSuccess
 class TestBalanceRouter:
     """Tests for Balance Router endpoints (with auth required)."""
 
+    def test_update_transaction_amount(self, authorized_client):
+        """Test updating transaction amount."""
+
+        reference = "MOCK_REF_001"
+        update_data = {
+            "amount": 2500,
+        }
+
+        response = authorized_client.patch(
+            f"/pegazzo/management/balance/transaction/{reference}",
+            json=update_data,
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["reference"] == reference
+        assert data["amount"] == 2500
+
+    def test_update_transaction_not_found(self, authorized_client):
+        """Test updating a non-existing transaction."""
+
+        reference = "TX-999"
+        update_data = {"amount": 1000}
+
+        response = authorized_client.patch(
+            f"/pegazzo/management/balance/transaction/{reference}",
+            json=update_data,
+        )
+
+        assert response.status_code == 404
+        data = response.json()
+        assert data["detail"] == f"Transaction with reference '{reference}' was not found"
+
+    def test_update_transaction_description_and_payment_method(self, authorized_client):
+        """Test updating transaction description and payment method."""
+
+        reference = "MOCK_REF_001"
+        update_data = {
+            "description": "Pago actualizado",
+            "payment_method": "cash",
+        }
+
+        response = authorized_client.patch(
+            f"/pegazzo/management/balance/transaction/{reference}",
+            json=update_data,
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data["reference"] == reference
+        assert data["description"] == "Pago actualizado"
+        assert data["paymentMethod"] == "cash"
+
     def test_get_transaction_success(self, authorized_client):
         """Authenticated user can get an existing transaction."""
 
@@ -38,7 +93,7 @@ class TestBalanceRouter:
         response = authorized_client.get("/pegazzo/management/balance/transaction/INVALID_REF")
 
         assert response.status_code == 404
-        assert response.json()["detail"] == "Transaction not found"
+        assert response.json()["detail"] == "Transaction with reference 'INVALID_REF' was not found"
 
     def test_create_transaction_success(self, authorized_client):
         """Authenticated user can create a transaction."""
@@ -109,7 +164,7 @@ class TestBalanceRouter:
         response = authorized_client.delete("/pegazzo/management/balance/transaction/NO_EXIST")
 
         assert response.status_code == 404
-        assert response.json()["detail"] == "Transaction not found"
+        assert response.json()["detail"] == "Transaction with reference 'NO_EXIST' was not found"
 
     def test_delete_transaction_unauthorized(self, client):
         """Unauthenticated user cannot delete a transaction."""

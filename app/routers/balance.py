@@ -3,7 +3,7 @@ from fastapi import APIRouter, Body, Depends, Path, status
 from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
 from app.enum.auth import Role
-from app.schemas.balance import TransactionResponseSchema, TransactionSchema
+from app.schemas.balance import TransactionPatchSchema, TransactionResponseSchema, TransactionSchema
 from app.schemas.user import ActionSuccess
 from app.services.balance import BalanceService
 
@@ -51,3 +51,14 @@ def delete_transaction(
     """Delete a transaction."""
     service.delete_transaction(reference)
     return {"message": f"Transaction '{reference}' was successfully deleted."}
+
+
+@router.patch("/transaction/{reference}", response_model=TransactionResponseSchema, status_code=status.HTTP_200_OK)
+def update_transaction(
+    reference: str = Path(description="Transaction reference"),
+    body: TransactionPatchSchema = Body(..., description="Transaction data"),
+    service: BalanceService = Depends(ServiceFactory.balance_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER])),
+) -> TransactionResponseSchema:
+    """Update a transaction."""
+    return service.update_transaction(reference, body)

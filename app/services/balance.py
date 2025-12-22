@@ -25,7 +25,7 @@ class BalanceService:
 
         transaction = self.repository.get_by_reference(reference)
         if not transaction:
-            raise TransactionNotFoundException
+            raise TransactionNotFoundException(reference)
         return transaction
 
     def create_transaction(self, data: TransactionSchema) -> TransactionResponseSchema:
@@ -52,11 +52,31 @@ class BalanceService:
 
     def delete_transaction(self, reference: str):
         """Delete a transaction."""
-        if not reference:
-            raise TransactionNotFoundException
 
         transaction = self.repository.get_by_reference(reference)
         if not transaction:
-            raise TransactionNotFoundException
+            raise TransactionNotFoundException(reference)
 
         self.repository.delete_transaction(transaction)
+
+    def update_transaction(self, reference: str, data: TransactionSchema) -> TransactionResponseSchema:
+        """Update a transaction."""
+
+        transaction = self.repository.get_by_reference(reference)
+        if not transaction:
+            raise TransactionNotFoundException(reference)
+
+        if data.amount is not None:
+            transaction.amount = data.amount
+
+        if data.description is not None:
+            if len(data.description) > 255:
+                raise InvalidDescriptionLengthException
+            transaction.description = data.description
+
+        if data.payment_method is not None:
+            if data.payment_method not in PaymentMethod:
+                raise InvalidPaymentMethodException
+            transaction.payment_method = data.payment_method
+
+        return self.repository.update_transaction(transaction)

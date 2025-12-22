@@ -104,3 +104,26 @@ class TestBalanceRepository:
 
         # Assert
         assert result is None
+
+    def test_update_transaction_success(self, sample_transaction):
+        """Test successful transaction update."""
+
+        # Mock
+        self.repository.get_by_reference = Mock(return_value=sample_transaction)
+
+        result = self.repository.update_transaction(sample_transaction)
+
+        self.mock_db.commit.assert_called_once()
+        self.mock_db.refresh.assert_called_once_with(sample_transaction)
+
+        assert result == sample_transaction
+
+    def test_update_transaction_failure(self, sample_transaction):
+        """Test update failure raises DBOperationError."""
+
+        self.mock_db.commit.side_effect = Exception("Commit failed")
+
+        with pytest.raises(DBOperationError):
+            self.repository.update_transaction(sample_transaction)
+
+        self.mock_db.rollback.assert_called_once()
