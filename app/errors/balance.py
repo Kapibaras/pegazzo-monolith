@@ -2,12 +2,13 @@ from fastapi import HTTPException, status
 
 
 class TransactionNotFoundException(HTTPException):
-    """Description transaction not found."""
+    """Exception raised when a transaction is not found."""
 
-    def __init__(self):
-        """Exception raised when a transaction is not found."""
-
-        super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+    def __init__(self, reference: str):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Transaction with reference '{reference}' was not found",
+        )
 
 
 class InvalidDescriptionLengthException(HTTPException):

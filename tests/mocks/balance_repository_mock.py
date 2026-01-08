@@ -29,5 +29,13 @@ class BalanceRepositoryMock:
         self.transactions.append(transaction)
         return transaction
 
+    def update_transaction(self, transaction: Transaction):
+        for idx, t in enumerate(self.transactions):
+            if t.reference == transaction.reference:
+                self.transactions[idx] = transaction
+                return transaction
+
+        return None
+
     def delete_transaction(self, transaction: Transaction):
         self.transactions = [t for t in self.transactions if t.reference != transaction.reference]

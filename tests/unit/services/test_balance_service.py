@@ -10,7 +10,7 @@ from app.errors.balance import (
 )
 from app.models.balance import Transaction
 from app.repositories.balance import BalanceRepository
-from app.schemas.balance import TransactionSchema
+from app.schemas.balance import TransactionPatchSchema, TransactionSchema
 from app.services.balance import BalanceService
 
 
@@ -85,7 +85,6 @@ class TestBalanceService:
 
         with patch("app.services.balance.generate_reference") as mock_ref:
             mock_ref.return_value = "0054291019"
-
             result = self.service.create_transaction(schema)
 
         self.mock_repo.create_transaction.assert_called_once()
@@ -141,3 +140,93 @@ class TestBalanceService:
 
         with pytest.raises(InvalidDescriptionLengthException):
             self.service.create_transaction(schema)
+
+    def test_update_transaction_success(self):
+        """Test updating a transaction successfully."""
+
+        existing_tx = Transaction(
+            reference="REF123",
+            amount=100,
+            description="Old description",
+            payment_method=PaymentMethod.CASH,
+        )
+
+        self.mock_repo.get_by_reference.return_value = existing_tx
+        self.mock_repo.update_transaction.side_effect = lambda t: t
+
+        update_schema = TransactionPatchSchema(
+            amount=500,
+            description="Updated description",
+            payment_method=PaymentMethod.CASH,
+        )
+
+        result = self.service.update_transaction("REF123", update_schema)
+
+        self.mock_repo.get_by_reference.assert_called_once_with("REF123")
+        self.mock_repo.update_transaction.assert_called_once_with(existing_tx)
+
+        assert result.amount == 500
+        assert result.description == "Updated description"
+        assert result.payment_method == PaymentMethod.CASH
+
+    def test_update_transaction_partial(self):
+        """Test partial update of a transaction."""
+
+        existing_tx = Transaction(
+            reference="REF123",
+            amount=100,
+            description="Original",
+            payment_method=PaymentMethod.CASH,
+        )
+
+        self.mock_repo.get_by_reference.return_value = existing_tx
+        self.mock_repo.update_transaction.side_effect = lambda t: t
+
+        update_schema = TransactionPatchSchema(
+            amount=None,
+            description="Only description updated",
+            payment_method=None,
+        )
+
+        result = self.service.update_transaction("REF123", update_schema)
+
+        assert result.amount == 100
+        assert result.description == "Only description updated"
+        assert result.payment_method == PaymentMethod.CASH
+
+    def test_update_transaction_not_found(self):
+        """Test error when updating non-existent transaction."""
+
+        self.mock_repo.get_by_reference.return_value = None
+
+        update_schema = TransactionPatchSchema(
+            amount=200,
+            description="Update",
+            payment_method=PaymentMethod.CASH,
+        )
+
+        with pytest.raises(TransactionNotFoundException):
+            self.service.update_transaction("NOEXIST", update_schema)
+
+    def test_update_transaction_invalid_description_length(self):
+        """Test error when updating transaction with long description."""
+
+        long_desc = "x" * 256
+
+        existing_tx = Transaction(
+            reference="REF123",
+            amount=100,
+            description="Old",
+            payment_method=PaymentMethod.CASH,
+        )
+
+        self.mock_repo.get_by_reference.return_value = existing_tx
+
+        update_schema = TransactionPatchSchema(
+            amount=None,
+            description=long_desc,
+            payment_method=None,
+        )
+
+        with pytest.raises(InvalidDescriptionLengthException):
+            self.service.update_transaction("REF123", update_schema)

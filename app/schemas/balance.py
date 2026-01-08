@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -16,6 +17,14 @@ class TransactionSchema(BaseModel):
     type: Type = Field(..., description="Type of the transaction")
     description: str = Field(..., description="Description of the transaction")
     payment_method: PaymentMethod = Field(..., description="Payment method of the transaction")
+
+
+class TransactionPatchSchema(BaseModel):
+    """Schema for updating a transaction."""
+
+    amount: Optional[int] = None
+    description: Optional[str] = None
+    payment_method: Optional[PaymentMethod] = None
 
 
 # * RESPONSE SCHEMAS * #

@@ -36,3 +36,16 @@ class BalanceRepository(DBRepository):
         except Exception as e:
             self.db.rollback()
             raise DBOperationError("Error deleting transaction") from e
+
+    def update_transaction(self, transaction: Transaction):
+        """Update a transaction."""
+
+        try:
+            self.db.commit()
+            self.db.refresh(transaction)
+        except Exception as ex:
+            self.db.rollback()
+            logger.error(f"Error updating transaction {transaction.reference} due to: {ex}")
+            raise DBOperationError("Error updating transaction in the database")
+
+        return self.get_by_reference(transaction.reference)
