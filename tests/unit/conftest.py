@@ -1,13 +1,19 @@
+import os
 from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 
+import app.database.events
+from app.database.base import Base
 from app.dependencies import RepositoryFactory
 from app.enum.auth import Role
 from app.main import app
 from tests.mocks import UserRepositoryMock
 from tests.mocks.balance_repository_mock import BalanceRepositoryMock
+from tests.unit.utils.test_errors_util import MissingDatabaseURLError
 
 user_repo_mock = UserRepositoryMock()
 initial_user = user_repo_mock.users[0]
@@ -68,3 +74,26 @@ def authorized_client():
     )
 
     return client
+
+
+@pytest.fixture
+def metrics_db_session():
+    """Session Postgres (Docker)."""
+    if not os.getenv("DATABASE_URL"):
+        raise MissingDatabaseURLError
+
+    engine = create_engine(os.getenv("DATABASE_URL"), future=True)
+    testing_session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+
+    Base.metadata.create_all(bind=engine)
+
+    session = testing_session_local()
+    try:
+        session.execute(text("TRUNCATE transaction_metrics RESTART IDENTITY CASCADE;"))
+        session.execute(text('TRUNCATE "transaction" CASCADE;'))
+        session.commit()
+
+        yield session
+    finally:
+        session.rollback()
+        session.close()
