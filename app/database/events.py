@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from copy import copy
 from typing import Set, Tuple
 
@@ -7,15 +8,14 @@ from sqlalchemy import event, inspect
 from sqlalchemy.orm import Session
 
 from app.models.balance import Transaction
-from app.services.transaction_metrics import update_metrics_for_transaction
+from app.repositories.transaction_metrics import PeriodKey, get_affected_periods, recalc_period
+
+logger = logging.getLogger(__name__)
 
 
 @event.listens_for(Session, "after_flush")
 def transaction_metrics_after_flush(session: Session, _flush_context: object) -> None:
-    """Run inside the same DB transaction (atomic). Recalculate metrics when Transaction rows are inserted, updated, or deleted."""
-
-    if session.info.get("is_testing", False):
-        return
+    """Recalculate transaction metrics after flushing Transaction changes."""
 
     if session.info.get("_updating_metrics", False):
         return
@@ -34,7 +34,7 @@ def transaction_metrics_after_flush(session: Session, _flush_context: object) ->
 
         insp = inspect(obj)
 
-        old_tx = None
+        old_tx: Transaction | None = None
         date_hist = insp.attrs.date.history
         if date_hist.has_changes() and date_hist.deleted:
             old_tx = copy(obj)
@@ -50,9 +50,26 @@ def transaction_metrics_after_flush(session: Session, _flush_context: object) ->
     if not affected:
         return
 
+    affected_periods: Set[PeriodKey] = set()
+    for tx, old_tx in affected:
+        affected_periods.update(get_affected_periods(tx.date))
+        if old_tx is not None:
+            affected_periods.update(get_affected_periods(old_tx.date))
+
+    logger.debug("Updating metrics for %d transactions (%d periods)", len(affected), len(affected_periods))
+
     session.info["_updating_metrics"] = True
     try:
-        for tx, old_tx in affected:
-            update_metrics_for_transaction(session, transaction=tx, old_transaction=old_tx)
+        for key in affected_periods:
+            recalc_period(
+                session,
+                period_type=key.period_type,
+                year=key.year,
+                month=key.month,
+                week=key.week,
+            )
+    except Exception:
+        logger.exception("Failed to recalculate transaction metrics")
+        raise
     finally:
         session.info["_updating_metrics"] = False
