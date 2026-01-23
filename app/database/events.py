@@ -9,8 +9,9 @@ from sqlalchemy import event, inspect
 from sqlalchemy.orm import Session
 
 from app.models.balance import Transaction
-from app.repositories.dto import PeriodKey
 from app.repositories.transaction_metrics import TransactionMetricsRepository
+from app.schemas.dto.periods import PeriodKey
+from app.utils.periods import get_affected_periods
 
 logger = logging.getLogger(__name__)
 
@@ -54,21 +55,27 @@ def transaction_metrics_after_flush(session: Session, _flush_context: object) ->
 
     affected_periods: Set[PeriodKey] = set()
     for tx, old_tx in affected:
-        affected_periods.update(TransactionMetricsRepository.get_affected_periods(tx.date))
+        affected_periods.update(get_affected_periods(tx.date))
         if old_tx is not None:
-            affected_periods.update(TransactionMetricsRepository.get_affected_periods(old_tx.date))
+            affected_periods.update(get_affected_periods(old_tx.date))
 
-    logger.debug("Updating metrics for %d transactions (%d periods)", len(affected), len(affected_periods))
+    logger.debug(
+        "Updating metrics for %d transactions (%d periods)",
+        len(affected),
+        len(affected_periods),
+    )
+
+    repo = TransactionMetricsRepository(session)
 
     session.info["_updating_metrics"] = True
     try:
         for key in affected_periods:
-            TransactionMetricsRepository.recalc_period(
-                session,
+            repo.recalc_period(
                 period_type=key.period_type,
                 year=key.year,
                 month=key.month,
                 week=key.week,
+                commit=False,
             )
     except Exception:
         logger.exception("Failed to recalculate transaction metrics")

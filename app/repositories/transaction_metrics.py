@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Any
+from typing import Any, Iterable
 
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
@@ -12,11 +11,13 @@ from app.enum.balance import Type as TxType
 from app.errors.transaction_metrics import TransactionMetricsPeriodError
 from app.models.balance import Transaction
 from app.models.transaction_metrics import TransactionMetrics
-from app.repositories.abstract import DBRepository
-from app.repositories.dto import PeriodKey, PeriodRawMetrics
-from app.utils.decimal import DEC_2, calculate_percentage, round_to_2_decimals
+from app.schemas.dto.periods import PeriodKey, PeriodRawMetrics
+from app.utils.decimal import DEC_2, round_to_2_decimals
 from app.utils.metrics import calculate_income_expense_ratio, calculate_weekly_averages
+from app.utils.paymenth_method import format_payment_method_breakdown
 from app.utils.periods import get_period_date_range, weeks_for_period
+
+from .abstract import DBRepository
 
 logger = logging.getLogger(__name__)
 
@@ -24,25 +25,13 @@ logger = logging.getLogger(__name__)
 class TransactionMetricsRepository(DBRepository):
     """Repository for transaction metrics aggregation and persistence."""
 
-    @staticmethod
-    def get_affected_periods(dt: datetime) -> list[PeriodKey]:
-        """Return affected week/month/year period keys for a datetime."""
-        d = dt.date()
-        iso = d.isocalendar()
-
-        return [
-            PeriodKey(period_type="week", year=iso.year, week=iso.week),
-            PeriodKey(period_type="month", year=d.year, month=d.month),
-            PeriodKey(period_type="year", year=d.year),
-        ]
-
     def recalc_period(
         self,
-        *,
         period_type: str,
         year: int,
         month: int | None = None,
         week: int | None = None,
+        commit: bool = True,
     ) -> None:
         """Recalculate metrics for a single period and UPSERT the row."""
 
@@ -67,9 +56,7 @@ class TransactionMetricsRepository(DBRepository):
             rounding=ROUND_HALF_UP,
         )
 
-        breakdown = self.format_payment_method_breakdown(
-            metrics.payment_amounts,
-        )
+        breakdown = format_payment_method_breakdown(metrics.payment_amounts)
 
         weeks = weeks_for_period(period_type, year, month)
 
@@ -97,9 +84,10 @@ class TransactionMetricsRepository(DBRepository):
             weekly_average_income=weekly_avg_income,
             weekly_average_expense=weekly_avg_expense,
             income_expense_ratio=ratio,
+            commit=commit,
         )
 
-    def _fetch_period_metrics(self, base_filter) -> PeriodRawMetrics:
+    def _fetch_period_metrics(self, base_filter: Iterable[Any]) -> PeriodRawMetrics:
         stmt = (
             select(
                 Transaction.type,
@@ -107,7 +95,7 @@ class TransactionMetricsRepository(DBRepository):
                 func.coalesce(func.sum(Transaction.amount), 0).label("amount"),
                 func.count().label("tx_count"),
             )
-            .where(base_filter)
+            .where(*base_filter)
             .group_by(Transaction.type, Transaction.payment_method)
         )
 
@@ -141,20 +129,8 @@ class TransactionMetricsRepository(DBRepository):
             payment_amounts=payment_amounts,
         )
 
-    @staticmethod
-    def format_payment_method_breakdown(
-        amounts: dict[str, Decimal],
-    ) -> dict[str, Any]:
-        """Format payment method breakdown."""
-        total = sum(amounts.values(), Decimal("0.00"))
-        return {
-            "amounts": {k: float(v) for k, v in amounts.items()},
-            "percentages": {k: float(calculate_percentage(v, total)) for k, v in amounts.items()},
-        }
-
     def _upsert_metrics(
         self,
-        *,
         period_type: str,
         year: int,
         month: int | None,
@@ -167,6 +143,7 @@ class TransactionMetricsRepository(DBRepository):
         weekly_average_income: Decimal,
         weekly_average_expense: Decimal,
         income_expense_ratio: Decimal,
+        commit: bool = True,
     ) -> None:
         stmt = insert(TransactionMetrics).values(
             period_type=period_type,
@@ -219,7 +196,13 @@ class TransactionMetricsRepository(DBRepository):
 
         try:
             self.db.execute(stmt)
-            self.db.commit()
+            if commit:
+                try:
+                    self.db.commit()
+                except Exception:
+                    self.db.rollback()
+                    logger.exception(...)
+                raise
         except Exception:
             self.db.rollback()
             logger.exception(

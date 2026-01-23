@@ -1,7 +1,7 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from app.errors.transaction_metrics import TransactionMetricsPeriodError
-from app.repositories.dto import PeriodKey
+from app.schemas.dto.periods import PeriodKey
 from app.utils.dates import (
     count_iso_weeks_in_month,
     end_of_month,
@@ -10,6 +10,18 @@ from app.utils.dates import (
     start_of_month,
     start_of_year,
 )
+
+
+def get_affected_periods(dt: datetime) -> list[PeriodKey]:
+    """Return affected week/month/year period keys for a datetime."""
+    d = dt.date()
+    iso = d.isocalendar()
+
+    return [
+        PeriodKey(period_type="week", year=iso.year, week=iso.week),
+        PeriodKey(period_type="month", year=d.year, month=d.month),
+        PeriodKey(period_type="year", year=d.year),
+    ]
 
 
 def get_period_date_range(key: PeriodKey) -> tuple[date, date]:
