@@ -1,3 +1,4 @@
+# TODO BACKGROUND TASKS TO REDIS
 from __future__ import annotations
 
 import logging
@@ -8,7 +9,8 @@ from sqlalchemy import event, inspect
 from sqlalchemy.orm import Session
 
 from app.models.balance import Transaction
-from app.repositories.transaction_metrics import PeriodKey, get_affected_periods, recalc_period
+from app.repositories.dto import PeriodKey
+from app.repositories.transaction_metrics import TransactionMetricsRepository
 
 logger = logging.getLogger(__name__)
 
@@ -52,16 +54,16 @@ def transaction_metrics_after_flush(session: Session, _flush_context: object) ->
 
     affected_periods: Set[PeriodKey] = set()
     for tx, old_tx in affected:
-        affected_periods.update(get_affected_periods(tx.date))
+        affected_periods.update(TransactionMetricsRepository.get_affected_periods(tx.date))
         if old_tx is not None:
-            affected_periods.update(get_affected_periods(old_tx.date))
+            affected_periods.update(TransactionMetricsRepository.get_affected_periods(old_tx.date))
 
     logger.debug("Updating metrics for %d transactions (%d periods)", len(affected), len(affected_periods))
 
     session.info["_updating_metrics"] = True
     try:
         for key in affected_periods:
-            recalc_period(
+            TransactionMetricsRepository.recalc_period(
                 session,
                 period_type=key.period_type,
                 year=key.year,

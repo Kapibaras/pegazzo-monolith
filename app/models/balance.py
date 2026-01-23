@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Numeric, String
+from sqlalchemy import Column, Index, Numeric, String
 from sqlalchemy.sql import func
 from sqlalchemy.types import DateTime
 
@@ -15,3 +15,5 @@ class Transaction(Base):
     type = Column(String(10), nullable=True)
     description = Column(String(255), nullable=True)
     payment_method = Column(String(50), nullable=False)
+
+    __table_args__ = (Index("ix_transaction_date", "date"),)
