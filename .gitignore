@@ -70,6 +70,11 @@ docker-compose.override.yml
 .pyright/
 ruff_cache/
 
+# ───── Docker ─────
+*.tar
+*.bak
+docker-compose.yml
+
 # ───── Otros ─────
 *.swp
 *.orig
