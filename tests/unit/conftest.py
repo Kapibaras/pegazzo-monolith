@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
+import app.database.events
 from app.dependencies import RepositoryFactory
 from app.enum.auth import Role
 from app.main import app
@@ -16,14 +17,12 @@ balance_repo_mock = BalanceRepositoryMock()
 initial_transaction = balance_repo_mock.transactions[0]
 
 
-class DummyDBSession:
-    """Dummy DB session para Depends."""
-
-    def rollback(self):
-        pass
-
-    def close(self):
-        pass
+@pytest.fixture(autouse=True)
+def disable_metrics_listener(monkeypatch):
+    monkeypatch.setattr(
+        "app.database.events.transaction_metrics_after_flush",
+        lambda *_args, **_kwargs: None,
+    )
 
 
 @pytest.fixture(autouse=True)
