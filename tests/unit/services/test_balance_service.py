@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
@@ -230,3 +231,112 @@ class TestBalanceService:
 
         with pytest.raises(InvalidDescriptionLengthException):
             self.service.update_transaction("REF123", update_schema)
+
+    def test_get_month_year_metrics_returns_zero_when_no_data(self):
+        # Arrange
+        self.mock_repo.get_month_year_metrics.return_value = None
+
+        # Act
+        result = self.service.get_metrics(month=5, year=2025)
+
+        # Assert
+        self.mock_repo.get_month_year_metrics.assert_called_once_with(
+            month=5,
+            year=2025,
+        )
+
+        assert result == {
+            "balance": 0,
+            "total_income": 0,
+            "total_expense": 0,
+            "transaction_count": 0,
+            "period": {
+                "month": 5,
+                "year": 2025,
+            },
+        }
+
+    def test_get_month_year_metrics_returns_repo_data(self):
+        # Arrange
+        repo_result = SimpleNamespace(
+            balance=1500,
+            total_income=3000,
+            total_expense=1500,
+            transaction_count=12,
+        )
+
+        self.mock_repo.get_month_year_metrics.return_value = repo_result
+
+        # Act
+        result = self.service.get_metrics(month=5, year=2025)
+
+        # Assert
+        self.mock_repo.get_month_year_metrics.assert_called_once_with(
+            month=5,
+            year=2025,
+        )
+
+        assert result == {
+            "balance": 1500,
+            "total_income": 3000,
+            "total_expense": 1500,
+            "transaction_count": 12,
+            "period": {
+                "month": 5,
+                "year": 2025,
+            },
+        }
+
+    def test_get_month_year_metrics_propagates_unexpected_error(self):
+        # Arrange
+        self.mock_repo.get_month_year_metrics.side_effect = RuntimeError("DB exploded")
+
+        # Act / Assert
+        with pytest.raises(RuntimeError, match="DB exploded"):
+            self.service.get_metrics(month=5, year=2025)
+
+    def test_service_does_not_mutate_repo_result(self):
+        # Arrange
+        repo_result = SimpleNamespace(
+            balance=100,
+            total_income=200,
+            total_expense=100,
+            transaction_count=2,
+        )
+
+        self.mock_repo.get_month_year_metrics.return_value = repo_result
+
+        # Act
+        result = self.service.get_metrics(month=1, year=2025)
+
+        # Assert
+        assert result == {
+            "balance": 100,
+            "total_income": 200,
+            "total_expense": 100,
+            "transaction_count": 2,
+            "period": {
+                "month": 1,
+                "year": 2025,
+            },
+        }
+
+        assert result is not repo_result
+
+    def test_service_does_not_modify_repo_result(self):
+        # Arrange
+        repo_result = SimpleNamespace(
+            balance=100,
+            total_income=200,
+            total_expense=100,
+            transaction_count=2,
+        )
+
+        original_state = repo_result.__dict__.copy()
+        self.mock_repo.get_month_year_metrics.return_value = repo_result
+
+        # Act
+        self.service.get_metrics(month=1, year=2025)
+
+        # Assert
+        assert repo_result.__dict__ == original_state

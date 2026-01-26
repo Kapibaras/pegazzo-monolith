@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.errors.database import DBOperationError
 from app.models.balance import Transaction
+from app.models.transaction_metrics import TransactionMetrics
 from app.repositories.balance import BalanceRepository
 
 
@@ -127,3 +128,41 @@ class TestBalanceRepository:
             self.repository.update_transaction(sample_transaction)
 
         self.mock_db.rollback.assert_called_once()
+
+    def test_get_month_year_metrics_found(self):
+        """Should return metrics when month and year exist."""
+
+        metrics = TransactionMetrics()
+        metrics.month = 1
+        metrics.year = 2025
+
+        mock_query = self.mock_db.query.return_value
+        mock_filter = mock_query.filter.return_value
+        mock_filter.first.return_value = metrics
+
+        # Act
+        result = self.repository.get_month_year_metrics(month=1, year=2025)
+
+        # Assert
+        self.mock_db.query.assert_called_once_with(TransactionMetrics)
+        mock_query.filter.assert_called_once()
+        mock_filter.first.assert_called_once()
+
+        assert result == metrics
+
+    def test_get_month_year_metrics_not_found(self):
+        """Should return None when metrics do not exist."""
+
+        mock_query = self.mock_db.query.return_value
+        mock_filter = mock_query.filter.return_value
+        mock_filter.first.return_value = None
+
+        # Act
+        result = self.repository.get_month_year_metrics(month=12, year=2030)
+
+        # Assert
+        self.mock_db.query.assert_called_once_with(TransactionMetrics)
+        mock_query.filter.assert_called_once()
+        mock_filter.first.assert_called_once()
+
+        assert result is None

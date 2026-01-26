@@ -39,3 +39,11 @@ class BalanceRepositoryMock:
 
     def delete_transaction(self, transaction: Transaction):
         self.transactions = [t for t in self.transactions if t.reference != transaction.reference]
+
+    def get_month_year_metrics(
+        self,
+        _month: int | None = None,
+        _year: int | None = None,
+        **_kwargs,
+    ):
+        return None
