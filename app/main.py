@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
 import app.auth.core
+import app.database.events
 from app.config import DEBUG, ENVIRONMENT, AppConfig
 from app.database.core import test_connection
 from app.routers import auth_router, balance_router, user_router

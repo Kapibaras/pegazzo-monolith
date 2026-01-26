@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(encoding="utf-8")
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "LOCAL")
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
