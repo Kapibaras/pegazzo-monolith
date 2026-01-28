@@ -3,7 +3,13 @@ from fastapi import APIRouter, Body, Depends, Path, status
 from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
 from app.enum.auth import Role
-from app.schemas.balance import TransactionPatchSchema, TransactionResponseSchema, TransactionSchema
+from app.schemas.balance import (
+    BalanceMetricsQuerySchema,
+    BalanceMetricsSimpleResponseSchema,
+    TransactionPatchSchema,
+    TransactionResponseSchema,
+    TransactionSchema,
+)
 from app.schemas.user import ActionSuccess
 from app.services.balance import BalanceService
 
@@ -62,3 +68,13 @@ def update_transaction(
 ) -> TransactionResponseSchema:
     """Update a transaction."""
     return service.update_transaction(reference, body)
+
+
+@router.get("/metrics/simple", response_model=BalanceMetricsSimpleResponseSchema, status_code=status.HTTP_200_OK)
+def get_metrics(
+    params: BalanceMetricsQuerySchema = Depends(BalanceMetricsQuerySchema),
+    service: BalanceService = Depends(ServiceFactory.balance_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER])),
+) -> BalanceMetricsSimpleResponseSchema:
+    """Get metrics."""
+    return service.get_metrics(month=params.month, year=params.year)

@@ -1,5 +1,6 @@
 from app.errors.database import DBOperationError
 from app.models.balance import Transaction
+from app.models.transaction_metrics import TransactionMetrics
 from app.utils.logging_config import logger
 
 from .abstract import DBRepository
@@ -49,3 +50,9 @@ class BalanceRepository(DBRepository):
             raise DBOperationError("Error updating transaction in the database")
 
         return self.get_by_reference(transaction.reference)
+
+    def get_month_year_metrics(self, month: int, year: int):
+        """Get metrics for a specific month."""
+        return (
+            self.db.query(TransactionMetrics).filter(TransactionMetrics.month == month, TransactionMetrics.year == year).first()
+        )

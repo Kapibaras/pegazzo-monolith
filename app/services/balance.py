@@ -9,7 +9,7 @@ from app.errors.balance import (
 )
 from app.models.balance import Transaction
 from app.repositories.balance import BalanceRepository
-from app.schemas.balance import TransactionResponseSchema, TransactionSchema
+from app.schemas.balance import BalanceMetricsSimpleResponseSchema, TransactionResponseSchema, TransactionSchema
 from app.utils.reference import generate_reference
 
 
@@ -80,3 +80,28 @@ class BalanceService:
             transaction.payment_method = data.payment_method
 
         return self.repository.update_transaction(transaction)
+
+    def get_metrics(self, month: int | None = None, year: int | None = None) -> BalanceMetricsSimpleResponseSchema:
+        """Get metrics."""
+        if month is None and year is None:
+            now = datetime.now(timezone.utc)
+            month = now.month
+            year = now.year
+
+        metrics = self.repository.get_month_year_metrics(month=month, year=year)
+        if not metrics:
+            return {
+                "balance": 0,
+                "total_income": 0,
+                "total_expense": 0,
+                "transaction_count": 0,
+                "period": {"month": month, "year": year},
+            }
+
+        return {
+            "balance": metrics.balance,
+            "total_income": metrics.total_income,
+            "total_expense": metrics.total_expense,
+            "transaction_count": metrics.transaction_count,
+            "period": {"month": month, "year": year},
+        }
