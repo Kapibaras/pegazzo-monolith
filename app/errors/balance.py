@@ -5,6 +5,8 @@ class TransactionNotFoundException(HTTPException):
     """Exception raised when a transaction is not found."""
 
     def __init__(self, reference: str):
+        """Transaction that was not found."""
+
         super().__init__(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Transaction with reference '{reference}' was not found",

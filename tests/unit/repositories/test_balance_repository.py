@@ -166,3 +166,81 @@ class TestBalanceRepository:
         mock_filter.first.assert_called_once()
 
         assert result is None
+
+    def test_get_period_metrics_year_found(self):
+        metrics = TransactionMetrics()
+        metrics.period_type = "year"
+        metrics.year = 2026
+
+        mock_query = self.mock_db.query.return_value
+        mock_filter = mock_query.filter.return_value
+        mock_filter.first.return_value = metrics
+
+        result = self.repository.get_period_metrics(period_type="year", year=2026, month=None, week=None)
+
+        self.mock_db.query.assert_called_once_with(TransactionMetrics)
+        mock_query.filter.assert_called_once()
+        mock_filter.first.assert_called_once()
+
+        assert result == metrics
+
+    def test_get_period_metrics_month_found(self):
+        metrics = TransactionMetrics()
+        metrics.period_type = "month"
+        metrics.year = 2026
+        metrics.month = 1
+
+        mock_query = self.mock_db.query.return_value
+
+        # 1er filter: period_type + year
+        mock_q1 = mock_query.filter.return_value
+        # 2do filter: month
+        mock_q2 = mock_q1.filter.return_value
+
+        mock_q2.first.return_value = metrics
+
+        result = self.repository.get_period_metrics(period_type="month", year=2026, month=1, week=None)
+
+        self.mock_db.query.assert_called_once_with(TransactionMetrics)
+        mock_query.filter.assert_called_once()
+        mock_q1.filter.assert_called_once()
+        mock_q2.first.assert_called_once()
+
+        assert result == metrics
+
+    def test_get_period_metrics_week_found(self):
+        metrics = TransactionMetrics()
+        metrics.period_type = "week"
+        metrics.year = 2026
+        metrics.week = 5
+
+        mock_query = self.mock_db.query.return_value
+
+        # 1er filter: period_type + year
+        mock_q1 = mock_query.filter.return_value
+        # 2do filter: week
+        mock_q2 = mock_q1.filter.return_value
+
+        mock_q2.first.return_value = metrics
+
+        result = self.repository.get_period_metrics(period_type="week", year=2026, month=None, week=5)
+
+        self.mock_db.query.assert_called_once_with(TransactionMetrics)
+        mock_query.filter.assert_called_once()
+        mock_q1.filter.assert_called_once()
+        mock_q2.first.assert_called_once()
+
+        assert result == metrics
+
+    def test_get_period_metrics_not_found(self):
+        mock_query = self.mock_db.query.return_value
+        mock_filter = mock_query.filter.return_value
+        mock_filter.first.return_value = None
+
+        result = self.repository.get_period_metrics(period_type="year", year=2099, month=None, week=None)
+
+        self.mock_db.query.assert_called_once_with(TransactionMetrics)
+        mock_query.filter.assert_called_once()
+        mock_filter.first.assert_called_once()
+
+        assert result is None

@@ -14,3 +14,11 @@ class PaymentMethod(StrEnum):
     CASH = "cash"
     TRANSFER_PERSONAL_ACCOUNT = "personal_transfer"
     TRANSFER_PEGAZZO_ACCOUNT = "pegazzo_transfer"
+
+
+class PeriodType(StrEnum):
+    """Enum for period types."""
+
+    WEEK = "week"
+    MONTH = "month"
+    YEAR = "year"

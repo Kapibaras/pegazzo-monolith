@@ -29,6 +29,12 @@ def disable_metrics_listener(monkeypatch):
 def reset_state():
     user_repo_mock.users = [initial_user]
     balance_repo_mock.transactions = [initial_transaction]
+    balance_repo_mock.mapping = {}
+
+
+@pytest.fixture
+def balance_repo():
+    return balance_repo_mock
 
 
 @pytest.fixture(scope="session")

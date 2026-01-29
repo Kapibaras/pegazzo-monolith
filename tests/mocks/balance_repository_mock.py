@@ -18,9 +18,11 @@ class BalanceRepositoryMock:
                 payment_method="cash",
             ),
         ]
+        self.mapping: dict[tuple[str, int, int | None, int | None], object] = {}
 
     def reset(self):
         self.transactions = self.transactions[:1]
+        self.mapping.clear()
 
     def get_by_reference(self, reference: str):
         return next((t for t in self.transactions if t.reference == reference), None)
@@ -47,3 +49,6 @@ class BalanceRepositoryMock:
         **_kwargs,
     ):
         return None
+
+    def get_period_metrics(self, *, period_type: str, year: int, month=None, week=None):
+        return self.mapping.get((period_type, year, month, week))
