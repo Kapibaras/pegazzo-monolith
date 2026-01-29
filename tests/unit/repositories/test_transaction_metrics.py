@@ -64,30 +64,28 @@ class TestTransactionMetricsRepository:
             total_income=Decimal("200.00"),
             total_expense=Decimal("50.00"),
             transaction_count=3,
-            payment_amounts={"cash": Decimal("250.00")},
+            credit_payment_amounts={"cash": Decimal("100.00")},
+            debit_payment_amounts={"transfer": Decimal("300.00")},
         )
 
-        # Mock internal metric fetch
-        monkeypatch.setattr(
-            self.repository,
-            "_fetch_period_metrics",
-            Mock(return_value=fake_metrics),
-        )
+        fetch_mock = Mock(return_value=fake_metrics)
+        monkeypatch.setattr(self.repository, "_fetch_period_metrics", fetch_mock)
 
-        # Mock upsert to avoid DB interaction
         upsert_mock = Mock()
-        monkeypatch.setattr(
-            self.repository,
-            "_upsert_metrics",
-            upsert_mock,
-        )
+        monkeypatch.setattr(self.repository, "_upsert_metrics", upsert_mock)
 
         # Act
-        self.repository.recalc_period(
-            period_type="month",
-            year=2026,
-            month=1,
-        )
+        self.repository.recalc_period(period_type="month", year=2026, month=1)
+
+        # Assert
+        fetch_mock.assert_called_once()
+
+        # Assert
+        args, kwargs = fetch_mock.call_args
+        assert not kwargs
+        assert len(args) == 1
+        assert isinstance(args[0], (tuple, list))
+        assert len(args[0]) >= 1
 
         # Assert
         upsert_mock.assert_called_once()

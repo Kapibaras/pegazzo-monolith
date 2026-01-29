@@ -1,3 +1,5 @@
+from typing import Optional
+
 from app.errors.database import DBOperationError
 from app.models.balance import Transaction
 from app.models.transaction_metrics import TransactionMetrics
@@ -56,3 +58,35 @@ class BalanceRepository(DBRepository):
         return (
             self.db.query(TransactionMetrics).filter(TransactionMetrics.month == month, TransactionMetrics.year == year).first()
         )
+
+    def get_period_metrics(
+        self,
+        period_type: str,
+        year: int,
+        month: int | None = None,
+        week: int | None = None,
+    ) -> Optional[TransactionMetrics]:
+        """Get stored metrics for a given period key from transaction_metrics table."""
+
+        q = self.db.query(TransactionMetrics).filter(
+            TransactionMetrics.period_type == period_type,
+            TransactionMetrics.year == year,
+        )
+
+        if period_type == "week":
+            if week is None:
+                return None
+            q = q.filter(TransactionMetrics.week == week)
+
+        elif period_type == "month":
+            if month is None:
+                return None
+            q = q.filter(TransactionMetrics.month == month)
+
+        elif period_type == "year":
+            pass
+
+        else:
+            return None
+
+        return q.first()

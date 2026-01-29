@@ -4,6 +4,8 @@ from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
 from app.enum.auth import Role
 from app.schemas.balance import (
+    BalanceMetricsDetailedQuerySchema,
+    BalanceMetricsDetailedResponseSchema,
     BalanceMetricsQuerySchema,
     BalanceMetricsSimpleResponseSchema,
     TransactionPatchSchema,
@@ -68,6 +70,25 @@ def update_transaction(
 ) -> TransactionResponseSchema:
     """Update a transaction."""
     return service.update_transaction(reference, body)
+
+
+@router.get(
+    "/metrics",
+    response_model=BalanceMetricsDetailedResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+def get_management_metrics(
+    params: BalanceMetricsDetailedQuerySchema = Depends(BalanceMetricsDetailedQuerySchema),
+    service: BalanceService = Depends(ServiceFactory.balance_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER])),
+) -> BalanceMetricsDetailedResponseSchema:
+    """Get detailed balance metrics for dashboard."""
+    return service.get_management_metrics(
+        period=params.period,
+        week=params.week,
+        month=params.month,
+        year=params.year,
+    )
 
 
 @router.get("/metrics/simple", response_model=BalanceMetricsSimpleResponseSchema, status_code=status.HTTP_200_OK)

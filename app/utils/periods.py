@@ -59,3 +59,31 @@ def weeks_for_period(
     if period_type == "year":
         return iso_weeks_in_year(year)
     raise TransactionMetricsPeriodError.unknown_period_type(period_type)
+
+
+def previous_period_key(key: PeriodKey) -> PeriodKey:
+    """Return the immediately preceding period key.
+
+    - week: ISO week (uses date.fromisocalendar)
+    - month: handle Jan -> Dec boundary
+    - year: year - 1
+    """
+    if key.period_type == "year":
+        return PeriodKey(period_type="year", year=key.year - 1, month=None, week=None)
+
+    if key.period_type == "month":
+        if key.month is None:
+            raise TransactionMetricsPeriodError.month_requires_month()
+        if key.month == 1:
+            return PeriodKey(period_type="month", year=key.year - 1, month=12, week=None)
+        return PeriodKey(period_type="month", year=key.year, month=key.month - 1, week=None)
+
+    if key.period_type == "week":
+        if key.week is None:
+            raise TransactionMetricsPeriodError.week_requires_week()
+        monday = date.fromisocalendar(key.year, key.week, 1)
+        prev_monday = monday - timedelta(days=7)
+        iso_year, iso_week, _ = prev_monday.isocalendar()
+        return PeriodKey(period_type="week", year=iso_year, month=None, week=iso_week)
+
+    raise TransactionMetricsPeriodError.unknown_period_type(key.period_type)
