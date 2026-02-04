@@ -1,9 +1,12 @@
-from typing import Optional
+from typing import Optional, Set, Tuple
+
+from sqlalchemy import tuple_
 
 from app.errors.database import DBOperationError
 from app.models.balance import Transaction
 from app.models.transaction_metrics import TransactionMetrics
 from app.utils.logging_config import logger
+from app.utils.periods import PeriodKey
 
 from .abstract import DBRepository
 
@@ -90,3 +93,37 @@ class BalanceRepository(DBRepository):
             return None
 
         return q.first()
+
+    def get_metrics_for_keys(self, period_type: str, keys: list[PeriodKey]) -> list[TransactionMetrics]:
+        """Fetch precomputed transaction_metrics rows for the provided PeriodKeys."""
+        if not keys:
+            return []
+
+        period_type = (period_type or "").strip().lower()
+
+        q = self.db.query(TransactionMetrics).filter(TransactionMetrics.period_type == period_type)
+
+        if period_type == "year":
+            years: Set[int] = {k.year for k in keys}
+            q = q.filter(TransactionMetrics.year.in_(years))
+
+        elif period_type == "month":
+            pairs: Set[Tuple[int, int]] = {(k.year, k.month) for k in keys if k.month is not None}
+            if not pairs:
+                return []
+
+            q = q.filter(tuple_(TransactionMetrics.year, TransactionMetrics.month).in_(pairs))
+
+        elif period_type == "week":
+            triples: Set[Tuple[int, int, int]] = {
+                (k.year, k.month, k.week) for k in keys if k.month is not None and k.week is not None
+            }
+            if not triples:
+                return []
+
+            q = q.filter(tuple_(TransactionMetrics.year, TransactionMetrics.month, TransactionMetrics.week).in_(triples))
+
+        else:
+            return []
+
+        return q.all()

@@ -15,6 +15,8 @@ from app.repositories.balance import BalanceRepository
 from app.schemas.balance import (
     BalanceMetricsDetailedResponseSchema,
     BalanceMetricsSimpleResponseSchema,
+    BalanceTrendDataPointSchema,
+    BalanceTrendResponseSchema,
     ComparisonSchema,
     PaymentMethodBreakdownByTypeSchema,
     PaymentMethodBreakdownSchema,
@@ -26,7 +28,7 @@ from app.schemas.balance import (
 from app.schemas.dto.periods import PeriodKey
 from app.utils.metrics import percent_change
 from app.utils.metrics_defaults import zero_period_metrics, zero_response
-from app.utils.periods import previous_period_key
+from app.utils.periods import PeriodType, current_period_key, period_bounds_utc, previous_period_key
 from app.utils.reference import generate_reference
 
 
@@ -178,7 +180,6 @@ class BalanceService:
         current_schema = to_period_schema(current_row)
         previous_schema = to_period_schema(prev_row)
 
-        # --- payment breakdown (OPTION B: credit + debit) ---
         breakdown: dict[str, Any] = {}
         if current_row and current_row.payment_method_breakdown:
             breakdown = dict(current_row.payment_method_breakdown)
@@ -231,3 +232,59 @@ class BalanceService:
             weekly_averages=WeeklyAveragesSchema(income=weekly_income, expense=weekly_expense),
             income_expense_ratio=ratio,
         )
+
+    def get_historical(self, period: str | PeriodType, limit: int) -> BalanceTrendResponseSchema:
+        """Get historical trend from precomputed transaction_metrics, filling missing periods with zeros.
+
+        Ordered oldest -> newest.
+        """
+
+        if isinstance(period, str):
+            period = (period or "").strip().lower()
+
+        if period not in {PeriodType.WEEK, PeriodType.MONTH, PeriodType.YEAR, "week", "month", "year"}:
+            raise InvalidMetricsPeriodException
+
+        period_type = PeriodType(period) if isinstance(period, str) else period
+
+        if limit is None or limit < 1 or limit > 100:
+            raise InvalidMetricsPeriodException
+
+        now = datetime.now(timezone.utc)
+        current_key = current_period_key(period_type=period_type, now=now)
+
+        keys: list[PeriodKey] = []
+        k = current_key
+        for _ in range(limit):
+            keys.append(k)
+            k = previous_period_key(k)
+
+        keys.reverse()
+
+        rows = self.repository.get_metrics_for_keys(period_type=period_type.value, keys=keys)
+
+        lookup: dict[tuple[int, int | None, int | None], object] = {}
+        for r in rows:
+            lookup[
+                (int(r.year), int(r.month) if r.month is not None else None, int(r.week) if r.week is not None else None)
+            ] = r
+
+        data: list[BalanceTrendDataPointSchema] = []
+        for key in keys:
+            start_dt, end_dt = period_bounds_utc(key)
+
+            row = lookup.get((key.year, key.month, key.week))
+
+            total_income = float(getattr(row, "total_income", 0) or 0) if row else 0.0
+            total_expense = float(getattr(row, "total_expense", 0) or 0) if row else 0.0
+
+            data.append(
+                BalanceTrendDataPointSchema(
+                    period_start=start_dt,
+                    period_end=end_dt,
+                    total_income=total_income,
+                    total_expense=total_expense,
+                ),
+            )
+
+        return BalanceTrendResponseSchema(period_type=period_type, data=data)

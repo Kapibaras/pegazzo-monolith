@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -5,7 +6,7 @@ from unittest.mock import Mock, patch
 import pytest
 from pydantic import ValidationError
 
-from app.enum.balance import PaymentMethod, Type
+from app.enum.balance import PaymentMethod, PeriodType, Type
 from app.errors.balance import (
     InvalidDescriptionLengthException,
     TransactionNotFoundException,
@@ -13,7 +14,12 @@ from app.errors.balance import (
 from app.errors.transaction_metrics import InvalidMetricsPeriodException
 from app.models.balance import Transaction
 from app.repositories.balance import BalanceRepository
-from app.schemas.balance import BalanceMetricsDetailedResponseSchema, TransactionPatchSchema, TransactionSchema
+from app.schemas.balance import (
+    BalanceMetricsDetailedResponseSchema,
+    BalanceTrendResponseSchema,
+    TransactionPatchSchema,
+    TransactionSchema,
+)
 from app.services.balance import BalanceService
 
 
@@ -434,3 +440,120 @@ class TestBalanceService:
         assert result.comparison.income_change_percent == 0.0
         assert result.comparison.expense_change_percent == 0.0
         assert result.comparison.transaction_change == 2
+
+    def test_get_historical_invalid_period_raises(self):
+        with pytest.raises(InvalidMetricsPeriodException):
+            self.service.get_historical(period="INVALID", limit=6)
+
+    @pytest.mark.parametrize("bad_limit", [None, 0, -1, 101])
+    def test_get_historical_invalid_limit_raises(self, bad_limit):
+        with pytest.raises(InvalidMetricsPeriodException):
+            self.service.get_historical(period="month", limit=bad_limit)
+
+    def test_get_historical_calls_repo_with_period_type_value(self):
+        """Should call repo.get_metrics_for_keys with period_type=<enum value> and a list of keys."""
+        self.mock_repo.get_metrics_for_keys.return_value = []
+
+        with patch("app.services.balance.datetime") as mock_dt:
+            mock_dt.now.return_value = datetime(2026, 1, 7, 12, 0, 0, tzinfo=timezone.utc)
+
+            result = self.service.get_historical(period="month", limit=3)
+
+        assert BalanceTrendResponseSchema.model_validate(result)
+
+        self.mock_repo.get_metrics_for_keys.assert_called_once()
+        kwargs = self.mock_repo.get_metrics_for_keys.call_args.kwargs
+
+        assert kwargs["period_type"] == "month"
+        assert isinstance(kwargs["keys"], list)
+        assert len(kwargs["keys"]) == 3
+
+    def test_get_historical_returns_zeros_when_no_rows(self):
+        """If repo returns no rows, all periods should be present with 0 totals."""
+        self.mock_repo.get_metrics_for_keys.return_value = []
+
+        with patch("app.services.balance.datetime") as mock_dt:
+            mock_dt.now.return_value = datetime(2026, 1, 7, 12, 0, 0, tzinfo=timezone.utc)
+
+            result = self.service.get_historical(period=PeriodType.MONTH, limit=3)
+
+        assert BalanceTrendResponseSchema.model_validate(result)
+        assert result.period_type == "month"
+        assert len(result.data) == 3
+
+        assert all(d.total_income == 0.0 for d in result.data)
+        assert all(d.total_expense == 0.0 for d in result.data)
+
+        starts = [d.period_start for d in result.data]
+        assert starts == sorted(starts)
+
+    def test_get_historical_fills_missing_periods_with_zeros_and_keeps_real_values(self):
+        """If some periods exist in transaction_metrics and others don't, missing ones must be zero-filled."""
+        # Freeze time so keys are deterministic (month limit=3 => Nov/Dec/Jan if now is Jan 7 2026)
+        with patch("app.services.balance.datetime") as mock_dt:
+            mock_dt.now.return_value = datetime(2026, 1, 7, 12, 0, 0, tzinfo=timezone.utc)
+
+            # We'll return only December 2025 metrics. Service must return 3 items:
+            # Nov 2025 (0s), Dec 2025 (values), Jan 2026 (0s)
+            december_row = SimpleNamespace(
+                period_type="month",
+                year=2025,
+                month=12,
+                week=None,
+                total_income=Decimal("4500.00"),
+                total_expense=Decimal("2200.00"),
+            )
+            self.mock_repo.get_metrics_for_keys.return_value = [december_row]
+
+            result = self.service.get_historical(period="month", limit=3)
+
+        assert BalanceTrendResponseSchema.model_validate(result)
+        assert result.period_type == "month"
+        assert len(result.data) == 3
+
+        starts = [d.period_start for d in result.data]
+        assert starts == sorted(starts)
+
+        # There should be exactly one non-zero period (Dec), and two zero periods
+        non_zero = [d for d in result.data if d.total_income > 0 or d.total_expense > 0]
+        zero = [d for d in result.data if d.total_income == 0.0 and d.total_expense == 0.0]
+
+        assert len(non_zero) == 1
+        assert len(zero) == 2
+
+        assert non_zero[0].total_income == 4500.0
+        assert non_zero[0].total_expense == 2200.0
+
+    def test_get_historical_week_uses_iso_week_and_is_chronological(self):
+        """Week trend should return N points and be chronological."""
+        self.mock_repo.get_metrics_for_keys.return_value = []
+
+        with patch("app.services.balance.datetime") as mock_dt:
+            mock_dt.now.return_value = datetime(2026, 2, 3, 12, 0, 0, tzinfo=timezone.utc)  # stable fixed date
+
+            result = self.service.get_historical(period="week", limit=8)
+
+        assert BalanceTrendResponseSchema.model_validate(result)
+        assert result.period_type == "week"
+        assert len(result.data) == 8
+
+        starts = [d.period_start for d in result.data]
+        assert starts == sorted(starts)
+        assert all(d.period_start.weekday() == 0 for d in result.data)
+
+    def test_get_historical_year_is_chronological_and_length_matches_limit(self):
+        self.mock_repo.get_metrics_for_keys.return_value = []
+
+        with patch("app.services.balance.datetime") as mock_dt:
+            mock_dt.now.return_value = datetime(2026, 1, 7, 12, 0, 0, tzinfo=timezone.utc)
+
+            result = self.service.get_historical(period="year", limit=3)
+
+        assert BalanceTrendResponseSchema.model_validate(result)
+        assert result.period_type == "year"
+        assert len(result.data) == 3
+
+        starts = [d.period_start for d in result.data]
+        assert starts == sorted(starts)
+        assert all(d.period_start.month == 1 and d.period_start.day == 1 for d in result.data)
+        assert all(d.period_end.month == 12 and d.period_end.day == 31 for d in result.data)
