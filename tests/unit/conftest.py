@@ -3,7 +3,6 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
-import app.database.events
 from app.dependencies import RepositoryFactory
 from app.enum.auth import Role
 from app.main import app
@@ -11,10 +10,10 @@ from tests.mocks import UserRepositoryMock
 from tests.mocks.balance_repository_mock import BalanceRepositoryMock
 
 user_repo_mock = UserRepositoryMock()
-initial_user = user_repo_mock.users[0]
-
 balance_repo_mock = BalanceRepositoryMock()
-initial_transaction = balance_repo_mock.transactions[0]
+
+_initial_user = user_repo_mock.users[0]
+_initial_transaction = balance_repo_mock.transactions[0]
 
 
 @pytest.fixture(autouse=True)
@@ -27,8 +26,8 @@ def disable_metrics_listener(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def reset_state():
-    user_repo_mock.users = [initial_user]
-    balance_repo_mock.transactions = [initial_transaction]
+    user_repo_mock.users = [_initial_user]
+    balance_repo_mock.transactions = [_initial_transaction]
     balance_repo_mock.mapping = {}
 
 
@@ -37,7 +36,7 @@ def balance_repo():
     return balance_repo_mock
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def client():
     """Client without JWT authentication."""
     app.dependency_overrides = {
@@ -47,9 +46,9 @@ def client():
     return TestClient(app)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def authorized_client():
-    """Client with valid JWT cookie for user 'owneruser' role 'owner'."""
+    """Client with valid JWT cookie for role 'owner'."""
     app.dependency_overrides = {
         RepositoryFactory.user_repository: lambda: user_repo_mock,
         RepositoryFactory.balance_repository: lambda: balance_repo_mock,

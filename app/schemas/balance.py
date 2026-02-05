@@ -119,10 +119,10 @@ class BalanceMetricsSimpleResponseSchema(BaseModel):
 class PeriodMetricsSchema(BaseModel):
     """Metrics for a period (current or previous)."""
 
-    balance: float = Field(..., description="Balance for the period")
-    total_income: float = Field(..., description="Total income for the period")
-    total_expense: float = Field(..., description="Total expense for the period")
-    transaction_count: int = Field(..., description="Number of transactions in the period")
+    balance: float = Field(0.0, description="Balance for the period")
+    total_income: float = Field(0.0, description="Total income for the period")
+    total_expense: float = Field(0.0, description="Total expense for the period")
+    transaction_count: int = Field(0, description="Number of transactions in the period")
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -133,10 +133,10 @@ class PeriodMetricsSchema(BaseModel):
 class ComparisonSchema(BaseModel):
     """Comparison between current and previous periods."""
 
-    balance_change_percent: float = Field(..., description="Percent change in balance vs previous")
-    income_change_percent: float = Field(..., description="Percent change in income vs previous")
-    expense_change_percent: float = Field(..., description="Percent change in expense vs previous")
-    transaction_change: int = Field(..., description="Absolute delta in transaction count vs previous")
+    balance_change_percent: float = Field(0.0, description="Percent change in balance vs previous")
+    income_change_percent: float = Field(0.0, description="Percent change in income vs previous")
+    expense_change_percent: float = Field(0.0, description="Percent change in expense vs previous")
+    transaction_change: int = Field(0, description="Absolute delta in transaction count vs previous")
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -168,8 +168,8 @@ class PaymentMethodBreakdownByTypeSchema(BaseModel):
 class WeeklyAveragesSchema(BaseModel):
     """Weekly averages for the current period."""
 
-    income: float = Field(..., description="Weekly average income for the period")
-    expense: float = Field(..., description="Weekly average expense for the period")
+    income: float = Field(0.0, description="Weekly average income for the period")
+    expense: float = Field(0.0, description="Weekly average expense for the period")
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -180,15 +180,14 @@ class WeeklyAveragesSchema(BaseModel):
 class BalanceMetricsDetailedResponseSchema(BaseModel):
     """Response for the dashboard endpoint."""
 
-    current_period: PeriodMetricsSchema = Field(..., description="Metrics for the requested period")
-    previous_period: PeriodMetricsSchema = Field(..., description="Metrics for the previous period")
-    comparison: ComparisonSchema = Field(..., description="Comparison between current and previous")
+    current_period: PeriodMetricsSchema = Field(default_factory=PeriodMetricsSchema)
+    previous_period: PeriodMetricsSchema = Field(default_factory=PeriodMetricsSchema)
+    comparison: ComparisonSchema = Field(default_factory=ComparisonSchema)
     payment_method_breakdown: PaymentMethodBreakdownByTypeSchema = Field(
         default_factory=PaymentMethodBreakdownByTypeSchema,
-        description="Payment method breakdown separated by transaction type (credit/debit)",
     )
-    weekly_averages: WeeklyAveragesSchema = Field(..., description="Weekly averages for current period")
-    income_expense_ratio: float = Field(..., description="Income/expense ratio for current period")
+    weekly_averages: WeeklyAveragesSchema = Field(default_factory=WeeklyAveragesSchema)
+    income_expense_ratio: float = Field(0.0, description="Income/expense ratio for current period")
 
     model_config = ConfigDict(
         populate_by_name=True,

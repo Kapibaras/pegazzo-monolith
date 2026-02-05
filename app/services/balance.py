@@ -1,6 +1,4 @@
 from datetime import datetime, timezone
-from decimal import Decimal
-from typing import Any
 
 from app.enum.balance import PaymentMethod, Type
 from app.errors.balance import (
@@ -9,24 +7,19 @@ from app.errors.balance import (
     InvalidTransactionTypeException,
     TransactionNotFoundException,
 )
-from app.errors.transaction_metrics import InvalidMetricsPeriodException
 from app.models.balance import Transaction
 from app.repositories.balance import BalanceRepository
 from app.schemas.balance import (
     BalanceMetricsDetailedResponseSchema,
     BalanceMetricsSimpleResponseSchema,
     ComparisonSchema,
-    PaymentMethodBreakdownByTypeSchema,
-    PaymentMethodBreakdownSchema,
-    PeriodMetricsSchema,
     TransactionResponseSchema,
     TransactionSchema,
     WeeklyAveragesSchema,
 )
 from app.schemas.dto.periods import PeriodKey
-from app.utils.metrics import percent_change
-from app.utils.metrics_defaults import zero_period_metrics, zero_response
-from app.utils.periods import previous_period_key
+from app.utils.metrics import percent_change_from_schemas, safe_float
+from app.utils.periods import payment_breakdown_schemas, previous_period_key, to_period_schema, weekly_averages_and_ratio
 from app.utils.reference import generate_reference
 
 
@@ -132,20 +125,6 @@ class BalanceService:
     ) -> BalanceMetricsDetailedResponseSchema:
         """Get detailed balance metrics for dashboard using precomputed transaction_metrics."""
 
-        period = (period or "").strip().lower()
-
-        if period not in {"week", "month", "year"}:
-            raise InvalidMetricsPeriodException
-
-        if period == "week" and (week is None or month is None or year is None):
-            raise InvalidMetricsPeriodException
-
-        if period == "month" and (month is None or year is None):
-            raise InvalidMetricsPeriodException
-
-        if period == "year" and year is None:
-            raise InvalidMetricsPeriodException
-
         current_key = PeriodKey(period_type=period, year=year, month=month, week=week)
         prev_key = previous_period_key(current_key)
 
@@ -163,64 +142,32 @@ class BalanceService:
         )
 
         if not current_row and not prev_row:
-            return zero_response()
-
-        def to_period_schema(row) -> PeriodMetricsSchema:
-            if not row:
-                return zero_period_metrics()
-            return PeriodMetricsSchema(
-                balance=float(row.balance or 0),
-                total_income=float(row.total_income or 0),
-                total_expense=float(row.total_expense or 0),
-                transaction_count=int(row.transaction_count or 0),
-            )
+            return BalanceMetricsDetailedResponseSchema()
 
         current_schema = to_period_schema(current_row)
         previous_schema = to_period_schema(prev_row)
 
-        # --- payment breakdown (OPTION B: credit + debit) ---
-        breakdown: dict[str, Any] = {}
-        if current_row and current_row.payment_method_breakdown:
-            breakdown = dict(current_row.payment_method_breakdown)
-
-        credit = breakdown.get("credit") or {}
-        debit = breakdown.get("debit") or {}
-
-        credit_amounts = credit.get("amounts") or {}
-        credit_percentages = credit.get("percentages") or {}
-
-        debit_amounts = debit.get("amounts") or {}
-        debit_percentages = debit.get("percentages") or {}
-
-        payment_breakdown_schema = PaymentMethodBreakdownByTypeSchema(
-            credit=PaymentMethodBreakdownSchema(
-                amounts=credit_amounts,
-                percentages=credit_percentages,
-            ),
-            debit=PaymentMethodBreakdownSchema(
-                amounts=debit_amounts,
-                percentages=debit_percentages,
-            ),
-        )
-
-        weekly_income = float(current_row.weekly_average_income) if current_row and current_row.weekly_average_income else 0.0
-        weekly_expense = (
-            float(current_row.weekly_average_expense) if current_row and current_row.weekly_average_expense else 0.0
-        )
-        ratio = float(current_row.income_expense_ratio) if current_row and current_row.income_expense_ratio else 0.0
-
-        cur_balance = Decimal(str(current_schema.balance))
-        prev_balance = Decimal(str(previous_schema.balance))
-        cur_income = Decimal(str(current_schema.total_income))
-        prev_income = Decimal(str(previous_schema.total_income))
-        cur_expense = Decimal(str(current_schema.total_expense))
-        prev_expense = Decimal(str(previous_schema.total_expense))
+        payment_breakdown_schema = payment_breakdown_schemas(current_row)
+        weekly_income, weekly_expense, ratio = weekly_averages_and_ratio(current_row)
+        ratio = safe_float(current_row, "income_expense_ratio")
 
         comparison = ComparisonSchema(
-            balance_change_percent=float(percent_change(cur_balance, prev_balance)),
-            income_change_percent=float(percent_change(cur_income, prev_income)),
-            expense_change_percent=float(percent_change(cur_expense, prev_expense)),
-            transaction_change=int(current_schema.transaction_count - previous_schema.transaction_count),
+            balance_change_percent=percent_change_from_schemas(
+                current_schema,
+                previous_schema,
+                "balance",
+            ),
+            income_change_percent=percent_change_from_schemas(
+                current_schema,
+                previous_schema,
+                "total_income",
+            ),
+            expense_change_percent=percent_change_from_schemas(
+                current_schema,
+                previous_schema,
+                "total_expense",
+            ),
+            transaction_change=(current_schema.transaction_count - previous_schema.transaction_count),
         )
 
         return BalanceMetricsDetailedResponseSchema(

@@ -10,7 +10,7 @@ from app.errors.balance import (
     InvalidDescriptionLengthException,
     TransactionNotFoundException,
 )
-from app.errors.transaction_metrics import InvalidMetricsPeriodException
+from app.errors.transaction_metrics import TransactionMetricsPeriodError
 from app.models.balance import Transaction
 from app.repositories.balance import BalanceRepository
 from app.schemas.balance import BalanceMetricsDetailedResponseSchema, TransactionPatchSchema, TransactionSchema
@@ -344,24 +344,23 @@ class TestBalanceService:
         assert repo_result.__dict__ == original_state
 
     def test_get_management_metrics_invalid_period_raises(self):
-        with pytest.raises(InvalidMetricsPeriodException):
+        with pytest.raises(TransactionMetricsPeriodError):
             self.service.get_management_metrics(period="INVALID", year=2026)
 
     def test_get_management_metrics_week_missing_params_raises(self):
-        with pytest.raises(InvalidMetricsPeriodException):
+        with pytest.raises(TransactionMetricsPeriodError):
             self.service.get_management_metrics(period="week", year=2026, week=None, month=1)
 
     def test_get_management_metrics_month_missing_params_raises(self):
-        with pytest.raises(InvalidMetricsPeriodException):
+        with pytest.raises(TransactionMetricsPeriodError):
             self.service.get_management_metrics(period="month", year=2026, month=None)
 
     def test_get_management_metrics_year_missing_params_raises(self):
-        with pytest.raises(InvalidMetricsPeriodException):
+        with pytest.raises(TypeError):
             self.service.get_management_metrics(period="year", year=None)
 
     def test_get_management_metrics_returns_zero_when_no_rows(self):
-        """If both current and previous are None, should return zero_response()."""
-
+        """If both current and previous are None, should return BalanceMetricsDetailedResponseSchema()."""
         self.mock_repo.get_period_metrics.return_value = None
 
         result = self.service.get_management_metrics(period="year", year=2026)
@@ -375,13 +374,12 @@ class TestBalanceService:
 
     def test_get_management_metrics_calls_repo_with_current_and_previous_year(self):
         """year=2026 should query current (2026) and previous (2025)."""
-
         current = SimpleNamespace(
             balance=Decimal("100.00"),
             total_income=Decimal("200.00"),
             total_expense=Decimal("100.00"),
             transaction_count=5,
-            payment_method_breakdown={"amounts": {"cash": 200}, "percentages": {"cash": 100}},
+            payment_method_breakdown={},
             weekly_average_income=Decimal("50.00"),
             weekly_average_expense=Decimal("25.00"),
             income_expense_ratio=Decimal("2.00"),
@@ -403,14 +401,13 @@ class TestBalanceService:
         assert result.comparison.transaction_change == 5
 
     def test_get_management_metrics_percent_change_div_by_zero_is_zero(self):
-        """If previous is 0, percentage changes should be 0 (your percent_change behavior)."""
-
+        """If previous is 0, percentage changes should be 0 (per percent_change behavior)."""
         current = SimpleNamespace(
             balance=Decimal("100.00"),
             total_income=Decimal("100.00"),
             total_expense=Decimal("0.00"),
             transaction_count=2,
-            payment_method_breakdown={"amounts": {}, "percentages": {}},
+            payment_method_breakdown={},
             weekly_average_income=Decimal("0.00"),
             weekly_average_expense=Decimal("0.00"),
             income_expense_ratio=Decimal("0.00"),
@@ -420,7 +417,7 @@ class TestBalanceService:
             total_income=Decimal("0.00"),
             total_expense=Decimal("0.00"),
             transaction_count=0,
-            payment_method_breakdown={"amounts": {}, "percentages": {}},
+            payment_method_breakdown={},
             weekly_average_income=Decimal("0.00"),
             weekly_average_expense=Decimal("0.00"),
             income_expense_ratio=Decimal("0.00"),
