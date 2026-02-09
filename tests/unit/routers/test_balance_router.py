@@ -249,8 +249,8 @@ class TestBalanceRouter:
 
         assert response.status_code == 401
 
-    def test_get_management_metrics_week_success(self, authorized_client, balance_repo):
-        balance_repo.mapping[("week", 2026, 1, 5)] = TransactionMetrics(
+    def test_get_management_metrics_week_success(self, authorized_client):
+        authorized_client.balance_repo.mapping[("week", 2026, 1, 5)] = TransactionMetrics(
             period_type="week",
             year=2026,
             month=1,
@@ -272,8 +272,8 @@ class TestBalanceRouter:
         assert r.status_code == 200
         BalanceMetricsDetailedResponseSchema.model_validate(r.json())
 
-    def test_get_management_metrics_month_success(self, authorized_client, balance_repo):
-        balance_repo.mapping[("month", 2026, 1, None)] = TransactionMetrics(
+    def test_get_management_metrics_month_success(self, authorized_client):
+        authorized_client.balance_repo.mapping[("month", 2026, 1, None)] = TransactionMetrics(
             period_type="month",
             year=2026,
             month=1,
@@ -291,8 +291,8 @@ class TestBalanceRouter:
         assert r.status_code == 200
         BalanceMetricsDetailedResponseSchema.model_validate(r.json())
 
-    def test_get_management_metrics_year_success(self, authorized_client, balance_repo):
-        balance_repo.mapping[("year", 2026, None, None)] = TransactionMetrics(
+    def test_get_management_metrics_year_success(self, authorized_client):
+        authorized_client.balance_repo.mapping[("year", 2026, None, None)] = TransactionMetrics(
             period_type="year",
             year=2026,
             total_income=Decimal("1200"),

@@ -43,3 +43,25 @@ def percent_change(current: Number, previous: Number) -> Decimal:
 
     value = ((cur - prev) / prev) * Decimal("100")
     return value.quantize(Decimal("0.01"))
+
+
+def percent_change_from_schemas(current, previous, attr: str) -> float:
+    """Calculate percentage change from two schemas."""
+    return float(
+        percent_change(
+            to_decimal(current, attr),
+            to_decimal(previous, attr),
+        ),
+    )
+
+
+def safe_float(row, attr: str) -> float:
+    """Extract float from row attribute, defaulting to 0.0."""
+    if not row:
+        return 0.0
+    return float(getattr(row, attr, 0.0) or 0.0)
+
+
+def to_decimal(obj, attr: str) -> Decimal:
+    """Convert obj.attr to Decimal safely."""
+    return Decimal(str(getattr(obj, attr)))
