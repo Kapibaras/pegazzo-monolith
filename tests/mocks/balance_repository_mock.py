@@ -56,9 +56,4 @@ class BalanceRepositoryMock:
 
     def get_metrics_for_keys(self, period_type: str, keys: list[PeriodKey]):
         """Return rows for bulk key lookup (trend endpoint)."""
-        rows = []
-        for k in keys:
-            row = self.mapping.get((period_type, k.year, k.month, k.week))
-            if row:
-                rows.append(row)
-        return rows
+        return [row for k in keys if (row := self.mapping.get((period_type, k.year, k.month, k.week)))]

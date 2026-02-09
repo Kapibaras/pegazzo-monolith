@@ -373,10 +373,10 @@ class TestBalanceRouter:
 
         assert response.status_code == 401
 
-    def test_get_trend_month_default_limit_success(self, authorized_client, balance_repo):
+    def test_get_trend_month_default_limit_success(self, authorized_client):
         """Default month limit = 6, returns chronological data and fills missing periods with zeros."""
 
-        balance_repo.mapping[("month", 2026, 1, None)] = TransactionMetrics(
+        authorized_client.balance_repo.mapping[("month", 2026, 1, None)] = TransactionMetrics(
             period_type="month",
             year=2026,
             month=1,
@@ -402,10 +402,10 @@ class TestBalanceRouter:
         assert any(v == 0 for v in expenses)
         assert any(v > 0 for v in incomes)
 
-    def test_get_trend_month_custom_limit_success(self, authorized_client, balance_repo):
+    def test_get_trend_month_custom_limit_success(self, authorized_client):
         """User can override limit; still chronological and length matches limit."""
 
-        balance_repo.mapping[("month", 2025, 12, None)] = TransactionMetrics(
+        authorized_client.balance_repo.mapping[("month", 2025, 12, None)] = TransactionMetrics(
             period_type="month",
             year=2025,
             month=12,
@@ -425,10 +425,10 @@ class TestBalanceRouter:
         starts = [item["periodStart"] for item in payload["data"]]
         assert starts == sorted(starts)
 
-    def test_get_trend_week_default_limit_success(self, authorized_client, balance_repo):
+    def test_get_trend_week_default_limit_success(self, authorized_client):
         """Default week limit = 8."""
 
-        balance_repo.mapping[("week", 2026, 1, 5)] = TransactionMetrics(
+        authorized_client.balance_repo.mapping[("week", 2026, 1, 5)] = TransactionMetrics(
             period_type="week",
             year=2026,
             month=1,
@@ -449,10 +449,10 @@ class TestBalanceRouter:
         starts = [item["periodStart"] for item in payload["data"]]
         assert starts == sorted(starts)
 
-    def test_get_trend_year_default_limit_success(self, authorized_client, balance_repo):
+    def test_get_trend_year_default_limit_success(self, authorized_client):
         """Default year limit = 3."""
 
-        balance_repo.mapping[("year", 2026, None, None)] = TransactionMetrics(
+        authorized_client.balance_repo.mapping[("year", 2026, None, None)] = TransactionMetrics(
             period_type="year",
             year=2026,
             total_income=Decimal("12000"),
