@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
+import app.database.events
 from app.dependencies import RepositoryFactory
 from app.enum.auth import Role
 from app.main import app
@@ -10,9 +11,9 @@ from tests.mocks import UserRepositoryMock
 from tests.mocks.balance_repository_mock import BalanceRepositoryMock
 
 user_repo_mock = UserRepositoryMock()
-balance_repo_mock = BalanceRepositoryMock()
-
 _initial_user = user_repo_mock.users[0]
+
+balance_repo_mock = BalanceRepositoryMock()
 _initial_transaction = balance_repo_mock.transactions[0]
 
 
@@ -32,18 +33,16 @@ def reset_state():
 
 
 @pytest.fixture
-def balance_repo():
-    return balance_repo_mock
-
-
-@pytest.fixture
 def client():
     """Client without JWT authentication."""
     app.dependency_overrides = {
         RepositoryFactory.user_repository: lambda: user_repo_mock,
         RepositoryFactory.balance_repository: lambda: balance_repo_mock,
     }
-    return TestClient(app)
+    client = TestClient(app)
+    client.balance_repo = balance_repo_mock
+    client.user_repo = user_repo_mock
+    return client
 
 
 @pytest.fixture
@@ -55,6 +54,8 @@ def authorized_client():
     }
 
     client = TestClient(app)
+    client.balance_repo = balance_repo_mock
+    client.user_repo = user_repo_mock
 
     with patch("app.utils.auth.AuthUtils.verify_password", return_value=True):
         response = client.post(
