@@ -1,5 +1,7 @@
-from datetime import date, datetime, timedelta
+import calendar
+from datetime import date, datetime, timedelta, timezone
 
+from app.enum.balance import PeriodType
 from app.errors.transaction_metrics import TransactionMetricsPeriodError
 from app.schemas.balance import (
     PaymentMethodBreakdownByTypeSchema,
@@ -128,3 +130,56 @@ def weekly_averages_and_ratio(row) -> tuple[float, float, float]:
     weekly_expense = float(row.weekly_average_expense) if row and row.weekly_average_expense else 0.0
     ratio = float(row.income_expense_ratio) if row and row.income_expense_ratio else 0.0
     return weekly_income, weekly_expense, ratio
+
+
+def current_period_key(period_type: PeriodType, now: datetime) -> PeriodKey:
+    """Build PeriodKey for 'current' period based on now (UTC)."""
+
+    match period_type:
+        case PeriodType.YEAR:
+            return PeriodKey(period_type="year", year=now.year)
+
+        case PeriodType.MONTH:
+            return PeriodKey(period_type="month", year=now.year, month=now.month)
+
+        case PeriodType.WEEK:
+            iso_year, iso_week, _ = now.isocalendar()
+            week_start = datetime.fromisocalendar(iso_year, iso_week, 1).date()
+            return PeriodKey(
+                period_type="week",
+                year=iso_year,
+                month=week_start.month,
+                week=iso_week,
+            )
+
+
+def period_bounds_utc(key: PeriodKey) -> tuple[datetime, datetime]:
+    """Return (start_dt, end_dt) for a PeriodKey in UTC."""
+
+    match key.period_type:
+        case "year":
+            return (
+                datetime(key.year, 1, 1, tzinfo=timezone.utc),
+                datetime(key.year, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+            )
+
+        case "month":
+            if key.month is None:
+                raise TransactionMetricsPeriodError.month_requires_month()
+
+            last_day = calendar.monthrange(key.year, key.month)[1]
+            return (
+                datetime(key.year, key.month, 1, tzinfo=timezone.utc),
+                datetime(key.year, key.month, last_day, 23, 59, 59, tzinfo=timezone.utc),
+            )
+
+        case "week":
+            if key.week is None:
+                raise TransactionMetricsPeriodError.week_requires_week()
+
+            start = datetime.fromisocalendar(key.year, key.week, 1).replace(tzinfo=timezone.utc)
+            end = start + timedelta(days=6, hours=23, minutes=59, seconds=59)
+            return start, end
+
+        case _:
+            raise TransactionMetricsPeriodError.unknown_period_type(key.period_type)

@@ -1,11 +1,17 @@
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timezone
+from typing import Annotated, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 from app.enum.balance import PaymentMethod, PeriodType, Type
 from app.errors.transaction_metrics import InvalidMetricsPeriodException
+
+DEFAULT_LIMITS: dict[PeriodType, int] = {
+    PeriodType.WEEK: 8,
+    PeriodType.MONTH: 6,
+    PeriodType.YEAR: 3,
+}
 
 # * BODY SCHEMAS * #
 
@@ -70,6 +76,38 @@ class BalanceMetricsDetailedQuerySchema(BaseModel):
         else:
             raise InvalidMetricsPeriodException
 
+        return self
+
+
+class BalanceTrendQuerySchema(BaseModel):
+    """Schema for balance trend query params.
+
+    - period: required, one of week/month/year
+    - limit: optional; defaults depend on period; max 100
+    """
+
+    period: PeriodType = Field(
+        ...,
+        description="One of: week, month, year",
+        examples=[PeriodType.MONTH],
+    )
+
+    limit: Annotated[
+        int | None,
+        Field(
+            default=None,
+            ge=1,
+            le=100,
+            description=("Number of periods to return. Defaults: week=8, month=6, year=3. Max: 100."),
+            examples=[6],
+        ),
+    ] = None
+
+    @model_validator(mode="after")
+    def apply_default_limit(self) -> "BalanceTrendQuerySchema":
+        """Apply default limit based on period if not provided."""
+        if self.limit is None:
+            self.limit = DEFAULT_LIMITS[self.period]
         return self
 
 
@@ -190,6 +228,60 @@ class BalanceMetricsDetailedResponseSchema(BaseModel):
     income_expense_ratio: float = Field(0.0, description="Income/expense ratio for current period")
 
     model_config = ConfigDict(
+        populate_by_name=True,
+        alias_generator=to_camel,
+    )
+
+
+class BalanceTrendDataPointSchema(BaseModel):
+    """A single historical data point for the requested period."""
+
+    period_start: datetime = Field(
+        ...,
+        description="Start datetime of the period (ISO 8601).",
+        examples=[datetime(2025, 8, 1, 0, 0, 0, tzinfo=timezone.utc)],
+    )
+    period_end: datetime = Field(
+        ...,
+        description="End datetime of the period (ISO 8601).",
+        examples=[datetime(2025, 8, 31, 23, 59, 59, tzinfo=timezone.utc)],
+    )
+    total_income: float = Field(
+        ...,
+        description="Total income for this period.",
+        examples=[4000.00],
+    )
+    total_expense: float = Field(
+        ...,
+        description="Total expense for this period.",
+        examples=[2000.00],
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        alias_generator=to_camel,
+    )
+
+
+class BalanceTrendResponseSchema(BaseModel):
+    """Historical trend response for balance metrics."""
+
+    period_type: PeriodType = Field(
+        ...,
+        description="The type of period requested (week, month, year).",
+        examples=[PeriodType.MONTH],
+    )
+    data: list[BalanceTrendDataPointSchema] = Field(
+        ...,
+        description=(
+            "Array of period data points ordered chronologically (oldest to newest). "
+            "Missing periods within the requested range must be included with totals set to 0."
+        ),
+    )
+
+    model_config = ConfigDict(
+        use_enum_values=True,
+        from_attributes=True,
         populate_by_name=True,
         alias_generator=to_camel,
     )

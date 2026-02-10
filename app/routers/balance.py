@@ -8,6 +8,8 @@ from app.schemas.balance import (
     BalanceMetricsDetailedResponseSchema,
     BalanceMetricsQuerySchema,
     BalanceMetricsSimpleResponseSchema,
+    BalanceTrendQuerySchema,
+    BalanceTrendResponseSchema,
     TransactionPatchSchema,
     TransactionResponseSchema,
     TransactionSchema,
@@ -99,3 +101,13 @@ def get_metrics(
 ) -> BalanceMetricsSimpleResponseSchema:
     """Get metrics."""
     return service.get_metrics(month=params.month, year=params.year)
+
+
+@router.get("/metrics/trend", response_model=BalanceTrendResponseSchema, status_code=status.HTTP_200_OK)
+def get_trend(
+    params: BalanceTrendQuerySchema = Depends(BalanceTrendQuerySchema),
+    service: BalanceService = Depends(ServiceFactory.balance_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER])),
+) -> BalanceTrendResponseSchema:
+    """Get historical balance data."""
+    return service.get_historical(period=params.period, limit=params.limit)

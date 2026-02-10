@@ -3,10 +3,12 @@ from unittest.mock import Mock
 import pytest
 from sqlalchemy.orm import Session
 
+from app.enum.balance import PeriodType
 from app.errors.database import DBOperationError
 from app.models.balance import Transaction
 from app.models.transaction_metrics import TransactionMetrics
 from app.repositories.balance import BalanceRepository
+from app.utils.periods import PeriodKey
 
 
 @pytest.fixture
@@ -237,10 +239,123 @@ class TestBalanceRepository:
         mock_filter = mock_query.filter.return_value
         mock_filter.first.return_value = None
 
-        result = self.repository.get_period_metrics(period_type="year", year=2099, month=None, week=None)
+        result = self.repository.get_period_metrics(period_type=PeriodType.YEAR.value, year=2099, month=None, week=None)
 
         self.mock_db.query.assert_called_once_with(TransactionMetrics)
         mock_query.filter.assert_called_once()
         mock_filter.first.assert_called_once()
 
         assert result is None
+
+    def test_get_metrics_for_keys_year_success(self):
+        metrics_2025 = TransactionMetrics()
+        metrics_2025.period_type = "year"
+        metrics_2025.year = 2025
+
+        metrics_2026 = TransactionMetrics()
+        metrics_2026.period_type = "year"
+        metrics_2026.year = 2026
+
+        keys = [
+            PeriodKey(period_type=PeriodType.YEAR, year=2025, month=None, week=None),
+            PeriodKey(period_type=PeriodType.YEAR, year=2026, month=None, week=None),
+        ]
+
+        mock_query = self.mock_db.query.return_value
+        mock_q1 = mock_query.filter.return_value
+        mock_q2 = mock_q1.filter.return_value
+        mock_q2.all.return_value = [metrics_2025, metrics_2026]
+
+        result = self.repository.get_metrics_for_keys(period_type=PeriodType.YEAR, keys=keys)
+
+        self.mock_db.query.assert_called_once_with(TransactionMetrics)
+        assert mock_query.filter.call_count == 1
+        assert mock_q1.filter.call_count == 1
+        mock_q2.all.assert_called_once()
+
+        assert result == [metrics_2025, metrics_2026]
+
+    def test_get_metrics_for_keys_month_success(self):
+        metrics = TransactionMetrics()
+        metrics.period_type = "month"
+        metrics.year = 2026
+        metrics.month = 1
+
+        keys = [
+            PeriodKey(period_type=PeriodType.MONTH, year=2026, month=1, week=None),
+            PeriodKey(period_type=PeriodType.MONTH, year=2026, month=2, week=None),
+        ]
+
+        mock_query = self.mock_db.query.return_value
+        mock_q1 = mock_query.filter.return_value
+        mock_q2 = mock_q1.filter.return_value
+        mock_q2.all.return_value = [metrics]
+
+        result = self.repository.get_metrics_for_keys(period_type=PeriodType.MONTH, keys=keys)
+
+        self.mock_db.query.assert_called_once_with(TransactionMetrics)
+        assert mock_query.filter.call_count == 1
+        assert mock_q1.filter.call_count == 1
+        mock_q2.all.assert_called_once()
+
+        assert result == [metrics]
+
+    def test_get_metrics_for_keys_month_all_missing_month_returns_empty(self):
+        """If all keys have month=None for month period, pairs becomes empty -> [] without querying .all()."""
+        keys = [
+            PeriodKey(period_type=PeriodType.MONTH, year=2026, month=None, week=None),
+            PeriodKey(period_type=PeriodType.MONTH, year=2025, month=None, week=None),
+        ]
+
+        mock_query = self.mock_db.query.return_value
+        mock_q1 = mock_query.filter.return_value
+
+        result = self.repository.get_metrics_for_keys(period_type=PeriodType.MONTH, keys=keys)
+
+        assert result == []
+        self.mock_db.query.assert_called_once_with(TransactionMetrics)
+        mock_query.filter.assert_called_once()
+        mock_q1.filter.assert_not_called()
+
+    def test_get_metrics_for_keys_week_success(self):
+        metrics = TransactionMetrics()
+        metrics.period_type = "week"
+        metrics.year = 2026
+        metrics.month = 1
+        metrics.week = 5
+
+        keys = [
+            PeriodKey(period_type=PeriodType.WEEK, year=2026, month=1, week=5),
+            PeriodKey(period_type=PeriodType.WEEK, year=2026, month=1, week=6),
+        ]
+
+        mock_query = self.mock_db.query.return_value
+        mock_q1 = mock_query.filter.return_value
+        mock_q2 = mock_q1.filter.return_value
+        mock_q2.all.return_value = [metrics]
+
+        result = self.repository.get_metrics_for_keys(period_type=PeriodType.WEEK, keys=keys)
+
+        self.mock_db.query.assert_called_once_with(TransactionMetrics)
+        assert mock_query.filter.call_count == 1
+        assert mock_q1.filter.call_count == 1
+        mock_q2.all.assert_called_once()
+
+        assert result == [metrics]
+
+    def test_get_metrics_for_keys_week_missing_month_or_week_returns_empty(self):
+        """If all keys are missing month/week, triples becomes empty -> [] without querying .all()."""
+        keys = [
+            PeriodKey(period_type=PeriodType.WEEK, year=2026, month=None, week=5),
+            PeriodKey(period_type=PeriodType.WEEK, year=2026, month=1, week=None),
+        ]
+
+        mock_query = self.mock_db.query.return_value
+        mock_q1 = mock_query.filter.return_value
+
+        result = self.repository.get_metrics_for_keys(period_type=PeriodType.WEEK, keys=keys)
+
+        assert result == []
+        self.mock_db.query.assert_called_once_with(TransactionMetrics)
+        mock_query.filter.assert_called_once()
+        mock_q1.filter.assert_not_called()
