@@ -4,8 +4,12 @@ from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
 from app.enum.auth import Role
 from app.schemas.balance import (
+    BalanceMetricsDetailedQuerySchema,
+    BalanceMetricsDetailedResponseSchema,
     BalanceMetricsQuerySchema,
     BalanceMetricsSimpleResponseSchema,
+    BalanceTrendQuerySchema,
+    BalanceTrendResponseSchema,
     TransactionPatchSchema,
     TransactionResponseSchema,
     TransactionSchema,
@@ -70,6 +74,25 @@ def update_transaction(
     return service.update_transaction(reference, body)
 
 
+@router.get(
+    "/metrics",
+    response_model=BalanceMetricsDetailedResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+def get_management_metrics(
+    params: BalanceMetricsDetailedQuerySchema = Depends(BalanceMetricsDetailedQuerySchema),
+    service: BalanceService = Depends(ServiceFactory.balance_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER])),
+) -> BalanceMetricsDetailedResponseSchema:
+    """Get detailed balance metrics for dashboard."""
+    return service.get_management_metrics(
+        period=params.period,
+        week=params.week,
+        month=params.month,
+        year=params.year,
+    )
+
+
 @router.get("/metrics/simple", response_model=BalanceMetricsSimpleResponseSchema, status_code=status.HTTP_200_OK)
 def get_metrics(
     params: BalanceMetricsQuerySchema = Depends(BalanceMetricsQuerySchema),
@@ -78,3 +101,13 @@ def get_metrics(
 ) -> BalanceMetricsSimpleResponseSchema:
     """Get metrics."""
     return service.get_metrics(month=params.month, year=params.year)
+
+
+@router.get("/metrics/trend", response_model=BalanceTrendResponseSchema, status_code=status.HTTP_200_OK)
+def get_trend(
+    params: BalanceTrendQuerySchema = Depends(BalanceTrendQuerySchema),
+    service: BalanceService = Depends(ServiceFactory.balance_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER])),
+) -> BalanceTrendResponseSchema:
+    """Get historical balance data."""
+    return service.get_historical(period=params.period, limit=params.limit)

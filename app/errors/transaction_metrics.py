@@ -30,5 +30,8 @@ class InvalidMetricsPeriodException(HTTPException):
 
         super().__init__(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="month and year must be provided together",
+            detail=(
+                "Invalid metrics period or missing required parameters. "
+                "Valid periods are 'week', 'month', or 'year', with their corresponding parameters."
+            ),
         )

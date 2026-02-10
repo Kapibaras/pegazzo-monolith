@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from app.models.balance import Transaction
+from app.utils.periods import PeriodKey
 
 
 class BalanceRepositoryMock:
@@ -18,9 +19,11 @@ class BalanceRepositoryMock:
                 payment_method="cash",
             ),
         ]
+        self.mapping: dict[tuple[str, int, int | None, int | None], object] = {}
 
     def reset(self):
         self.transactions = self.transactions[:1]
+        self.mapping.clear()
 
     def get_by_reference(self, reference: str):
         return next((t for t in self.transactions if t.reference == reference), None)
@@ -47,3 +50,10 @@ class BalanceRepositoryMock:
         **_kwargs,
     ):
         return None
+
+    def get_period_metrics(self, *, period_type: str, year: int, month=None, week=None):
+        return self.mapping.get((period_type, year, month, week))
+
+    def get_metrics_for_keys(self, period_type: str, keys: list[PeriodKey]):
+        """Return rows for bulk key lookup (trend endpoint)."""
+        return [row for k in keys if (row := self.mapping.get((period_type, k.year, k.month, k.week)))]
