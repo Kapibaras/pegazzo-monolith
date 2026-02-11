@@ -20,4 +20,32 @@ class PeriodRawMetrics:
     total_income: Decimal
     total_expense: Decimal
     transaction_count: int
-    payment_amounts: dict[str, Decimal]
+    credit_payment_amounts: dict[str, Decimal]
+    debit_payment_amounts: dict[str, Decimal]
+
+
+@dataclass(frozen=True)
+class PeriodMetrics:
+    """Period metrics."""
+
+    period: PeriodKey
+    total_income: Decimal
+    total_expense: Decimal
+    balance: Decimal
+    transaction_count: int
+    payment_method_breakdown: dict[str, Decimal]
+    weekly_average_income: Decimal
+    weekly_average_expense: Decimal
+    income_expense_ratio: Decimal
+
+
+@dataclass(frozen=True)
+class PeriodComparison:
+    """Period comparison."""
+
+    current: PeriodMetrics
+    previous: PeriodMetrics
+    income_change_pct: Decimal
+    expense_change_pct: Decimal
+    balance_change_pct: Decimal
+    transaction_count_delta: int

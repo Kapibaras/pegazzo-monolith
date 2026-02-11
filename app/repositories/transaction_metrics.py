@@ -56,7 +56,10 @@ class TransactionMetricsRepository(DBRepository):
             rounding=ROUND_HALF_UP,
         )
 
-        breakdown = format_payment_method_breakdown(metrics.payment_amounts)
+        breakdown = {
+            "credit": format_payment_method_breakdown(metrics.credit_payment_amounts),
+            "debit": format_payment_method_breakdown(metrics.debit_payment_amounts),
+        }
 
         weeks = weeks_for_period(period_type, year, month)
 
@@ -108,25 +111,30 @@ class TransactionMetricsRepository(DBRepository):
         total_income = Decimal("0.00")
         total_expense = Decimal("0.00")
         transaction_count = 0
-        payment_amounts: dict[str, Decimal] = {}
+
+        credit_payment_amounts: dict[str, Decimal] = {}
+        debit_payment_amounts: dict[str, Decimal] = {}
 
         for r in rows:
             amount = round_to_2_decimals(r.amount)
             transaction_count += int(r.tx_count or 0)
 
+            pm_key = str(r.payment_method)
+
             if r.type == TxType.CREDIT.value:
                 total_income += amount
+                credit_payment_amounts[pm_key] = credit_payment_amounts.get(pm_key, Decimal("0.00")) + amount
+
             elif r.type == TxType.DEBIT.value:
                 total_expense += amount
-
-            key = str(r.payment_method)
-            payment_amounts[key] = payment_amounts.get(key, Decimal("0.00")) + amount
+                debit_payment_amounts[pm_key] = debit_payment_amounts.get(pm_key, Decimal("0.00")) + amount
 
         return PeriodRawMetrics(
             total_income=round_to_2_decimals(total_income),
             total_expense=round_to_2_decimals(total_expense),
             transaction_count=transaction_count,
-            payment_amounts=payment_amounts,
+            credit_payment_amounts=credit_payment_amounts,
+            debit_payment_amounts=debit_payment_amounts,
         )
 
     def _upsert_metrics(
