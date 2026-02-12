@@ -1,8 +1,9 @@
+from datetime import datetime
 from typing import Optional, Set, Tuple
 
 from sqlalchemy import tuple_
 
-from app.enum.balance import PeriodType
+from app.enum.balance import PeriodType, SortOrder, TransactionSortBy
 from app.errors.database import DBOperationError
 from app.models.balance import Transaction
 from app.models.transaction_metrics import TransactionMetrics
@@ -124,3 +125,24 @@ class BalanceRepository(DBRepository):
                 q = q.filter(tuple_(TransactionMetrics.year, TransactionMetrics.month, TransactionMetrics.week).in_(triples))
 
         return q.all()
+
+    def count_transactions_in_range(self, start_dt: datetime, end_dt: datetime) -> int:
+        """Count transactions in a given date range."""
+        return self.db.query(Transaction).filter(Transaction.date >= start_dt, Transaction.date <= end_dt).count()
+
+    def list_transactions_in_range(
+        self, start_dt: datetime, end_dt: datetime, limit: int, offset: int, sort_by: TransactionSortBy, sort_order: SortOrder
+    ) -> list[Transaction]:
+        """List transactions in a given date range."""
+        q = self.db.query(Transaction).filter(Transaction.date >= start_dt, Transaction.date <= end_dt)
+
+        sort_column_map = {
+            TransactionSortBy.DATE: Transaction.date,
+            TransactionSortBy.AMOUNT: Transaction.amount,
+            TransactionSortBy.REFERENCE: Transaction.reference,
+        }
+        col = sort_column_map.get(sort_by, Transaction.date)
+
+        q = q.order_by(col.asc()) if sort_order == SortOrder.ASC else q.order_by(col.desc())
+
+        return q.offset(offset).limit(limit).all()

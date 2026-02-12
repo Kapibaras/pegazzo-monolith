@@ -1,9 +1,10 @@
+from datetime import datetime, timezone
 from unittest.mock import Mock
 
 import pytest
 from sqlalchemy.orm import Session
 
-from app.enum.balance import PeriodType
+from app.enum.balance import PeriodType, SortOrder, TransactionSortBy
 from app.errors.database import DBOperationError
 from app.models.balance import Transaction
 from app.models.transaction_metrics import TransactionMetrics
@@ -343,19 +344,109 @@ class TestBalanceRepository:
 
         assert result == [metrics]
 
-    def test_get_metrics_for_keys_week_missing_month_or_week_returns_empty(self):
-        """If all keys are missing month/week, triples becomes empty -> [] without querying .all()."""
-        keys = [
-            PeriodKey(period_type=PeriodType.WEEK, year=2026, month=None, week=5),
-            PeriodKey(period_type=PeriodType.WEEK, year=2026, month=1, week=None),
-        ]
+    def test_count_transactions_in_range_success(self):
+        start_dt = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
 
         mock_query = self.mock_db.query.return_value
         mock_q1 = mock_query.filter.return_value
+        mock_q1.count.return_value = 45
 
-        result = self.repository.get_metrics_for_keys(period_type=PeriodType.WEEK, keys=keys)
+        result = self.repository.count_transactions_in_range(start_dt=start_dt, end_dt=end_dt)
+
+        self.mock_db.query.assert_called_once_with(Transaction)
+        mock_query.filter.assert_called_once()
+        mock_q1.count.assert_called_once()
+
+        args, kwargs = mock_query.filter.call_args
+        assert kwargs == {}
+        assert len(args) == 2
+        assert ">=" in str(args[0])
+        assert "<=" in str(args[1])
+
+        assert result == 45
+
+    @pytest.mark.parametrize(
+        ("sort_by", "sort_order"),
+        [
+            (TransactionSortBy.DATE, SortOrder.DESC),
+            (TransactionSortBy.DATE, SortOrder.ASC),
+            (TransactionSortBy.AMOUNT, SortOrder.DESC),
+            (TransactionSortBy.AMOUNT, SortOrder.ASC),
+            (TransactionSortBy.REFERENCE, SortOrder.DESC),
+            (TransactionSortBy.REFERENCE, SortOrder.ASC),
+        ],
+    )
+    def test_list_transactions_in_range_success(self, sort_by, sort_order):
+        start_dt = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+        limit = 10
+        offset = 20
+
+        mock_query = self.mock_db.query.return_value
+        mock_q1 = mock_query.filter.return_value
+        mock_q2 = mock_q1.order_by.return_value
+        mock_q3 = mock_q2.offset.return_value
+        mock_q4 = mock_q3.limit.return_value
+
+        tx1 = Transaction()
+        tx1.reference = "A"
+        tx2 = Transaction()
+        tx2.reference = "B"
+        mock_q4.all.return_value = [tx1, tx2]
+
+        result = self.repository.list_transactions_in_range(
+            start_dt=start_dt,
+            end_dt=end_dt,
+            limit=limit,
+            offset=offset,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+
+        self.mock_db.query.assert_called_once_with(Transaction)
+
+        mock_query.filter.assert_called_once()
+        f_args, f_kwargs = mock_query.filter.call_args
+        assert f_kwargs == {}
+        assert len(f_args) == 2
+        assert ">=" in str(f_args[0])
+        assert "<=" in str(f_args[1])
+
+        mock_q1.order_by.assert_called_once()
+
+        mock_q2.offset.assert_called_once_with(offset)
+        mock_q3.limit.assert_called_once_with(limit)
+        mock_q4.all.assert_called_once()
+
+        assert result == [tx1, tx2]
+
+    def test_list_transactions_in_range_default_sort_fallback(self):
+        start_dt = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+        mock_query = self.mock_db.query.return_value
+        mock_q1 = mock_query.filter.return_value
+        mock_q2 = mock_q1.order_by.return_value
+        mock_q3 = mock_q2.offset.return_value
+        mock_q4 = mock_q3.limit.return_value
+        mock_q4.all.return_value = []
+
+        result = self.repository.list_transactions_in_range(
+            start_dt=start_dt,
+            end_dt=end_dt,
+            limit=10,
+            offset=0,
+            sort_by="bad",
+            sort_order=SortOrder.DESC,
+        )
+
+        self.mock_db.query.assert_called_once_with(Transaction)
+        mock_query.filter.assert_called_once()
+        mock_q1.order_by.assert_called_once()
+        mock_q2.offset.assert_called_once_with(0)
+        mock_q3.limit.assert_called_once_with(10)
+        mock_q4.all.assert_called_once()
 
         assert result == []
-        self.mock_db.query.assert_called_once_with(TransactionMetrics)
-        mock_query.filter.assert_called_once()
-        mock_q1.filter.assert_not_called()

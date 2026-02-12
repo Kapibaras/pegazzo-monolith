@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 
+from app.models.balance import Transaction
 from app.models.transaction_metrics import TransactionMetrics
 from app.schemas.balance import (
     BalanceMetricsDetailedResponseSchema,
     BalanceMetricsSimpleResponseSchema,
+    BalanceTransactionsResponseSchema,
     BalanceTrendResponseSchema,
     TransactionResponseSchema,
 )
@@ -497,4 +499,230 @@ class TestBalanceRouter:
     def test_get_trend_unauthorized(self, client):
         """Unauthenticated user cannot access trend metrics."""
         r = client.get("/pegazzo/management/balance/metrics/trend?period=month")
+        assert r.status_code == 401
+
+    def test_get_transactions_month_success_default_sort_date_desc(self, authorized_client):
+        """Month success: default page=1, limit=10, sort_by=date desc."""
+        authorized_client.balance_repo.reset()
+
+        authorized_client.balance_repo.transactions = [
+            Transaction(
+                amount=100,
+                reference="TRX-001",
+                date=datetime(2026, 1, 5, 10, 30, tzinfo=timezone.utc),
+                type="debit",
+                description="Tx 1",
+                payment_method="cash",
+            ),
+            Transaction(
+                amount=200,
+                reference="TRX-002",
+                date=datetime(2026, 1, 10, 10, 30, tzinfo=timezone.utc),
+                type="debit",
+                description="Tx 2",
+                payment_method="cash",
+            ),
+            Transaction(
+                amount=300,
+                reference="TRX-003",
+                date=datetime(2026, 1, 1, 10, 30, tzinfo=timezone.utc),
+                type="debit",
+                description="Tx 3",
+                payment_method="cash",
+            ),
+        ]
+
+        r = authorized_client.get("/pegazzo/management/balance/transactions?period=month&month=1&year=2026")
+        assert r.status_code == 200
+
+        payload = r.json()
+        assert BalanceTransactionsResponseSchema.model_validate(payload)
+
+        assert payload["pagination"]["page"] == 1
+        assert payload["pagination"]["limit"] == 10
+        assert payload["pagination"]["total"] == 3
+        assert payload["pagination"]["totalPages"] == 1
+
+        refs = [t["reference"] for t in payload["transactions"]]
+        assert refs == ["TRX-002", "TRX-001", "TRX-003"]
+
+    def test_get_transactions_month_pagination_second_page(self, authorized_client):
+        """Pagination: total=15, limit=10 => page=2 returns 5."""
+        authorized_client.balance_repo.reset()
+
+        txs: list[Transaction] = []
+        txs = [
+            Transaction(
+                amount=100 + i,
+                reference=f"TRX-{i:03d}",
+                date=datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc),
+                type="debit",
+                description="Bulk",
+                payment_method="cash",
+            )
+            for i in range(15)
+        ]
+
+        authorized_client.balance_repo.transactions = txs
+
+        r = authorized_client.get(
+            "/pegazzo/management/balance/transactions?period=month&month=1&year=2026&page=2&limit=10",
+        )
+        assert r.status_code == 200
+
+        payload = r.json()
+        assert BalanceTransactionsResponseSchema.model_validate(payload)
+
+        assert payload["pagination"]["page"] == 2
+        assert payload["pagination"]["limit"] == 10
+        assert payload["pagination"]["total"] == 15
+        assert payload["pagination"]["totalPages"] == 2
+        assert len(payload["transactions"]) == 5
+
+    def test_get_transactions_month_sort_by_amount_asc(self, authorized_client):
+        """Sorting by amount asc."""
+        authorized_client.balance_repo.reset()
+
+        authorized_client.balance_repo.transactions = [
+            Transaction(
+                amount=100,
+                reference="MID",
+                date=datetime(2026, 1, 2, 10, 0, tzinfo=timezone.utc),
+                type="debit",
+                description="",
+                payment_method="cash",
+            ),
+            Transaction(
+                amount=150,
+                reference="HIGH",
+                date=datetime(2026, 1, 2, 10, 0, tzinfo=timezone.utc),
+                type="debit",
+                description="",
+                payment_method="cash",
+            ),
+            Transaction(
+                amount=50,
+                reference="LOW",
+                date=datetime(2026, 1, 2, 10, 0, tzinfo=timezone.utc),
+                type="debit",
+                description="",
+                payment_method="cash",
+            ),
+        ]
+
+        r = authorized_client.get(
+            "/pegazzo/management/balance/transactions?period=month&month=1&year=2026&sort_by=amount&sort_order=asc",
+        )
+        assert r.status_code == 200
+
+        payload = r.json()
+        assert BalanceTransactionsResponseSchema.model_validate(payload)
+
+        refs = [t["reference"] for t in payload["transactions"]]
+        assert refs == ["LOW", "MID", "HIGH"]
+
+    def test_get_transactions_month_sort_by_reference_desc(self, authorized_client):
+        """Sorting by reference desc."""
+        authorized_client.balance_repo.reset()
+
+        authorized_client.balance_repo.transactions = [
+            Transaction(
+                amount=10,
+                reference="A-100",
+                date=datetime(2026, 1, 2, 10, 0, tzinfo=timezone.utc),
+                type="debit",
+                description="",
+                payment_method="cash",
+            ),
+            Transaction(
+                amount=10,
+                reference="Z-100",
+                date=datetime(2026, 1, 2, 10, 0, tzinfo=timezone.utc),
+                type="debit",
+                description="",
+                payment_method="cash",
+            ),
+            Transaction(
+                amount=10,
+                reference="B-100",
+                date=datetime(2026, 1, 2, 10, 0, tzinfo=timezone.utc),
+                type="debit",
+                description="",
+                payment_method="cash",
+            ),
+        ]
+
+        r = authorized_client.get(
+            "/pegazzo/management/balance/transactions?period=month&month=1&year=2026&sort_by=reference&sort_order=desc",
+        )
+        assert r.status_code == 200
+
+        payload = r.json()
+        assert BalanceTransactionsResponseSchema.model_validate(payload)
+
+        refs = [t["reference"] for t in payload["transactions"]]
+        assert refs == ["Z-100", "B-100", "A-100"]
+
+    def test_get_transactions_empty_result_returns_zero_pages(self, authorized_client):
+        """No matching transactions -> [], total=0, totalPages=0."""
+        authorized_client.balance_repo.reset()
+        authorized_client.balance_repo.transactions = []
+
+        r = authorized_client.get("/pegazzo/management/balance/transactions?period=year&year=2099")
+        assert r.status_code == 200
+
+        payload = r.json()
+        assert BalanceTransactionsResponseSchema.model_validate(payload)
+
+        assert payload["transactions"] == []
+        assert payload["pagination"]["total"] == 0
+        assert payload["pagination"]["totalPages"] == 0
+
+    def test_get_transactions_week_missing_params_400(self, authorized_client):
+        """Week requires week + month + year."""
+        r = authorized_client.get("/pegazzo/management/balance/transactions?period=week&year=2026")
+        assert r.status_code == 400
+        assert "Invalid metrics period" in r.json()["detail"]
+
+    def test_get_transactions_month_missing_params_400(self, authorized_client):
+        """Month requires month + year."""
+        r = authorized_client.get("/pegazzo/management/balance/transactions?period=month&month=1")
+        assert r.status_code == 400
+        assert "Invalid metrics period" in r.json()["detail"]
+
+    def test_get_transactions_year_missing_params_400(self, authorized_client):
+        """Year requires year."""
+        r = authorized_client.get("/pegazzo/management/balance/transactions?period=year")
+        assert r.status_code == 400
+        assert "Invalid metrics period" in r.json()["detail"]
+
+    def test_get_transactions_invalid_period_422(self, authorized_client):
+        r = authorized_client.get("/pegazzo/management/balance/transactions?period=INVALID&year=2026")
+        assert r.status_code == 422
+        detail = r.json()["detail"]
+        assert isinstance(detail, list)
+        assert detail[0]["loc"] == ["query", "period"]
+
+    def test_get_transactions_invalid_limit_422(self, authorized_client):
+        r = authorized_client.get("/pegazzo/management/balance/transactions?period=year&year=2026&limit=101")
+        assert r.status_code == 422
+
+    def test_get_transactions_invalid_page_422(self, authorized_client):
+        r = authorized_client.get("/pegazzo/management/balance/transactions?period=year&year=2026&page=0")
+        assert r.status_code == 422
+
+    def test_get_transactions_invalid_sort_by_422(self, authorized_client):
+        r = authorized_client.get(
+            "/pegazzo/management/balance/transactions?period=year&year=2026&sort_by=BAD",
+        )
+        assert r.status_code == 422
+
+    def test_get_transactions_invalid_sort_order_422(self, authorized_client):
+        r = authorized_client.get(
+            "/pegazzo/management/balance/transactions?period=year&year=2026&sort_order=BAD",
+        )
+        assert r.status_code == 422
+
+    def test_get_transactions_unauthorized(self, client):
+        r = client.get("/pegazzo/management/balance/transactions?period=year&year=2026")
         assert r.status_code == 401

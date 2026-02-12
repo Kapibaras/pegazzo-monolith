@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
 from typing import Annotated, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
-from app.enum.balance import PaymentMethod, PeriodType, Type
+from app.enum.balance import PaymentMethod, PeriodType, SortOrder, TransactionSortBy, Type
 from app.errors.transaction_metrics import InvalidMetricsPeriodException
 
 DEFAULT_LIMITS: dict[PeriodType, int] = {
@@ -111,6 +111,50 @@ class BalanceTrendQuerySchema(BaseModel):
         return self
 
 
+class BalanceTransactionsQuerySchema(BaseModel):
+    """Query params for GET /management/balance/transactions."""
+
+    period: PeriodType = Field(..., description="One of: week, month, year")
+
+    week: Optional[int] = Field(None, ge=1, le=53, description="Week number (1-53)")
+    month: Optional[int] = Field(None, ge=1, le=12, description="Month number (1-12)")
+    year: Optional[int] = Field(None, ge=2000, le=2100, description="Year (e.g., 2026)")
+
+    page: Annotated[int, Field(default=1, ge=1, description="Page number starting at 1")] = 1
+    limit: Annotated[int, Field(default=10, ge=1, le=100, description="Records per page (max 100)")] = 10
+
+    sort_by: TransactionSortBy = Field(
+        default=TransactionSortBy.DATE,
+        description="Column to sort by. One of: date, amount, reference",
+    )
+    sort_order: SortOrder = Field(
+        default=SortOrder.DESC,
+        description="Sort direction. One of: asc, desc",
+    )
+
+    @model_validator(mode="after")
+    def validate_period_requirements(self) -> "BalanceTransactionsQuerySchema":
+        """Validate period requirements."""
+        match self.period:
+            case PeriodType.WEEK:
+                if self.week is None or self.month is None or self.year is None:
+                    raise InvalidMetricsPeriodException
+
+            case PeriodType.MONTH:
+                if self.month is None or self.year is None:
+                    raise InvalidMetricsPeriodException
+                if self.week is not None:
+                    raise InvalidMetricsPeriodException
+
+            case PeriodType.YEAR:
+                if self.year is None:
+                    raise InvalidMetricsPeriodException
+                if self.month is not None or self.week is not None:
+                    raise InvalidMetricsPeriodException
+
+        return self
+
+
 # * RESPONSE SCHEMAS * #
 
 
@@ -123,6 +167,12 @@ class TransactionResponseSchema(BaseModel):
     type: Type = Field(..., description="Type of the transaction")
     description: str = Field(..., description="Description of the transaction")
     payment_method: PaymentMethod = Field(..., description="Payment method")
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def normalize_description(cls, v):
+        """Normalize description to empty string if None."""
+        return "" if v is None else v
 
     model_config = ConfigDict(
         use_enum_values=True,
@@ -285,3 +335,23 @@ class BalanceTrendResponseSchema(BaseModel):
         populate_by_name=True,
         alias_generator=to_camel,
     )
+
+
+class PaginationSchema(BaseModel):
+    """Pagination schema."""
+
+    page: int = Field(..., ge=1)
+    limit: int = Field(..., ge=1, le=100)
+    total: int = Field(..., ge=0)
+    total_pages: int = Field(..., ge=0)
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+
+class BalanceTransactionsResponseSchema(BaseModel):
+    """Balance transactions response schema."""
+
+    transactions: list[TransactionResponseSchema] = Field(default_factory=list)
+    pagination: PaginationSchema = Field(...)
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
