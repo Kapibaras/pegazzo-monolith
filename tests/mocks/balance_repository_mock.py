@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from app.enum.balance import SortOrder, TransactionSortBy
 from app.models.balance import Transaction
 from app.utils.periods import PeriodKey
 
@@ -57,3 +58,30 @@ class BalanceRepositoryMock:
     def get_metrics_for_keys(self, period_type: str, keys: list[PeriodKey]):
         """Return rows for bulk key lookup (trend endpoint)."""
         return [row for k in keys if (row := self.mapping.get((period_type, k.year, k.month, k.week)))]
+
+    def count_transactions_in_range(self, start_dt: datetime, end_dt: datetime) -> int:
+        """Count transactions in a given date range (inclusive end)."""
+        return sum(1 for t in self.transactions if start_dt <= t.date <= end_dt)
+
+    def list_transactions_in_range(
+        self, start_dt: datetime, end_dt: datetime, limit: int, offset: int, sort_by: TransactionSortBy, sort_order: SortOrder
+    ) -> list[Transaction]:
+        """List transactions in a given date range."""
+        filtered = [t for t in self.transactions if start_dt <= t.date <= end_dt]
+
+        sort_by_val = getattr(sort_by, "value", sort_by) or "date"
+        sort_order_val = getattr(sort_order, "value", sort_order) or "desc"
+
+        def sort_key(t: Transaction):
+            match sort_by_val:
+                case "amount":
+                    return t.amount
+                case "reference":
+                    return t.reference
+                case _:
+                    return t.date
+
+        reverse = str(sort_order_val).lower() == "desc"
+        filtered.sort(key=sort_key, reverse=reverse)
+
+        return filtered[offset : offset + limit]

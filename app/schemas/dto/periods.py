@@ -49,3 +49,12 @@ class PeriodComparison:
     expense_change_pct: Decimal
     balance_change_pct: Decimal
     transaction_count_delta: int
+
+
+@dataclass(frozen=True)
+class Page:
+    """Page."""
+
+    page: int
+    limit: int
+    offset: int
