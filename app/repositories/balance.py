@@ -24,8 +24,13 @@ class BalanceRepository(DBRepository):
             self.db.refresh(transaction)
         except Exception as ex:
             self.db.rollback()
-            logger.error(f"Error creating transaction {transaction.reference} due to: {ex}")
-            raise DBOperationError(f"Failed to create transaction with reference {transaction.reference}") from ex
+            logger.error(
+                "Error creating transaction %s due to: %s",
+                transaction.reference,
+                ex,
+                exc_info=True,
+            )
+            raise DBOperationError("create") from ex
 
         return transaction
 
@@ -43,7 +48,7 @@ class BalanceRepository(DBRepository):
             self.db.commit()
         except Exception as e:
             self.db.rollback()
-            raise DBOperationError("Error deleting transaction") from e
+            raise DBOperationError("delete") from e
 
     def update_transaction(self, transaction: Transaction):
         """Update a transaction."""
@@ -53,8 +58,13 @@ class BalanceRepository(DBRepository):
             self.db.refresh(transaction)
         except Exception as ex:
             self.db.rollback()
-            logger.error(f"Error updating transaction {transaction.reference} due to: {ex}")
-            raise DBOperationError("Error updating transaction in the database")
+            logger.error(
+                "Error updating transaction %s due to: %s",
+                transaction.reference,
+                ex,
+                exc_info=True,
+            )
+            raise DBOperationError("update") from ex
 
         return self.get_by_reference(transaction.reference)
 
@@ -131,7 +141,13 @@ class BalanceRepository(DBRepository):
         return self.db.query(Transaction).filter(Transaction.date >= start_dt, Transaction.date <= end_dt).count()
 
     def list_transactions_in_range(
-        self, start_dt: datetime, end_dt: datetime, limit: int, offset: int, sort_by: TransactionSortBy, sort_order: SortOrder
+        self,
+        start_dt: datetime,
+        end_dt: datetime,
+        limit: int,
+        offset: int,
+        sort_by: TransactionSortBy,
+        sort_order: SortOrder,
     ) -> list[Transaction]:
         """List transactions in a given date range."""
         q = self.db.query(Transaction).filter(Transaction.date >= start_dt, Transaction.date <= end_dt)

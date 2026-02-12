@@ -64,7 +64,13 @@ class BalanceRepositoryMock:
         return sum(1 for t in self.transactions if start_dt <= t.date <= end_dt)
 
     def list_transactions_in_range(
-        self, start_dt: datetime, end_dt: datetime, limit: int, offset: int, sort_by: TransactionSortBy, sort_order: SortOrder
+        self,
+        start_dt: datetime,
+        end_dt: datetime,
+        limit: int,
+        offset: int,
+        sort_by: TransactionSortBy,
+        sort_order: SortOrder,
     ) -> list[Transaction]:
         """List transactions in a given date range."""
         filtered = [t for t in self.transactions if start_dt <= t.date <= end_dt]
