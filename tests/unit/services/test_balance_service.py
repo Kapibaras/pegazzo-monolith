@@ -11,7 +11,7 @@ from app.errors.balance import (
     InvalidDescriptionLengthException,
     TransactionNotFoundException,
 )
-from app.errors.transaction_metrics import InvalidMetricsPeriodException, TransactionMetricsPeriodError
+from app.errors.transaction_metrics import TransactionMetricsPeriodError
 from app.models.balance import Transaction
 from app.repositories.balance import BalanceRepository
 from app.schemas.balance import (
