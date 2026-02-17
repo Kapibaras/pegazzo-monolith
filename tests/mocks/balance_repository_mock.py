@@ -75,19 +75,12 @@ class BalanceRepositoryMock:
         """List transactions in a given date range."""
         filtered = [t for t in self.transactions if start_dt <= t.date <= end_dt]
 
-        sort_by_val = getattr(sort_by, "value", sort_by) or "date"
-        sort_order_val = getattr(sort_order, "value", sort_order) or "desc"
+        sort_by_val = sort_by.value if isinstance(sort_by, TransactionSortBy) else sort_by or "date"
+        sort_order_val = sort_order.value if isinstance(sort_order, SortOrder) else sort_order or "desc"
 
-        def sort_key(t: Transaction):
-            match sort_by_val:
-                case "amount":
-                    return t.amount
-                case "reference":
-                    return t.reference
-                case _:
-                    return t.date
-
-        reverse = str(sort_order_val).lower() == "desc"
-        filtered.sort(key=sort_key, reverse=reverse)
-
+        reverse = sort_order_val.lower() == "desc"
+        filtered.sort(
+            key=lambda t: t.amount if sort_by_val == "amount" else t.reference if sort_by_val == "reference" else t.date,
+            reverse=reverse,
+        )
         return filtered[offset : offset + limit]

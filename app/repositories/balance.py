@@ -30,15 +30,12 @@ class BalanceRepository(DBRepository):
                 ex,
                 exc_info=True,
             )
-            raise DBOperationError("create") from ex
+            raise DBOperationError("Error creating transaction in the database") from ex
 
         return transaction
 
     def get_by_reference(self, reference: str):
-        """Retrieve a transaction by their reference.
-
-        Args: username (str): The username of the user to retrieve.
-        """
+        """Retrieve a transaction by their reference."""
         return self.db.query(Transaction).filter(Transaction.reference == reference).first()
 
     def delete_transaction(self, transaction: Transaction):
@@ -48,7 +45,7 @@ class BalanceRepository(DBRepository):
             self.db.commit()
         except Exception as e:
             self.db.rollback()
-            raise DBOperationError("delete") from e
+            raise DBOperationError("Error deleting transaction in the database") from e
 
     def update_transaction(self, transaction: Transaction):
         """Update a transaction."""
@@ -64,7 +61,7 @@ class BalanceRepository(DBRepository):
                 ex,
                 exc_info=True,
             )
-            raise DBOperationError("update") from ex
+            raise DBOperationError("Error updating transaction in the database") from ex
 
         return self.get_by_reference(transaction.reference)
 

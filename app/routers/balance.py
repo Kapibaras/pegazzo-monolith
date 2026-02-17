@@ -129,6 +129,6 @@ def get_balance_transactions(
         year=params.year,
         page=params.page,
         limit=params.limit,
-        sort_by=params.sort_by.value,
-        sort_order=params.sort_order.value,
+        sort_by=params.sort_by,
+        sort_order=params.sort_order,
     )
