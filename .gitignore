@@ -78,3 +78,6 @@ docker-compose.yml
 # ───── Otros ─────
 *.swp
 *.orig
+
+#  ───── Claude ─────
+/.claude/*.local.*
