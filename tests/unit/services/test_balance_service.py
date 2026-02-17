@@ -6,16 +6,17 @@ from unittest.mock import Mock, patch
 import pytest
 from pydantic import ValidationError
 
-from app.enum.balance import PaymentMethod, PeriodType, Type
+from app.enum.balance import PaymentMethod, PeriodType, SortOrder, TransactionSortBy, Type
 from app.errors.balance import (
     InvalidDescriptionLengthException,
     TransactionNotFoundException,
 )
-from app.errors.transaction_metrics import InvalidMetricsPeriodException, TransactionMetricsPeriodError
+from app.errors.transaction_metrics import TransactionMetricsPeriodError
 from app.models.balance import Transaction
 from app.repositories.balance import BalanceRepository
 from app.schemas.balance import (
     BalanceMetricsDetailedResponseSchema,
+    BalanceTransactionsResponseSchema,
     BalanceTrendResponseSchema,
     TransactionPatchSchema,
     TransactionSchema,
@@ -534,3 +535,142 @@ class TestBalanceService:
         assert starts == sorted(starts)
         assert all(d.period_start.month == 1 and d.period_start.day == 1 for d in result.data)
         assert all(d.period_end.month == 12 and d.period_end.day == 31 for d in result.data)
+
+    def test_get_transactions_calls_repo_with_bounds_and_pagination(self):
+        """Service should compute offset and call repo with start/end, limit/offset, sort params."""
+        # Arrange
+        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+        self.mock_repo.count_transactions_in_range.return_value = 45
+        self.mock_repo.list_transactions_in_range.return_value = []
+
+        # Act
+        with patch("app.services.balance.period_bounds_utc", return_value=(start_dt, end_dt)) as mock_bounds:
+            result = self.service.get_transactions(
+                period=PeriodType.MONTH,
+                year=2026,
+                month=1,
+                week=None,
+                page=2,
+                limit=10,
+                sort_by=TransactionSortBy.DATE,
+                sort_order=SortOrder.DESC,
+            )
+
+        # Assert
+        assert BalanceTransactionsResponseSchema.model_validate(result)
+
+        mock_bounds.assert_called_once()
+        key_arg = mock_bounds.call_args.args[0]
+        assert key_arg.period_type == PeriodType.MONTH
+        assert key_arg.year == 2026
+        assert key_arg.month == 1
+        assert key_arg.week is None
+
+        self.mock_repo.count_transactions_in_range.assert_called_once_with(start_dt=start_dt, end_dt=end_dt)
+        self.mock_repo.list_transactions_in_range.assert_called_once_with(
+            start_dt=start_dt,
+            end_dt=end_dt,
+            limit=10,
+            offset=10,
+            sort_by=TransactionSortBy.DATE,
+            sort_order=SortOrder.DESC,
+        )
+
+        assert result.pagination.page == 2
+        assert result.pagination.limit == 10
+        assert result.pagination.total == 45
+        assert result.pagination.total_pages == 5
+
+    def test_get_transactions_total_zero_returns_zero_pages(self):
+        """If total=0, total_pages must be 0 and transactions come from repo (likely empty)."""
+        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end_dt = datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+        self.mock_repo.count_transactions_in_range.return_value = 0
+        self.mock_repo.list_transactions_in_range.return_value = []
+
+        with patch("app.services.balance.period_bounds_utc", return_value=(start_dt, end_dt)):
+            result = self.service.get_transactions(
+                period=PeriodType.YEAR,
+                year=2026,
+                page=1,
+                limit=10,
+                sort_by=TransactionSortBy.DATE,
+                sort_order=SortOrder.DESC,
+            )
+
+        assert BalanceTransactionsResponseSchema.model_validate(result)
+        assert result.transactions == []
+        assert result.pagination.total == 0
+        assert result.pagination.total_pages == 0
+
+    @pytest.mark.parametrize(
+        ("total", "limit", "expected_pages"),
+        [
+            (1, 10, 1),
+            (10, 10, 1),
+            (11, 10, 2),
+            (99, 10, 10),
+            (100, 10, 10),
+        ],
+    )
+    def test_get_transactions_total_pages_uses_ceil(self, total, limit, expected_pages):
+        """total_pages must be ceil(total/limit) when total>0."""
+        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+        self.mock_repo.count_transactions_in_range.return_value = total
+        self.mock_repo.list_transactions_in_range.return_value = []
+
+        with patch("app.services.balance.period_bounds_utc", return_value=(start_dt, end_dt)):
+            result = self.service.get_transactions(
+                period=PeriodType.MONTH,
+                year=2026,
+                month=1,
+                page=1,
+                limit=limit,
+                sort_by=TransactionSortBy.DATE,
+                sort_order=SortOrder.DESC,
+            )
+
+        assert BalanceTransactionsResponseSchema.model_validate(result)
+        assert result.pagination.total == total
+        assert result.pagination.total_pages == expected_pages
+
+    def test_get_transactions_returns_repo_rows_in_response(self):
+        """Service should return repo rows in `transactions`."""
+        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+        tx1 = Transaction(reference="TRX-001", amount=100, date=start_dt, type="debit", description="A", payment_method="cash")
+        tx2 = Transaction(reference="TRX-002", amount=200, date=end_dt, type="debit", description="B", payment_method="cash")
+
+        self.mock_repo.count_transactions_in_range.return_value = 2
+        self.mock_repo.list_transactions_in_range.return_value = [tx1, tx2]
+
+        with patch("app.services.balance.period_bounds_utc", return_value=(start_dt, end_dt)):
+            result = self.service.get_transactions(
+                period=PeriodType.MONTH,
+                year=2026,
+                month=1,
+                page=1,
+                limit=10,
+                sort_by=TransactionSortBy.AMOUNT,
+                sort_order=SortOrder.ASC,
+            )
+
+        assert BalanceTransactionsResponseSchema.model_validate(result)
+        assert len(result.transactions) == 2
+        assert result.transactions[0].reference == "TRX-001"
+        assert result.transactions[1].reference == "TRX-002"
+
+        self.mock_repo.list_transactions_in_range.assert_called_once_with(
+            start_dt=start_dt,
+            end_dt=end_dt,
+            limit=10,
+            offset=0,
+            sort_by=TransactionSortBy.AMOUNT,
+            sort_order=SortOrder.ASC,
+        )

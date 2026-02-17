@@ -1,8 +1,9 @@
+from datetime import datetime
 from typing import Optional, Set, Tuple
 
 from sqlalchemy import tuple_
 
-from app.enum.balance import PeriodType
+from app.enum.balance import PeriodType, SortOrder, TransactionSortBy
 from app.errors.database import DBOperationError
 from app.models.balance import Transaction
 from app.models.transaction_metrics import TransactionMetrics
@@ -23,16 +24,18 @@ class BalanceRepository(DBRepository):
             self.db.refresh(transaction)
         except Exception as ex:
             self.db.rollback()
-            logger.error(f"Error creating transaction {transaction.reference} due to: {ex}")
-            raise DBOperationError(f"Failed to create transaction with reference {transaction.reference}") from ex
+            logger.error(
+                "Error creating transaction %s due to: %s",
+                transaction.reference,
+                ex,
+                exc_info=True,
+            )
+            raise DBOperationError("Error creating transaction in the database") from ex
 
         return transaction
 
     def get_by_reference(self, reference: str):
-        """Retrieve a transaction by their reference.
-
-        Args: username (str): The username of the user to retrieve.
-        """
+        """Retrieve a transaction by their reference."""
         return self.db.query(Transaction).filter(Transaction.reference == reference).first()
 
     def delete_transaction(self, transaction: Transaction):
@@ -42,7 +45,7 @@ class BalanceRepository(DBRepository):
             self.db.commit()
         except Exception as e:
             self.db.rollback()
-            raise DBOperationError("Error deleting transaction") from e
+            raise DBOperationError("Error deleting transaction in the database") from e
 
     def update_transaction(self, transaction: Transaction):
         """Update a transaction."""
@@ -52,8 +55,13 @@ class BalanceRepository(DBRepository):
             self.db.refresh(transaction)
         except Exception as ex:
             self.db.rollback()
-            logger.error(f"Error updating transaction {transaction.reference} due to: {ex}")
-            raise DBOperationError("Error updating transaction in the database")
+            logger.error(
+                "Error updating transaction %s due to: %s",
+                transaction.reference,
+                ex,
+                exc_info=True,
+            )
+            raise DBOperationError("Error updating transaction in the database") from ex
 
         return self.get_by_reference(transaction.reference)
 
@@ -124,3 +132,30 @@ class BalanceRepository(DBRepository):
                 q = q.filter(tuple_(TransactionMetrics.year, TransactionMetrics.month, TransactionMetrics.week).in_(triples))
 
         return q.all()
+
+    def count_transactions_in_range(self, start_dt: datetime, end_dt: datetime) -> int:
+        """Count transactions in a given date range."""
+        return self.db.query(Transaction).filter(Transaction.date >= start_dt, Transaction.date <= end_dt).count()
+
+    def list_transactions_in_range(
+        self,
+        start_dt: datetime,
+        end_dt: datetime,
+        limit: int,
+        offset: int,
+        sort_by: TransactionSortBy,
+        sort_order: SortOrder,
+    ) -> list[Transaction]:
+        """List transactions in a given date range."""
+        q = self.db.query(Transaction).filter(Transaction.date >= start_dt, Transaction.date <= end_dt)
+
+        sort_column_map = {
+            TransactionSortBy.DATE: Transaction.date,
+            TransactionSortBy.AMOUNT: Transaction.amount,
+            TransactionSortBy.REFERENCE: Transaction.reference,
+        }
+        col = sort_column_map.get(sort_by, Transaction.date)
+
+        q = q.order_by(col.asc()) if sort_order == SortOrder.ASC else q.order_by(col.desc())
+
+        return q.offset(offset).limit(limit).all()

@@ -46,7 +46,7 @@ class TransactionMetricsRepository(DBRepository):
 
         base_filter = (
             Transaction.date >= start_d,
-            Transaction.date < end_d,
+            Transaction.date <= end_d,
         )
 
         metrics = self._fetch_period_metrics(base_filter)

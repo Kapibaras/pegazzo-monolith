@@ -1,7 +1,8 @@
+import math
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
-from app.enum.balance import PaymentMethod, PeriodType, Type
+from app.enum.balance import PaymentMethod, PeriodType, SortOrder, TransactionSortBy, Type
 from app.errors.balance import (
     InvalidDescriptionLengthException,
     InvalidPaymentMethodException,
@@ -13,9 +14,11 @@ from app.repositories.balance import BalanceRepository
 from app.schemas.balance import (
     BalanceMetricsDetailedResponseSchema,
     BalanceMetricsSimpleResponseSchema,
+    BalanceTransactionsResponseSchema,
     BalanceTrendDataPointSchema,
     BalanceTrendResponseSchema,
     ComparisonSchema,
+    PaginationSchema,
     TransactionResponseSchema,
     TransactionSchema,
     WeeklyAveragesSchema,
@@ -226,3 +229,45 @@ class BalanceService:
             )
 
         return BalanceTrendResponseSchema(period_type=period, data=data)
+
+    def get_transactions(
+        self,
+        period: PeriodType,
+        year: int | None = None,
+        month: int | None = None,
+        week: int | None = None,
+        page: int = 1,
+        limit: int = 10,
+        sort_by: TransactionSortBy = TransactionSortBy.DATE,
+        sort_order: SortOrder = SortOrder.DESC,
+    ) -> BalanceTransactionsResponseSchema:
+        """Get transactions for a given period with pagination & sorting."""
+
+        key = PeriodKey(period_type=period, year=year, month=month, week=week)
+        start_dt, end_dt = period_bounds_utc(key)
+
+        offset = (page - 1) * limit
+
+        total = self.repository.count_transactions_in_range(
+            start_dt=start_dt,
+            end_dt=end_dt,
+        )
+
+        rows = self.repository.list_transactions_in_range(
+            start_dt=start_dt,
+            end_dt=end_dt,
+            limit=limit,
+            offset=offset,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+
+        return BalanceTransactionsResponseSchema(
+            transactions=rows,
+            pagination=PaginationSchema(
+                page=page,
+                limit=limit,
+                total=total,
+                total_pages=(0 if total == 0 else math.ceil(total / limit)),
+            ),
+        )
