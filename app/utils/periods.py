@@ -144,11 +144,9 @@ def current_period_key(period_type: PeriodType, now: datetime) -> PeriodKey:
 
         case PeriodType.WEEK:
             iso_year, iso_week, _ = now.isocalendar()
-            week_start = datetime.fromisocalendar(iso_year, iso_week, 1).date()
             return PeriodKey(
                 period_type="week",
                 year=iso_year,
-                month=week_start.month,
                 week=iso_week,
             )
 
