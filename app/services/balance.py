@@ -207,7 +207,7 @@ class BalanceService:
 
         keys = _build_historical_keys(current_key, limit)
 
-        rows = self.repository.get_metrics_for_keys(period_type=period.value, keys=keys)
+        rows = self.repository.get_metrics_for_keys(period_type=period, keys=keys)
 
         metrics_by_key = {
             (int(r.year), int(r.month) if r.month is not None else None, int(r.week) if r.week is not None else None): r
