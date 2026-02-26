@@ -124,12 +124,10 @@ class BalanceRepository(DBRepository):
                 q = q.filter(tuple_(TransactionMetrics.year, TransactionMetrics.month).in_(pairs))
 
             case PeriodType.WEEK:
-                triples: Set[Tuple[int, int, int]] = {
-                    (k.year, k.month, k.week) for k in keys if k.month is not None and k.week is not None
-                }
-                if not triples:
+                pairs: Set[Tuple[int, int]] = {(k.year, k.week) for k in keys if k.week is not None}
+                if not pairs:
                     return []
-                q = q.filter(tuple_(TransactionMetrics.year, TransactionMetrics.month, TransactionMetrics.week).in_(triples))
+                q = q.filter(tuple_(TransactionMetrics.year, TransactionMetrics.week).in_(pairs))
 
         return q.all()
 
