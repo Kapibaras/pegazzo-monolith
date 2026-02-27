@@ -19,7 +19,7 @@ DEFAULT_LIMITS: dict[PeriodType, int] = {
 class TransactionSchema(BaseModel):
     """Schema for creating a transaction."""
 
-    amount: int = Field(..., description="Amount of the transaction")
+    amount: float = Field(..., description="Amount of the transaction")
     date: datetime | None = Field(default=None, description="Date of the transaction")
     type: Type = Field(..., description="Type of the transaction")
     description: str = Field(..., description="Description of the transaction")
@@ -29,7 +29,7 @@ class TransactionSchema(BaseModel):
 class TransactionPatchSchema(BaseModel):
     """Schema for updating a transaction."""
 
-    amount: Optional[int] = None
+    amount: Optional[float] = None
     description: Optional[str] = None
     payment_method: Optional[PaymentMethod] = None
 
@@ -161,7 +161,7 @@ class BalanceTransactionsQuerySchema(BaseModel):
 class TransactionResponseSchema(BaseModel):
     """Schema for transaction responses."""
 
-    amount: int = Field(..., description="Amount of the transaction")
+    amount: float = Field(..., description="Amount of the transaction")
     reference: str = Field(..., description="Reference of the transaction")
     date: datetime = Field(..., description="Date of the transaction")
     type: Type = Field(..., description="Type of the transaction")
