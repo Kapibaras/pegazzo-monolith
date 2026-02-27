@@ -119,7 +119,7 @@ def get_trend(
 def get_balance_transactions(
     params: BalanceTransactionsQuerySchema = Depends(BalanceTransactionsQuerySchema),
     service: BalanceService = Depends(ServiceFactory.balance_service),
-    _user: AuthUser = Depends(RequiresAuth([Role.OWNER])),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
 ) -> BalanceTransactionsResponseSchema:
     """List transactions for a given period with pagination & sorting."""
     return service.get_transactions(
