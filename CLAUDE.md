@@ -96,6 +96,21 @@ Services should raise domain-specific exceptions, not generic ones.
 - Supports both SQLite (development) and PostgreSQL (production)
 - Base declarative model in `app/database/base.py`
 
+### Datetime & Timezone Convention
+
+All datetimes are stored and served as **UTC**.
+
+- All SQLAlchemy model columns use `DateTime(timezone=True)` → maps to `TIMESTAMPTZ` in PostgreSQL.
+- **Request schemas**: use `RequestUTCDatetime` (`app/schemas/types.py`) for any `datetime` field that comes from client input. It rejects naive datetimes and normalizes any timezone to UTC.
+- **Response schemas**: no special type needed — PostgreSQL `TIMESTAMPTZ` + psycopg2 returns UTC-aware datetimes automatically.
+
+```python
+from app.schemas.types import RequestUTCDatetime
+
+class MyRequestSchema(BaseModel):
+    date: RequestUTCDatetime | None = Field(default=None, ...)
+```
+
 ## Code Quality Standards
 
 ### Pre-commit Hooks
