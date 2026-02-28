@@ -113,7 +113,7 @@ class TestBalanceRouter:
             "/pegazzo/management/balance/transaction",
             json={
                 "amount": 1500,
-                "date": "2025-01-01T10:30:00",
+                "date": "2025-01-01T10:30:00Z",
                 "type": "debit",
                 "description": "Pago de material",
                 "payment_method": "cash",
