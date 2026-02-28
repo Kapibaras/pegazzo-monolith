@@ -6,6 +6,7 @@ from pydantic.alias_generators import to_camel
 
 from app.enum.balance import PaymentMethod, PeriodType, SortOrder, TransactionSortBy, Type
 from app.errors.transaction_metrics import InvalidMetricsPeriodException
+from app.schemas.types import RequestUTCDatetime
 
 DEFAULT_LIMITS: dict[PeriodType, int] = {
     PeriodType.WEEK: 8,
@@ -20,7 +21,7 @@ class TransactionSchema(BaseModel):
     """Schema for creating a transaction."""
 
     amount: float = Field(..., description="Amount of the transaction")
-    date: datetime | None = Field(default=None, description="Date of the transaction")
+    date: RequestUTCDatetime | None = Field(default=None, description="Date of the transaction")
     type: Type = Field(..., description="Type of the transaction")
     description: str = Field(..., description="Description of the transaction")
     payment_method: PaymentMethod = Field(..., description="Payment method of the transaction")
