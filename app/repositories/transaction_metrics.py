@@ -15,7 +15,7 @@ from app.schemas.dto.periods import PeriodKey, PeriodRawMetrics
 from app.utils.decimal import DEC_2, round_to_2_decimals
 from app.utils.metrics import calculate_income_expense_ratio, calculate_weekly_averages
 from app.utils.paymenth_method import format_payment_method_breakdown
-from app.utils.periods import get_period_date_range, weeks_for_period
+from app.utils.periods import period_bounds_utc, weeks_for_period
 
 from .abstract import DBRepository
 
@@ -42,7 +42,7 @@ class TransactionMetricsRepository(DBRepository):
             week=week,
         )
 
-        start_d, end_d = get_period_date_range(key)
+        start_d, end_d = period_bounds_utc(key)
 
         base_filter = (
             Transaction.date >= start_d,
@@ -210,7 +210,7 @@ class TransactionMetricsRepository(DBRepository):
                 except Exception:
                     self.db.rollback()
                     logger.exception(...)
-                raise
+                    raise
         except Exception:
             self.db.rollback()
             logger.exception(

@@ -84,7 +84,7 @@ class TestBalanceService:
 
         schema = TransactionSchema(
             amount=1200,
-            date="2025-01-01T10:00:00",
+            date="2025-01-01T10:00:00Z",
             type=Type.DEBIT,
             description="Pago de material",
             payment_method=PaymentMethod.CASH,
@@ -112,7 +112,7 @@ class TestBalanceService:
             TransactionSchema(
                 amount=100,
                 reference="IGNORED",
-                date="2025-01-01T10:00:00",
+                date="2025-01-01T10:00:00Z",
                 type=invalid_type,
                 description="Test",
                 payment_method=PaymentMethod.CASH,
@@ -128,7 +128,7 @@ class TestBalanceService:
             TransactionSchema(
                 amount=50,
                 reference="IGNORED",
-                date="2025-01-01T10:00:00",
+                date="2025-01-01T10:00:00Z",
                 type=Type.DEBIT,
                 description="Test",
                 payment_method=invalid_method,
@@ -142,7 +142,7 @@ class TestBalanceService:
         schema = TransactionSchema(
             amount=100,
             reference="IGNORED",
-            date="2025-01-01T10:00:00",
+            date="2025-01-01T10:00:00Z",
             type=Type.DEBIT,
             description=long_desc,
             payment_method=PaymentMethod.CASH,
