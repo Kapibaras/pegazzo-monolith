@@ -1,5 +1,6 @@
 line-length = 128
 target-version = "py312"
+exclude = ["alembic/"]
 
 [lint]
 extend-select = [
@@ -35,11 +36,12 @@ extend-select = [
 
 fixable = ["I", "F401"]
 extend-ignore = [
-    "D100", # ignore missing-module-docstring
-    "B008", # ignore function call in argument defaults
-    "D105", # ignore missing docstring in magic methods
-    "D104", # ignore missing docstring in package
-    "D202", # ignore blank lines bot allowed after function docstring
+    "D100",   # ignore missing-module-docstring
+    "B008",   # ignore function call in argument defaults
+    "D105",   # ignore missing docstring in magic methods
+    "D104",   # ignore missing docstring in package
+    "D202",   # ignore blank lines bot allowed after function docstring
+    "TRY003", # ignore broad exception catching
 ]
 
 [lint.per-file-ignores]
