@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.repositories.transaction_metrics import TransactionMetricsRepository
 from app.schemas.dto.periods import PeriodRawMetrics
-from app.utils.paymenth_method import format_payment_method_breakdown
+from app.utils.paymenth_method import compute_balance_breakdown, format_payment_method_breakdown
 from app.utils.periods import get_affected_periods
 
 
@@ -89,3 +89,87 @@ class TestTransactionMetricsRepository:
 
         # Assert
         upsert_mock.assert_called_once()
+
+    def test_recalc_period_includes_balance_in_breakdown(self, monkeypatch):
+        """Ensure recalc_period includes balance key in payment_method_breakdown."""
+
+        fake_metrics = PeriodRawMetrics(
+            total_income=Decimal("500.00"),
+            total_expense=Decimal("200.00"),
+            transaction_count=5,
+            credit_payment_amounts={
+                "cash": Decimal("300.00"),
+                "transfer_personal_account": Decimal("200.00"),
+            },
+            debit_payment_amounts={
+                "cash": Decimal("100.00"),
+                "transfer_personal_account": Decimal("100.00"),
+            },
+        )
+
+        fetch_mock = Mock(return_value=fake_metrics)
+        monkeypatch.setattr(self.repository, "_fetch_period_metrics", fetch_mock)
+
+        upsert_mock = Mock()
+        monkeypatch.setattr(self.repository, "_upsert_metrics", upsert_mock)
+
+        self.repository.recalc_period(period_type="month", year=2026, month=3)
+
+        upsert_mock.assert_called_once()
+        breakdown = upsert_mock.call_args.kwargs["payment_method_breakdown"]
+
+        assert "credit" in breakdown
+        assert "debit" in breakdown
+        assert "balance" in breakdown
+
+        assert breakdown["balance"]["amounts"]["cash"] == 200.0
+        assert breakdown["balance"]["amounts"]["transfer_personal_account"] == 100.0
+
+    def test_compute_balance_breakdown_basic(self):
+        """Balance amounts = credit - debit per method."""
+        credit = {"cash": Decimal("500.00"), "transfer": Decimal("300.00")}
+        debit = {"cash": Decimal("200.00"), "transfer": Decimal("100.00")}
+
+        result = compute_balance_breakdown(credit, debit)
+
+        assert result["amounts"]["cash"] == 300.0
+        assert result["amounts"]["transfer"] == 200.0
+        assert result["percentages"]["cash"] == 60.0
+        assert result["percentages"]["transfer"] == 40.0
+
+    def test_compute_balance_breakdown_negative_balance(self):
+        """A method can have negative balance (more debits than credits)."""
+        credit = {"cash": Decimal("100.00")}
+        debit = {"cash": Decimal("300.00")}
+
+        result = compute_balance_breakdown(credit, debit)
+
+        assert result["amounts"]["cash"] == -200.0
+        assert result["percentages"]["cash"] == 100.0
+
+    def test_compute_balance_breakdown_zero_total(self):
+        """When total absolute balance is 0, all percentages should be 0."""
+        credit = {"cash": Decimal("100.00")}
+        debit = {"cash": Decimal("100.00")}
+
+        result = compute_balance_breakdown(credit, debit)
+
+        assert result["amounts"]["cash"] == 0.0
+        assert result["percentages"]["cash"] == 0.0
+
+    def test_compute_balance_breakdown_disjoint_methods(self):
+        """Methods that exist only in credit or only in debit."""
+        credit = {"cash": Decimal("500.00")}
+        debit = {"transfer": Decimal("200.00")}
+
+        result = compute_balance_breakdown(credit, debit)
+
+        assert result["amounts"]["cash"] == 500.0
+        assert result["amounts"]["transfer"] == -200.0
+
+    def test_compute_balance_breakdown_empty(self):
+        """Empty inputs produce empty output."""
+        result = compute_balance_breakdown({}, {})
+
+        assert result["amounts"] == {}
+        assert result["percentages"] == {}
