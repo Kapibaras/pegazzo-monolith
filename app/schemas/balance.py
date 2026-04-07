@@ -250,6 +250,7 @@ class PaymentMethodBreakdownByTypeSchema(BaseModel):
 
     credit: PaymentMethodBreakdownSchema = Field(default_factory=PaymentMethodBreakdownSchema)
     debit: PaymentMethodBreakdownSchema = Field(default_factory=PaymentMethodBreakdownSchema)
+    balance: PaymentMethodBreakdownSchema = Field(default_factory=PaymentMethodBreakdownSchema)
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
