@@ -14,7 +14,7 @@ from app.models.transaction_metrics import TransactionMetrics
 from app.schemas.dto.periods import PeriodKey, PeriodRawMetrics
 from app.utils.decimal import DEC_2, round_to_2_decimals
 from app.utils.metrics import calculate_income_expense_ratio, calculate_weekly_averages
-from app.utils.paymenth_method import format_payment_method_breakdown
+from app.utils.paymenth_method import compute_balance_breakdown, format_payment_method_breakdown
 from app.utils.periods import period_bounds_utc, weeks_for_period
 
 from .abstract import DBRepository
@@ -59,6 +59,10 @@ class TransactionMetricsRepository(DBRepository):
         breakdown = {
             "credit": format_payment_method_breakdown(metrics.credit_payment_amounts),
             "debit": format_payment_method_breakdown(metrics.debit_payment_amounts),
+            "balance": compute_balance_breakdown(
+                metrics.credit_payment_amounts,
+                metrics.debit_payment_amounts,
+            ),
         }
 
         weeks = weeks_for_period(period_type, year, month)

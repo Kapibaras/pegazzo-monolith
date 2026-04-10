@@ -111,6 +111,7 @@ def payment_breakdown_schemas(row) -> PaymentMethodBreakdownByTypeSchema:
 
     credit = breakdown.get("credit", {})
     debit = breakdown.get("debit", {})
+    balance = breakdown.get("balance", {})
 
     return PaymentMethodBreakdownByTypeSchema(
         credit=PaymentMethodBreakdownSchema(
@@ -120,6 +121,10 @@ def payment_breakdown_schemas(row) -> PaymentMethodBreakdownByTypeSchema:
         debit=PaymentMethodBreakdownSchema(
             amounts=debit.get("amounts", {}),
             percentages=debit.get("percentages", {}),
+        ),
+        balance=PaymentMethodBreakdownSchema(
+            amounts=balance.get("amounts", {}),
+            percentages=balance.get("percentages", {}),
         ),
     )
 
