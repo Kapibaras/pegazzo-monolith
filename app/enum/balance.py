@@ -37,3 +37,11 @@ class SortOrder(StrEnum):
 
     ASC = "asc"
     DESC = "desc"
+
+
+class TransactionStatus(StrEnum):
+    """Enum for transaction status."""
+
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    REJECTED = "REJECTED"

@@ -47,3 +47,47 @@ class InvalidPaymentMethodException(HTTPException):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid payment method",
         )
+
+
+class TransactionStatusForbiddenException(HTTPException):
+    """403 - Admin tried to set a status other than PENDING."""
+
+    def __init__(self):
+        """Exception raised when admin sets a status other than PENDING."""
+        super().__init__(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admins can only set transaction status to PENDING",
+        )
+
+
+class InvalidTransactionStatusTransitionException(HTTPException):
+    """422 - Admin tried to authorize a non-REJECTED transaction."""
+
+    def __init__(self):
+        """Exception raised when admin tries to resubmit a non-REJECTED transaction."""
+        super().__init__(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Admins can only re-submit REJECTED transactions to PENDING",
+        )
+
+
+class TransactionEditForbiddenException(HTTPException):
+    """403 - Admin tried to edit a non-REJECTED transaction."""
+
+    def __init__(self):
+        """Exception raised when admin tries to edit a non-REJECTED transaction."""
+        super().__init__(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admins can only edit REJECTED transactions",
+        )
+
+
+class TransactionDeleteForbiddenException(HTTPException):
+    """403 - Admin tried to delete a non-REJECTED transaction."""
+
+    def __init__(self):
+        """Exception raised when admin tries to delete a non-REJECTED transaction."""
+        super().__init__(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admins can only delete REJECTED transactions",
+        )
