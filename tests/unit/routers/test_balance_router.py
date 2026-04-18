@@ -513,6 +513,7 @@ class TestBalanceRouter:
                 type="debit",
                 description="Tx 1",
                 payment_method="cash",
+                status="CONFIRMED",
             ),
             Transaction(
                 amount=200,
@@ -521,6 +522,7 @@ class TestBalanceRouter:
                 type="debit",
                 description="Tx 2",
                 payment_method="cash",
+                status="CONFIRMED",
             ),
             Transaction(
                 amount=300,
@@ -529,6 +531,7 @@ class TestBalanceRouter:
                 type="debit",
                 description="Tx 3",
                 payment_method="cash",
+                status="CONFIRMED",
             ),
         ]
 
@@ -559,6 +562,7 @@ class TestBalanceRouter:
                 type="debit",
                 description="Bulk",
                 payment_method="cash",
+                status="CONFIRMED",
             )
             for i in range(15)
         ]
@@ -591,6 +595,7 @@ class TestBalanceRouter:
                 type="debit",
                 description="",
                 payment_method="cash",
+                status="CONFIRMED",
             ),
             Transaction(
                 amount=150,
@@ -599,6 +604,7 @@ class TestBalanceRouter:
                 type="debit",
                 description="",
                 payment_method="cash",
+                status="CONFIRMED",
             ),
             Transaction(
                 amount=50,
@@ -607,6 +613,7 @@ class TestBalanceRouter:
                 type="debit",
                 description="",
                 payment_method="cash",
+                status="CONFIRMED",
             ),
         ]
 
@@ -633,6 +640,7 @@ class TestBalanceRouter:
                 type="debit",
                 description="",
                 payment_method="cash",
+                status="CONFIRMED",
             ),
             Transaction(
                 amount=10,
@@ -641,6 +649,7 @@ class TestBalanceRouter:
                 type="debit",
                 description="",
                 payment_method="cash",
+                status="CONFIRMED",
             ),
             Transaction(
                 amount=10,
@@ -649,6 +658,7 @@ class TestBalanceRouter:
                 type="debit",
                 description="",
                 payment_method="cash",
+                status="CONFIRMED",
             ),
         ]
 
@@ -726,3 +736,144 @@ class TestBalanceRouter:
     def test_get_transactions_unauthorized(self, client):
         r = client.get("/pegazzo/management/balance/transactions?period=year&year=2026")
         assert r.status_code == 401
+
+    def test_get_transactions_with_status_filter(self, authorized_client):
+        """Transactions list accepts optional status filter."""
+        r = authorized_client.get(
+            "/pegazzo/management/balance/transactions?period=year&year=2026&status=CONFIRMED",
+        )
+        assert r.status_code == 200
+        data = r.json()
+        assert "transactions" in data
+
+    def test_get_transactions_invalid_status_422(self, authorized_client):
+        """Invalid status value returns 422."""
+        r = authorized_client.get(
+            "/pegazzo/management/balance/transactions?period=year&year=2026&status=INVALID",
+        )
+        assert r.status_code == 422
+
+    # Authorization endpoint tests
+
+    def test_authorize_transaction_owner_confirms(self, authorized_client):
+        """Owner can confirm a PENDING transaction."""
+        reference = "MOCK_REF_001"
+        authorized_client.balance_repo.transactions[0].status = "PENDING"
+
+        r = authorized_client.post(
+            f"/pegazzo/management/balance/transaction/{reference}/authorization",
+            json={"status": "CONFIRMED"},
+        )
+        assert r.status_code == 200
+        assert r.json()["status"] == "CONFIRMED"
+
+    def test_authorize_transaction_owner_rejects(self, authorized_client):
+        """Owner can reject a PENDING transaction."""
+        reference = "MOCK_REF_001"
+        authorized_client.balance_repo.transactions[0].status = "PENDING"
+
+        r = authorized_client.post(
+            f"/pegazzo/management/balance/transaction/{reference}/authorization",
+            json={"status": "REJECTED"},
+        )
+        assert r.status_code == 200
+        assert r.json()["status"] == "REJECTED"
+
+    def test_authorize_transaction_not_found(self, authorized_client):
+        """Returns 404 when reference does not exist."""
+        r = authorized_client.post(
+            "/pegazzo/management/balance/transaction/NOEXIST/authorization",
+            json={"status": "CONFIRMED"},
+        )
+        assert r.status_code == 404
+
+    def test_authorize_transaction_invalid_status_422(self, authorized_client):
+        """Returns 422 for invalid status value."""
+        r = authorized_client.post(
+            "/pegazzo/management/balance/transaction/MOCK_REF_001/authorization",
+            json={"status": "INVALID"},
+        )
+        assert r.status_code == 422
+
+    def test_authorize_transaction_unauthorized(self, client):
+        """Unauthenticated request returns 401."""
+        r = client.post(
+            "/pegazzo/management/balance/transaction/MOCK_REF_001/authorization",
+            json={"status": "CONFIRMED"},
+        )
+        assert r.status_code == 401
+
+    def test_authorize_transaction_admin_resubmits_rejected(self, admin_authorized_client):
+        """Admin can resubmit a REJECTED transaction to PENDING."""
+        reference = "MOCK_REF_001"
+        admin_authorized_client.balance_repo.transactions[0].status = "REJECTED"
+
+        r = admin_authorized_client.post(
+            f"/pegazzo/management/balance/transaction/{reference}/authorization",
+            json={"status": "PENDING"},
+        )
+        assert r.status_code == 200
+        assert r.json()["status"] == "PENDING"
+
+    def test_authorize_transaction_admin_cannot_confirm_403(self, admin_authorized_client):
+        """Admin cannot confirm a transaction."""
+        reference = "MOCK_REF_001"
+        admin_authorized_client.balance_repo.transactions[0].status = "PENDING"
+
+        r = admin_authorized_client.post(
+            f"/pegazzo/management/balance/transaction/{reference}/authorization",
+            json={"status": "CONFIRMED"},
+        )
+        assert r.status_code == 403
+
+    def test_authorize_transaction_admin_pending_on_pending_422(self, admin_authorized_client):
+        """Admin cannot resubmit a PENDING transaction (not REJECTED)."""
+        reference = "MOCK_REF_001"
+        admin_authorized_client.balance_repo.transactions[0].status = "PENDING"
+
+        r = admin_authorized_client.post(
+            f"/pegazzo/management/balance/transaction/{reference}/authorization",
+            json={"status": "PENDING"},
+        )
+        assert r.status_code == 422
+
+    # Admin delete/edit permission tests
+
+    def test_delete_transaction_admin_rejected_success(self, admin_authorized_client):
+        """Admin can delete a REJECTED transaction."""
+        reference = "MOCK_REF_001"
+        admin_authorized_client.balance_repo.transactions[0].status = "REJECTED"
+
+        r = admin_authorized_client.delete(f"/pegazzo/management/balance/transaction/{reference}")
+        assert r.status_code == 200
+
+    def test_delete_transaction_admin_confirmed_403(self, admin_authorized_client):
+        """Admin cannot delete a CONFIRMED transaction."""
+        reference = "MOCK_REF_001"
+        admin_authorized_client.balance_repo.transactions[0].status = "CONFIRMED"
+
+        r = admin_authorized_client.delete(f"/pegazzo/management/balance/transaction/{reference}")
+        assert r.status_code == 403
+
+    def test_update_transaction_admin_rejected_success(self, admin_authorized_client):
+        """Admin can edit a REJECTED transaction."""
+        reference = "MOCK_REF_001"
+        admin_authorized_client.balance_repo.transactions[0].status = "REJECTED"
+
+        r = admin_authorized_client.patch(
+            f"/pegazzo/management/balance/transaction/{reference}",
+            json={"amount": 999},
+        )
+        assert r.status_code == 200
+        assert r.json()["amount"] == 999
+
+    def test_update_transaction_admin_confirmed_403(self, admin_authorized_client):
+        """Admin cannot edit a CONFIRMED transaction."""
+        reference = "MOCK_REF_001"
+        admin_authorized_client.balance_repo.transactions[0].status = "CONFIRMED"
+
+        r = admin_authorized_client.patch(
+            f"/pegazzo/management/balance/transaction/{reference}",
+            json={"amount": 999},
+        )
+        assert r.status_code == 403

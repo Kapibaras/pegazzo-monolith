@@ -18,6 +18,7 @@ class BalanceRepositoryMock:
                 type="debit",
                 description="Initial mock transaction",
                 payment_method="cash",
+                status="CONFIRMED",
             ),
         ]
         self.mapping: dict[tuple[str, int, int | None, int | None], object] = {}
@@ -59,9 +60,12 @@ class BalanceRepositoryMock:
         """Return rows for bulk key lookup (trend endpoint)."""
         return [row for k in keys if (row := self.mapping.get((period_type, k.year, k.month, k.week)))]
 
-    def count_transactions_in_range(self, start_dt: datetime, end_dt: datetime) -> int:
+    def count_transactions_in_range(self, start_dt: datetime, end_dt: datetime, status=None) -> int:
         """Count transactions in a given date range (inclusive end)."""
-        return sum(1 for t in self.transactions if start_dt <= t.date <= end_dt)
+        filtered = [t for t in self.transactions if start_dt <= t.date <= end_dt]
+        if status is not None:
+            filtered = [t for t in filtered if t.status == status]
+        return len(filtered)
 
     def list_transactions_in_range(
         self,
@@ -71,9 +75,12 @@ class BalanceRepositoryMock:
         offset: int,
         sort_by: TransactionSortBy,
         sort_order: SortOrder,
+        status=None,
     ) -> list[Transaction]:
         """List transactions in a given date range."""
         filtered = [t for t in self.transactions if start_dt <= t.date <= end_dt]
+        if status is not None:
+            filtered = [t for t in filtered if t.status == status]
 
         sort_by_val = sort_by.value if isinstance(sort_by, TransactionSortBy) else sort_by or "date"
         sort_order_val = sort_order.value if isinstance(sort_order, SortOrder) else sort_order or "desc"

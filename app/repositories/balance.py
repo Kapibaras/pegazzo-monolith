@@ -131,9 +131,17 @@ class BalanceRepository(DBRepository):
 
         return q.all()
 
-    def count_transactions_in_range(self, start_dt: datetime, end_dt: datetime) -> int:
+    def count_transactions_in_range(
+        self,
+        start_dt: datetime,
+        end_dt: datetime,
+        status: Optional[str] = None,
+    ) -> int:
         """Count transactions in a given date range."""
-        return self.db.query(Transaction).filter(Transaction.date >= start_dt, Transaction.date <= end_dt).count()
+        q = self.db.query(Transaction).filter(Transaction.date >= start_dt, Transaction.date <= end_dt)
+        if status is not None:
+            q = q.filter(Transaction.status == status)
+        return q.count()
 
     def list_transactions_in_range(
         self,
@@ -143,9 +151,13 @@ class BalanceRepository(DBRepository):
         offset: int,
         sort_by: TransactionSortBy,
         sort_order: SortOrder,
+        status: Optional[str] = None,
     ) -> list[Transaction]:
         """List transactions in a given date range."""
         q = self.db.query(Transaction).filter(Transaction.date >= start_dt, Transaction.date <= end_dt)
+
+        if status is not None:
+            q = q.filter(Transaction.status == status)
 
         sort_column_map = {
             TransactionSortBy.DATE: Transaction.date,

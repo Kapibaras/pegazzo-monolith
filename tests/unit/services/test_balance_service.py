@@ -6,10 +6,15 @@ from unittest.mock import Mock, patch
 import pytest
 from pydantic import ValidationError
 
-from app.enum.balance import PaymentMethod, PeriodType, SortOrder, TransactionSortBy, Type
+from app.enum.auth import Role
+from app.enum.balance import PaymentMethod, PeriodType, SortOrder, TransactionSortBy, TransactionStatus, Type
 from app.errors.balance import (
     InvalidDescriptionLengthException,
+    InvalidTransactionStatusTransitionException,
+    TransactionDeleteForbiddenException,
+    TransactionEditForbiddenException,
     TransactionNotFoundException,
+    TransactionStatusForbiddenException,
 )
 from app.errors.transaction_metrics import TransactionMetricsPeriodError
 from app.models.balance import Transaction
@@ -45,10 +50,11 @@ class TestBalanceService:
         """Test deleting a transaction by reference."""
         # Arrange
         mock_transaction = Mock()
+        mock_transaction.status = TransactionStatus.CONFIRMED
         self.mock_repo.get_by_reference.return_value = mock_transaction
 
         # Act
-        self.service.delete_transaction("ABC123")
+        self.service.delete_transaction("ABC123", Role.OWNER)
 
         # Assert
         self.mock_repo.get_by_reference.assert_called_once_with("ABC123")
@@ -61,7 +67,35 @@ class TestBalanceService:
 
         # Act & Assert
         with pytest.raises(TransactionNotFoundException):
-            self.service.delete_transaction("NOEXIST")
+            self.service.delete_transaction("NOEXIST", Role.OWNER)
+
+    def test_delete_transaction_admin_rejected_success(self):
+        """Admin can delete a REJECTED transaction."""
+        mock_transaction = Mock()
+        mock_transaction.status = TransactionStatus.REJECTED
+        self.mock_repo.get_by_reference.return_value = mock_transaction
+
+        self.service.delete_transaction("ABC123", Role.ADMIN)
+
+        self.mock_repo.delete_transaction.assert_called_once_with(mock_transaction)
+
+    def test_delete_transaction_admin_confirmed_forbidden(self):
+        """Admin cannot delete a CONFIRMED transaction."""
+        mock_transaction = Mock()
+        mock_transaction.status = TransactionStatus.CONFIRMED
+        self.mock_repo.get_by_reference.return_value = mock_transaction
+
+        with pytest.raises(TransactionDeleteForbiddenException):
+            self.service.delete_transaction("ABC123", Role.ADMIN)
+
+    def test_delete_transaction_admin_pending_forbidden(self):
+        """Admin cannot delete a PENDING transaction."""
+        mock_transaction = Mock()
+        mock_transaction.status = TransactionStatus.PENDING
+        self.mock_repo.get_by_reference.return_value = mock_transaction
+
+        with pytest.raises(TransactionDeleteForbiddenException):
+            self.service.delete_transaction("ABC123", Role.ADMIN)
 
     def test_get_transaction_success(self):
         """Test returning a transaction by reference."""
@@ -159,6 +193,7 @@ class TestBalanceService:
             amount=100,
             description="Old description",
             payment_method=PaymentMethod.CASH,
+            status="CONFIRMED",
         )
 
         self.mock_repo.get_by_reference.return_value = existing_tx
@@ -170,7 +205,7 @@ class TestBalanceService:
             payment_method=PaymentMethod.CASH,
         )
 
-        result = self.service.update_transaction("REF123", update_schema)
+        result = self.service.update_transaction("REF123", update_schema, Role.OWNER)
 
         self.mock_repo.get_by_reference.assert_called_once_with("REF123")
         self.mock_repo.update_transaction.assert_called_once_with(existing_tx)
@@ -187,6 +222,7 @@ class TestBalanceService:
             amount=100,
             description="Original",
             payment_method=PaymentMethod.CASH,
+            status="CONFIRMED",
         )
 
         self.mock_repo.get_by_reference.return_value = existing_tx
@@ -198,7 +234,7 @@ class TestBalanceService:
             payment_method=None,
         )
 
-        result = self.service.update_transaction("REF123", update_schema)
+        result = self.service.update_transaction("REF123", update_schema, Role.OWNER)
 
         assert result.amount == 100
         assert result.description == "Only description updated"
@@ -216,7 +252,7 @@ class TestBalanceService:
         )
 
         with pytest.raises(TransactionNotFoundException):
-            self.service.update_transaction("NOEXIST", update_schema)
+            self.service.update_transaction("NOEXIST", update_schema, Role.OWNER)
 
     def test_update_transaction_invalid_description_length(self):
         """Test error when updating transaction with long description."""
@@ -228,6 +264,7 @@ class TestBalanceService:
             amount=100,
             description="Old",
             payment_method=PaymentMethod.CASH,
+            status="CONFIRMED",
         )
 
         self.mock_repo.get_by_reference.return_value = existing_tx
@@ -239,7 +276,50 @@ class TestBalanceService:
         )
 
         with pytest.raises(InvalidDescriptionLengthException):
-            self.service.update_transaction("REF123", update_schema)
+            self.service.update_transaction("REF123", update_schema, Role.OWNER)
+
+    def test_update_transaction_admin_rejected_success(self):
+        """Admin can update a REJECTED transaction."""
+        existing_tx = Transaction(
+            reference="REF123",
+            amount=100,
+            description="Old",
+            payment_method=PaymentMethod.CASH,
+            status="REJECTED",
+        )
+        self.mock_repo.get_by_reference.return_value = existing_tx
+        self.mock_repo.update_transaction.side_effect = lambda t: t
+
+        result = self.service.update_transaction("REF123", TransactionPatchSchema(amount=200), Role.ADMIN)
+        assert result.amount == 200
+
+    def test_update_transaction_admin_confirmed_forbidden(self):
+        """Admin cannot update a CONFIRMED transaction."""
+        existing_tx = Transaction(
+            reference="REF123",
+            amount=100,
+            description="Old",
+            payment_method=PaymentMethod.CASH,
+            status="CONFIRMED",
+        )
+        self.mock_repo.get_by_reference.return_value = existing_tx
+
+        with pytest.raises(TransactionEditForbiddenException):
+            self.service.update_transaction("REF123", TransactionPatchSchema(amount=200), Role.ADMIN)
+
+    def test_update_transaction_admin_pending_forbidden(self):
+        """Admin cannot update a PENDING transaction."""
+        existing_tx = Transaction(
+            reference="REF123",
+            amount=100,
+            description="Old",
+            payment_method=PaymentMethod.CASH,
+            status="PENDING",
+        )
+        self.mock_repo.get_by_reference.return_value = existing_tx
+
+        with pytest.raises(TransactionEditForbiddenException):
+            self.service.update_transaction("REF123", TransactionPatchSchema(amount=200), Role.ADMIN)
 
     def test_get_month_year_metrics_returns_zero_when_no_data(self):
         # Arrange
@@ -568,7 +648,7 @@ class TestBalanceService:
         assert key_arg.month == 1
         assert key_arg.week is None
 
-        self.mock_repo.count_transactions_in_range.assert_called_once_with(start_dt=start_dt, end_dt=end_dt)
+        self.mock_repo.count_transactions_in_range.assert_called_once_with(start_dt=start_dt, end_dt=end_dt, status=None)
         self.mock_repo.list_transactions_in_range.assert_called_once_with(
             start_dt=start_dt,
             end_dt=end_dt,
@@ -576,6 +656,7 @@ class TestBalanceService:
             offset=10,
             sort_by=TransactionSortBy.DATE,
             sort_order=SortOrder.DESC,
+            status=None,
         )
 
         assert result.pagination.page == 2
@@ -644,8 +725,8 @@ class TestBalanceService:
         start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
 
-        tx1 = Transaction(reference="TRX-001", amount=100, date=start_dt, type="debit", description="A", payment_method="cash")
-        tx2 = Transaction(reference="TRX-002", amount=200, date=end_dt, type="debit", description="B", payment_method="cash")
+        tx1 = Transaction(reference="TRX-001", amount=100, date=start_dt, type="debit", description="A", payment_method="cash", status="CONFIRMED")
+        tx2 = Transaction(reference="TRX-002", amount=200, date=end_dt, type="debit", description="B", payment_method="cash", status="CONFIRMED")
 
         self.mock_repo.count_transactions_in_range.return_value = 2
         self.mock_repo.list_transactions_in_range.return_value = [tx1, tx2]
@@ -673,4 +754,74 @@ class TestBalanceService:
             offset=0,
             sort_by=TransactionSortBy.AMOUNT,
             sort_order=SortOrder.ASC,
+            status=None,
         )
+
+    def test_authorize_transaction_owner_confirms(self):
+        """Owner can confirm a PENDING transaction."""
+        tx = Transaction(reference="REF1", amount=100, type="debit", description="X", payment_method="cash", status="PENDING")
+        self.mock_repo.get_by_reference.return_value = tx
+        self.mock_repo.update_transaction.side_effect = lambda t: t
+
+        result = self.service.authorize_transaction("REF1", TransactionStatus.CONFIRMED, Role.OWNER)
+
+        assert result.status == TransactionStatus.CONFIRMED
+
+    def test_authorize_transaction_owner_rejects(self):
+        """Owner can reject any transaction."""
+        tx = Transaction(reference="REF1", amount=100, type="debit", description="X", payment_method="cash", status="CONFIRMED")
+        self.mock_repo.get_by_reference.return_value = tx
+        self.mock_repo.update_transaction.side_effect = lambda t: t
+
+        result = self.service.authorize_transaction("REF1", TransactionStatus.REJECTED, Role.OWNER)
+
+        assert result.status == TransactionStatus.REJECTED
+
+    def test_authorize_transaction_admin_resubmits_rejected(self):
+        """Admin can resubmit a REJECTED transaction to PENDING."""
+        tx = Transaction(reference="REF1", amount=100, type="debit", description="X", payment_method="cash", status="REJECTED")
+        self.mock_repo.get_by_reference.return_value = tx
+        self.mock_repo.update_transaction.side_effect = lambda t: t
+
+        result = self.service.authorize_transaction("REF1", TransactionStatus.PENDING, Role.ADMIN)
+
+        assert result.status == TransactionStatus.PENDING
+
+    def test_authorize_transaction_admin_cannot_confirm(self):
+        """Admin cannot set status to CONFIRMED."""
+        tx = Transaction(reference="REF1", amount=100, type="debit", description="X", payment_method="cash", status="PENDING")
+        self.mock_repo.get_by_reference.return_value = tx
+
+        with pytest.raises(TransactionStatusForbiddenException):
+            self.service.authorize_transaction("REF1", TransactionStatus.CONFIRMED, Role.ADMIN)
+
+    def test_authorize_transaction_admin_cannot_reject(self):
+        """Admin cannot set status to REJECTED."""
+        tx = Transaction(reference="REF1", amount=100, type="debit", description="X", payment_method="cash", status="PENDING")
+        self.mock_repo.get_by_reference.return_value = tx
+
+        with pytest.raises(TransactionStatusForbiddenException):
+            self.service.authorize_transaction("REF1", TransactionStatus.REJECTED, Role.ADMIN)
+
+    def test_authorize_transaction_admin_cannot_resubmit_pending(self):
+        """Admin cannot resubmit a PENDING transaction (only REJECTED)."""
+        tx = Transaction(reference="REF1", amount=100, type="debit", description="X", payment_method="cash", status="PENDING")
+        self.mock_repo.get_by_reference.return_value = tx
+
+        with pytest.raises(InvalidTransactionStatusTransitionException):
+            self.service.authorize_transaction("REF1", TransactionStatus.PENDING, Role.ADMIN)
+
+    def test_authorize_transaction_admin_cannot_resubmit_confirmed(self):
+        """Admin cannot resubmit a CONFIRMED transaction."""
+        tx = Transaction(reference="REF1", amount=100, type="debit", description="X", payment_method="cash", status="CONFIRMED")
+        self.mock_repo.get_by_reference.return_value = tx
+
+        with pytest.raises(InvalidTransactionStatusTransitionException):
+            self.service.authorize_transaction("REF1", TransactionStatus.PENDING, Role.ADMIN)
+
+    def test_authorize_transaction_not_found(self):
+        """Raises 404 if transaction does not exist."""
+        self.mock_repo.get_by_reference.return_value = None
+
+        with pytest.raises(TransactionNotFoundException):
+            self.service.authorize_transaction("NOEXIST", TransactionStatus.CONFIRMED, Role.OWNER)

@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
-from app.enum.balance import PaymentMethod, PeriodType, SortOrder, TransactionSortBy, Type
+from app.enum.balance import PaymentMethod, PeriodType, SortOrder, TransactionSortBy, TransactionStatus, Type
 from app.errors.transaction_metrics import InvalidMetricsPeriodException
 from app.schemas.types import RequestUTCDatetime
 
@@ -33,6 +33,12 @@ class TransactionPatchSchema(BaseModel):
     amount: Optional[float] = None
     description: Optional[str] = None
     payment_method: Optional[PaymentMethod] = None
+
+
+class TransactionAuthorizationSchema(BaseModel):
+    """Schema for authorizing a transaction status change."""
+
+    status: TransactionStatus = Field(..., description="New status: CONFIRMED, REJECTED, or PENDING")
 
 
 class BalanceMetricsQuerySchema(BaseModel):
@@ -121,6 +127,11 @@ class BalanceTransactionsQuerySchema(BaseModel):
     month: Optional[int] = Field(None, ge=1, le=12, description="Month number (1-12)")
     year: Optional[int] = Field(None, ge=2000, le=2100, description="Year (e.g., 2026)")
 
+    status: Optional[TransactionStatus] = Field(
+        default=None,
+        description="Filter by status: PENDING, CONFIRMED, REJECTED",
+    )
+
     page: Annotated[int, Field(default=1, ge=1, description="Page number starting at 1")] = 1
     limit: Annotated[int, Field(default=10, ge=1, le=100, description="Records per page (max 100)")] = 10
 
@@ -168,6 +179,7 @@ class TransactionResponseSchema(BaseModel):
     type: Type = Field(..., description="Type of the transaction")
     description: str = Field(..., description="Description of the transaction")
     payment_method: PaymentMethod = Field(..., description="Payment method")
+    status: TransactionStatus = Field(..., description="Approval status of the transaction")
 
     @field_validator("description", mode="before")
     @classmethod

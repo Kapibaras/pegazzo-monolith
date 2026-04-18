@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 import pytest
@@ -7,6 +8,7 @@ import app.database.events
 from app.dependencies import RepositoryFactory
 from app.enum.auth import Role
 from app.main import app
+from app.models.users import User
 from tests.mocks import UserRepositoryMock
 from tests.mocks.balance_repository_mock import BalanceRepositoryMock
 
@@ -28,6 +30,7 @@ def disable_metrics_listener(monkeypatch):
 @pytest.fixture(autouse=True)
 def reset_state():
     user_repo_mock.users = [_initial_user]
+    _initial_transaction.status = "CONFIRMED"
     balance_repo_mock.transactions = [_initial_transaction]
     balance_repo_mock.mapping = {}
 
@@ -61,6 +64,48 @@ def authorized_client():
         response = client.post(
             "/pegazzo/internal/auth/login",
             json={"username": "testuser", "password": "password123", "role": Role.OWNER},
+        )
+
+    client.cookies.set("access_token_cookie", response.cookies.get("access_token_cookie"))
+    client.cookies.set("refresh_token_cookie", response.cookies.get("refresh_token_cookie"))
+    client.headers.update(
+        {
+            "X-CSRF-ACCESS": response.cookies.get("csrf_access_token"),
+            "X-CSRF-REFRESH": response.cookies.get("csrf_refresh_token"),
+        },
+    )
+
+    return client
+
+
+@pytest.fixture
+def admin_authorized_client():
+    """Client with valid JWT cookie for role 'admin'."""
+    app.dependency_overrides = {
+        RepositoryFactory.user_repository: lambda: user_repo_mock,
+        RepositoryFactory.balance_repository: lambda: balance_repo_mock,
+    }
+
+    admin_user = User(
+        username="adminuser",
+        name="Admin",
+        surnames="User",
+        password="hashed_password",
+        role_id=2,
+        role=user_repo_mock.roles["administrador"],
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    user_repo_mock.users.append(admin_user)
+
+    client = TestClient(app)
+    client.balance_repo = balance_repo_mock
+    client.user_repo = user_repo_mock
+
+    with patch("app.utils.auth.AuthUtils.verify_password", return_value=True):
+        response = client.post(
+            "/pegazzo/internal/auth/login",
+            json={"username": "adminuser", "password": "password123"},
         )
 
     client.cookies.set("access_token_cookie", response.cookies.get("access_token_cookie"))

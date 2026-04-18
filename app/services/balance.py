@@ -2,12 +2,17 @@ import math
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
-from app.enum.balance import PaymentMethod, PeriodType, SortOrder, TransactionSortBy, Type
+from app.enum.auth import Role
+from app.enum.balance import PaymentMethod, PeriodType, SortOrder, TransactionSortBy, TransactionStatus, Type
 from app.errors.balance import (
     InvalidDescriptionLengthException,
     InvalidPaymentMethodException,
+    InvalidTransactionStatusTransitionException,
     InvalidTransactionTypeException,
+    TransactionDeleteForbiddenException,
+    TransactionEditForbiddenException,
     TransactionNotFoundException,
+    TransactionStatusForbiddenException,
 )
 from app.models.balance import Transaction
 from app.repositories.balance import BalanceRepository
@@ -81,24 +86,31 @@ class BalanceService:
             type=data.type,
             description=data.description,
             payment_method=data.payment_method,
+            status=TransactionStatus.PENDING,
         )
         return self.repository.create_transaction(transaction)
 
-    def delete_transaction(self, reference: str):
+    def delete_transaction(self, reference: str, user_role: str) -> None:
         """Delete a transaction."""
 
         transaction = self.repository.get_by_reference(reference)
         if not transaction:
             raise TransactionNotFoundException(reference)
 
+        if user_role == Role.ADMIN and transaction.status != TransactionStatus.REJECTED:
+            raise TransactionDeleteForbiddenException
+
         self.repository.delete_transaction(transaction)
 
-    def update_transaction(self, reference: str, data: TransactionSchema) -> TransactionResponseSchema:
+    def update_transaction(self, reference: str, data: TransactionSchema, user_role: str) -> TransactionResponseSchema:
         """Update a transaction."""
 
         transaction = self.repository.get_by_reference(reference)
         if not transaction:
             raise TransactionNotFoundException(reference)
+
+        if user_role == Role.ADMIN and transaction.status != TransactionStatus.REJECTED:
+            raise TransactionEditForbiddenException
 
         if data.amount is not None:
             transaction.amount = data.amount
@@ -113,6 +125,22 @@ class BalanceService:
                 raise InvalidPaymentMethodException
             transaction.payment_method = data.payment_method
 
+        return self.repository.update_transaction(transaction)
+
+    def authorize_transaction(self, reference: str, new_status: TransactionStatus, user_role: str) -> TransactionResponseSchema:
+        """Authorize (approve/reject/resubmit) a transaction."""
+
+        transaction = self.repository.get_by_reference(reference)
+        if not transaction:
+            raise TransactionNotFoundException(reference)
+
+        if user_role == Role.ADMIN:
+            if new_status != TransactionStatus.PENDING:
+                raise TransactionStatusForbiddenException
+            if transaction.status != TransactionStatus.REJECTED:
+                raise InvalidTransactionStatusTransitionException
+
+        transaction.status = new_status
         return self.repository.update_transaction(transaction)
 
     def get_metrics(self, month: int | None = None, year: int | None = None) -> BalanceMetricsSimpleResponseSchema:
@@ -240,6 +268,7 @@ class BalanceService:
         limit: int = 10,
         sort_by: TransactionSortBy = TransactionSortBy.DATE,
         sort_order: SortOrder = SortOrder.DESC,
+        status: TransactionStatus | None = None,
     ) -> BalanceTransactionsResponseSchema:
         """Get transactions for a given period with pagination & sorting."""
 
@@ -251,6 +280,7 @@ class BalanceService:
         total = self.repository.count_transactions_in_range(
             start_dt=start_dt,
             end_dt=end_dt,
+            status=status,
         )
 
         rows = self.repository.list_transactions_in_range(
@@ -260,6 +290,7 @@ class BalanceService:
             offset=offset,
             sort_by=sort_by,
             sort_order=sort_order,
+            status=status,
         )
 
         return BalanceTransactionsResponseSchema(
