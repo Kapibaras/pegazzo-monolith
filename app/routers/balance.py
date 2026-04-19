@@ -12,6 +12,7 @@ from app.schemas.balance import (
     BalanceTransactionsResponseSchema,
     BalanceTrendQuerySchema,
     BalanceTrendResponseSchema,
+    TransactionAuthorizationSchema,
     TransactionPatchSchema,
     TransactionResponseSchema,
     TransactionSchema,
@@ -58,10 +59,10 @@ def create_transaction(
 def delete_transaction(
     reference: str = Path(description="Transaction reference"),
     service: BalanceService = Depends(ServiceFactory.balance_service),
-    _user: AuthUser = Depends(RequiresAuth([Role.OWNER])),
+    user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
 ) -> ActionSuccess:
     """Delete a transaction."""
-    service.delete_transaction(reference)
+    service.delete_transaction(reference, user.role)
     return {"message": f"Transaction '{reference}' was successfully deleted."}
 
 
@@ -70,10 +71,25 @@ def update_transaction(
     reference: str = Path(description="Transaction reference"),
     body: TransactionPatchSchema = Body(..., description="Transaction data"),
     service: BalanceService = Depends(ServiceFactory.balance_service),
-    _user: AuthUser = Depends(RequiresAuth([Role.OWNER])),
+    user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
 ) -> TransactionResponseSchema:
     """Update a transaction."""
-    return service.update_transaction(reference, body)
+    return service.update_transaction(reference, body, user.role)
+
+
+@router.post(
+    "/transaction/{reference}/authorization",
+    response_model=TransactionResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+def authorize_transaction(
+    reference: str = Path(description="Transaction reference"),
+    body: TransactionAuthorizationSchema = Body(..., description="New status"),
+    service: BalanceService = Depends(ServiceFactory.balance_service),
+    user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> TransactionResponseSchema:
+    """Approve, reject or resubmit a transaction."""
+    return service.authorize_transaction(reference, body.status, user.role)
 
 
 @router.get(
@@ -131,4 +147,5 @@ def get_balance_transactions(
         limit=params.limit,
         sort_by=params.sort_by,
         sort_order=params.sort_order,
+        status=params.status,
     )

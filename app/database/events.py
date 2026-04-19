@@ -25,9 +25,7 @@ def transaction_metrics_after_flush(session: Session, _flush_context: object) ->
 
     affected: Set[Tuple[Transaction, Transaction | None]] = set()
 
-    for obj in session.new:
-        if isinstance(obj, Transaction):
-            affected.add((obj, None))
+    # New transactions start as PENDING — no metrics recalculation needed
 
     for obj in session.dirty:
         if not isinstance(obj, Transaction):
@@ -36,6 +34,14 @@ def transaction_metrics_after_flush(session: Session, _flush_context: object) ->
             continue
 
         insp = inspect(obj)
+
+        status_hist = insp.attrs.status.history
+        old_status = status_hist.deleted[0] if status_hist.deleted else obj.status
+        new_status = obj.status
+
+        # Only recalculate when CONFIRMED is involved (transition to/from CONFIRMED or edit of CONFIRMED)
+        if old_status != "CONFIRMED" and new_status != "CONFIRMED":
+            continue
 
         old_tx: Transaction | None = None
         date_hist = insp.attrs.date.history
@@ -46,7 +52,7 @@ def transaction_metrics_after_flush(session: Session, _flush_context: object) ->
         affected.add((obj, old_tx))
 
     for obj in session.deleted:
-        if isinstance(obj, Transaction):
+        if isinstance(obj, Transaction) and obj.status == "CONFIRMED":
             old = copy(obj)
             affected.add((old, old))
 
