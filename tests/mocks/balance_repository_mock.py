@@ -19,12 +19,24 @@ class BalanceRepositoryMock:
                 description="Initial mock transaction",
                 payment_method="cash",
                 status="CONFIRMED",
+                category="Otro",
             ),
         ]
         self.mapping: dict[tuple[str, int, int | None, int | None], object] = {}
 
     def reset(self):
-        self.transactions = self.transactions[:1]
+        self.transactions = [
+            Transaction(
+                amount=1000,
+                reference="MOCK_REF_001",
+                date=datetime.now(timezone.utc),
+                type="debit",
+                description="Initial mock transaction",
+                payment_method="cash",
+                status="CONFIRMED",
+                category="Otro",
+            )
+        ]
         self.mapping.clear()
 
     def get_by_reference(self, reference: str):
