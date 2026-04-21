@@ -87,6 +87,7 @@ class BalanceService:
             description=data.description,
             payment_method=data.payment_method,
             status=TransactionStatus.PENDING,
+            category=data.category,
         )
         return self.repository.create_transaction(transaction)
 
@@ -124,6 +125,9 @@ class BalanceService:
             if data.payment_method not in PaymentMethod:
                 raise InvalidPaymentMethodException
             transaction.payment_method = data.payment_method
+
+        if data.category is not None:
+            transaction.category = data.category
 
         return self.repository.update_transaction(transaction)
 
