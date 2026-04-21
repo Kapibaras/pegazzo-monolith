@@ -25,7 +25,7 @@ class TransactionSchema(BaseModel):
     type: Type = Field(..., description="Type of the transaction")
     description: str = Field(..., description="Description of the transaction")
     payment_method: PaymentMethod = Field(..., description="Payment method of the transaction")
-    category: str = Field(..., min_length=1, max_length=100, description="Category of the transaction")
+    category: str | None = Field(default=None, min_length=1, max_length=100, description="Category of the transaction")
 
 
 class TransactionPatchSchema(BaseModel):
@@ -182,7 +182,8 @@ class TransactionResponseSchema(BaseModel):
     description: str = Field(..., description="Description of the transaction")
     payment_method: PaymentMethod = Field(..., description="Payment method")
     status: TransactionStatus = Field(..., description="Approval status of the transaction")
-    category: str = Field(..., description="Category of the transaction")
+    category: str | None = Field(default=None, description="Category of the transaction")
+    car_id: Optional[int] = Field(default=None, description="Associated car ID (nullable)")
 
     @field_validator("description", mode="before")
     @classmethod

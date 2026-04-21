@@ -20,6 +20,7 @@ class BalanceRepositoryMock:
                 payment_method="cash",
                 status="CONFIRMED",
                 category="Otro",
+                car_id=None,
             ),
         ]
         self.mapping: dict[tuple[str, int, int | None, int | None], object] = {}

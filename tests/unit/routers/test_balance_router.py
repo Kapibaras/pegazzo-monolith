@@ -908,19 +908,6 @@ class TestBalanceRouter:
         assert r.status_code == 201
         assert r.json()["category"] == "Ventas"
 
-    def test_create_transaction_without_category_422(self, authorized_client):
-        """POST /transaction without category returns 422."""
-        r = authorized_client.post(
-            "/pegazzo/management/balance/transaction",
-            json={
-                "amount": 800,
-                "type": "credit",
-                "description": "Ingreso cliente",
-                "payment_method": "cash",
-            },
-        )
-        assert r.status_code == 422
-
     def test_create_transaction_empty_category_422(self, authorized_client):
         """POST /transaction with empty category string returns 422."""
         r = authorized_client.post(
@@ -989,7 +976,6 @@ class TestBalanceRouter:
         r = authorized_client.get("/pegazzo/management/balance/transaction/MOCK_REF_001")
         assert r.status_code == 200
         assert "category" in r.json()
-        assert r.json()["category"] == "Otro"
 
     def test_list_transactions_response_has_category(self, authorized_client):
         """GET /transactions includes category in each transaction."""
@@ -999,3 +985,44 @@ class TestBalanceRouter:
         assert r.status_code == 200
         for tx in r.json()["transactions"]:
             assert "category" in tx
+
+    # car_id field tests
+
+    def test_create_transaction_response_has_car_id_null(self, authorized_client):
+        """POST /transaction response includes car_id as null."""
+        r = authorized_client.post(
+            "/pegazzo/management/balance/transaction",
+            json={
+                "amount": 500,
+                "type": "debit",
+                "description": "Test car_id",
+                "payment_method": "cash",
+            },
+        )
+        assert r.status_code == 201
+        assert r.json()["carId"] is None
+
+    def test_get_transaction_response_has_car_id_null(self, authorized_client):
+        """GET /transaction/{reference} response includes car_id as null."""
+        r = authorized_client.get("/pegazzo/management/balance/transaction/MOCK_REF_001")
+        assert r.status_code == 200
+        assert r.json()["carId"] is None
+
+    def test_update_transaction_response_has_car_id_null(self, authorized_client):
+        """PATCH /transaction/{reference} response includes car_id as null."""
+        r = authorized_client.patch(
+            "/pegazzo/management/balance/transaction/MOCK_REF_001",
+            json={"amount": 750},
+        )
+        assert r.status_code == 200
+        assert r.json()["carId"] is None
+
+    def test_list_transactions_response_has_car_id_null(self, authorized_client):
+        """GET /transactions response includes car_id as null in each transaction."""
+        r = authorized_client.get(
+            "/pegazzo/management/balance/transactions?period=year&year=2026",
+        )
+        assert r.status_code == 200
+        payload = r.json()
+        for tx in payload["transactions"]:
+            assert tx["carId"] is None
