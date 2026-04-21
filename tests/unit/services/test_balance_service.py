@@ -122,6 +122,7 @@ class TestBalanceService:
             type=Type.DEBIT,
             description="Pago de material",
             payment_method=PaymentMethod.CASH,
+            category="Materiales",
         )
 
         # Mock
@@ -180,6 +181,7 @@ class TestBalanceService:
             type=Type.DEBIT,
             description=long_desc,
             payment_method=PaymentMethod.CASH,
+            category="Otro",
         )
 
         with pytest.raises(InvalidDescriptionLengthException):
@@ -725,8 +727,8 @@ class TestBalanceService:
         start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
 
-        tx1 = Transaction(reference="TRX-001", amount=100, date=start_dt, type="debit", description="A", payment_method="cash", status="CONFIRMED")
-        tx2 = Transaction(reference="TRX-002", amount=200, date=end_dt, type="debit", description="B", payment_method="cash", status="CONFIRMED")
+        tx1 = Transaction(reference="TRX-001", amount=100, date=start_dt, type="debit", description="A", payment_method="cash", status="CONFIRMED", category="Otro")
+        tx2 = Transaction(reference="TRX-002", amount=200, date=end_dt, type="debit", description="B", payment_method="cash", status="CONFIRMED", category="Otro")
 
         self.mock_repo.count_transactions_in_range.return_value = 2
         self.mock_repo.list_transactions_in_range.return_value = [tx1, tx2]

@@ -16,7 +16,6 @@ user_repo_mock = UserRepositoryMock()
 _initial_user = user_repo_mock.users[0]
 
 balance_repo_mock = BalanceRepositoryMock()
-_initial_transaction = balance_repo_mock.transactions[0]
 
 
 @pytest.fixture(autouse=True)
@@ -30,9 +29,7 @@ def disable_metrics_listener(monkeypatch):
 @pytest.fixture(autouse=True)
 def reset_state():
     user_repo_mock.users = [_initial_user]
-    _initial_transaction.status = "CONFIRMED"
-    balance_repo_mock.transactions = [_initial_transaction]
-    balance_repo_mock.mapping = {}
+    balance_repo_mock.reset()
 
 
 @pytest.fixture

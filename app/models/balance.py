@@ -16,6 +16,7 @@ class Transaction(Base):
     description = Column(String(255), nullable=True)
     payment_method = Column(String(50), nullable=False)
     status = Column(String(10), nullable=False, default="PENDING")
+    category = Column(String(100), nullable=True)
     car_id = Column(Integer, nullable=True)
 
     __table_args__ = (Index("ix_transaction_date", "date"),)

@@ -81,6 +81,7 @@ class TestBalanceRouter:
                 "type": "debit",
                 "description": "Pago de material",
                 "payment_method": "cash",
+                "category": "Materiales",
             },
         )
         assert create_response.status_code == 201
@@ -117,6 +118,7 @@ class TestBalanceRouter:
                 "type": "debit",
                 "description": "Pago de material",
                 "payment_method": "cash",
+                "category": "Materiales",
             },
         )
 
@@ -160,6 +162,7 @@ class TestBalanceRouter:
                 "type": "debit",
                 "description": "To delete",
                 "payment_method": "cash",
+                "category": "Otro",
             },
         )
         reference = create_response.json()["reference"]
@@ -514,6 +517,7 @@ class TestBalanceRouter:
                 description="Tx 1",
                 payment_method="cash",
                 status="CONFIRMED",
+                category="Otro",
             ),
             Transaction(
                 amount=200,
@@ -523,6 +527,7 @@ class TestBalanceRouter:
                 description="Tx 2",
                 payment_method="cash",
                 status="CONFIRMED",
+                category="Otro",
             ),
             Transaction(
                 amount=300,
@@ -532,6 +537,7 @@ class TestBalanceRouter:
                 description="Tx 3",
                 payment_method="cash",
                 status="CONFIRMED",
+                category="Otro",
             ),
         ]
 
@@ -563,6 +569,7 @@ class TestBalanceRouter:
                 description="Bulk",
                 payment_method="cash",
                 status="CONFIRMED",
+                category="Otro",
             )
             for i in range(15)
         ]
@@ -596,6 +603,7 @@ class TestBalanceRouter:
                 description="",
                 payment_method="cash",
                 status="CONFIRMED",
+                category="Otro",
             ),
             Transaction(
                 amount=150,
@@ -605,6 +613,7 @@ class TestBalanceRouter:
                 description="",
                 payment_method="cash",
                 status="CONFIRMED",
+                category="Otro",
             ),
             Transaction(
                 amount=50,
@@ -614,6 +623,7 @@ class TestBalanceRouter:
                 description="",
                 payment_method="cash",
                 status="CONFIRMED",
+                category="Otro",
             ),
         ]
 
@@ -641,6 +651,7 @@ class TestBalanceRouter:
                 description="",
                 payment_method="cash",
                 status="CONFIRMED",
+                category="Otro",
             ),
             Transaction(
                 amount=10,
@@ -650,6 +661,7 @@ class TestBalanceRouter:
                 description="",
                 payment_method="cash",
                 status="CONFIRMED",
+                category="Otro",
             ),
             Transaction(
                 amount=10,
@@ -659,6 +671,7 @@ class TestBalanceRouter:
                 description="",
                 payment_method="cash",
                 status="CONFIRMED",
+                category="Otro",
             ),
         ]
 
@@ -877,6 +890,101 @@ class TestBalanceRouter:
             json={"amount": 999},
         )
         assert r.status_code == 403
+
+    # category field tests
+
+    def test_create_transaction_with_category_success(self, authorized_client):
+        """POST /transaction includes category in response."""
+        r = authorized_client.post(
+            "/pegazzo/management/balance/transaction",
+            json={
+                "amount": 800,
+                "type": "credit",
+                "description": "Ingreso cliente",
+                "payment_method": "cash",
+                "category": "Ventas",
+            },
+        )
+        assert r.status_code == 201
+        assert r.json()["category"] == "Ventas"
+
+    def test_create_transaction_empty_category_422(self, authorized_client):
+        """POST /transaction with empty category string returns 422."""
+        r = authorized_client.post(
+            "/pegazzo/management/balance/transaction",
+            json={
+                "amount": 800,
+                "type": "credit",
+                "description": "Ingreso cliente",
+                "payment_method": "cash",
+                "category": "",
+            },
+        )
+        assert r.status_code == 422
+
+    def test_create_transaction_category_too_long_422(self, authorized_client):
+        """POST /transaction with category > 100 chars returns 422."""
+        r = authorized_client.post(
+            "/pegazzo/management/balance/transaction",
+            json={
+                "amount": 800,
+                "type": "credit",
+                "description": "Ingreso cliente",
+                "payment_method": "cash",
+                "category": "x" * 101,
+            },
+        )
+        assert r.status_code == 422
+
+    def test_update_transaction_category_optional(self, authorized_client):
+        """PATCH /transaction without category succeeds (category is optional on edit)."""
+        r = authorized_client.patch(
+            "/pegazzo/management/balance/transaction/MOCK_REF_001",
+            json={"amount": 500},
+        )
+        assert r.status_code == 200
+
+    def test_update_transaction_category_updated(self, authorized_client):
+        """PATCH /transaction with category updates it in the response."""
+        authorized_client.balance_repo.transactions[0].category = "Otro"
+
+        r = authorized_client.patch(
+            "/pegazzo/management/balance/transaction/MOCK_REF_001",
+            json={"category": "Combustible"},
+        )
+        assert r.status_code == 200
+        assert r.json()["category"] == "Combustible"
+
+    def test_update_transaction_empty_category_422(self, authorized_client):
+        """PATCH /transaction with empty category returns 422."""
+        r = authorized_client.patch(
+            "/pegazzo/management/balance/transaction/MOCK_REF_001",
+            json={"category": ""},
+        )
+        assert r.status_code == 422
+
+    def test_update_transaction_category_too_long_422(self, authorized_client):
+        """PATCH /transaction with category > 100 chars returns 422."""
+        r = authorized_client.patch(
+            "/pegazzo/management/balance/transaction/MOCK_REF_001",
+            json={"category": "x" * 101},
+        )
+        assert r.status_code == 422
+
+    def test_get_transaction_response_has_category(self, authorized_client):
+        """GET /transaction/{reference} response includes category field."""
+        r = authorized_client.get("/pegazzo/management/balance/transaction/MOCK_REF_001")
+        assert r.status_code == 200
+        assert "category" in r.json()
+
+    def test_list_transactions_response_has_category(self, authorized_client):
+        """GET /transactions includes category in each transaction."""
+        r = authorized_client.get(
+            "/pegazzo/management/balance/transactions?period=year&year=2026",
+        )
+        assert r.status_code == 200
+        for tx in r.json()["transactions"]:
+            assert "category" in tx
 
     # car_id field tests
 
