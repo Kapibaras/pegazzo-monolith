@@ -48,6 +48,8 @@ def create_transaction(
     _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
 ) -> TransactionResponseSchema:
     """Create a new transaction."""
+    # TODO: Accept car_id (optional) as body parameter once the car module is implemented.
+    # Validate that car_id exists in the car table at that point.
     return service.create_transaction(data=body)
 
 
@@ -74,6 +76,8 @@ def update_transaction(
     user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
 ) -> TransactionResponseSchema:
     """Update a transaction."""
+    # TODO: Accept car_id (optional) as body parameter once the car module is implemented.
+    # Validate that car_id exists in the car table at that point.
     return service.update_transaction(reference, body, user.role)
 
 

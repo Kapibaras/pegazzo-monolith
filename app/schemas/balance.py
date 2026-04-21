@@ -180,6 +180,7 @@ class TransactionResponseSchema(BaseModel):
     description: str = Field(..., description="Description of the transaction")
     payment_method: PaymentMethod = Field(..., description="Payment method")
     status: TransactionStatus = Field(..., description="Approval status of the transaction")
+    car_id: Optional[int] = Field(default=None, description="Associated car ID (nullable)")
 
     @field_validator("description", mode="before")
     @classmethod
