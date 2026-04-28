@@ -169,6 +169,24 @@ class BalanceTransactionsQuerySchema(BaseModel):
         return self
 
 
+class TransactionCountQuerySchema(BaseModel):
+    """Query params for GET /management/balance/transactions/count."""
+
+    month: int | None = Field(None, ge=1, le=12, description="Month number (1-12)")
+    year: int | None = Field(None, ge=2000, description="Year (e.g., 2026)")
+    status: Optional[TransactionStatus] = Field(
+        default=None,
+        description="Filter by status: PENDING, CONFIRMED, REJECTED",
+    )
+
+    @model_validator(mode="after")
+    def validate_month_year(self) -> "TransactionCountQuerySchema":
+        """Validate that month and year are provided together."""
+        if (self.month is None) ^ (self.year is None):
+            raise InvalidMetricsPeriodException
+        return self
+
+
 # * RESPONSE SCHEMAS * #
 
 
@@ -371,5 +389,14 @@ class BalanceTransactionsResponseSchema(BaseModel):
 
     transactions: list[TransactionResponseSchema] = Field(default_factory=list)
     pagination: PaginationSchema = Field(...)
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+
+class TransactionCountResponseSchema(BaseModel):
+    """Response schema for GET /management/balance/transactions/count."""
+
+    count: int = Field(..., ge=0, description="Number of transactions matching the filters")
+    period: BalancePeriodSchema = Field(..., description="Period for which the count is returned")
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
