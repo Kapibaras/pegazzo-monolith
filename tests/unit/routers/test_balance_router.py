@@ -1026,3 +1026,101 @@ class TestBalanceRouter:
         payload = r.json()
         for tx in payload["transactions"]:
             assert tx["carId"] is None
+
+    # GET /transactions/count tests
+
+    def test_get_transactions_count_no_params_returns_current_month(self, authorized_client):
+        """No params → 200 with count for current month."""
+        r = authorized_client.get("/pegazzo/management/balance/transactions/count")
+        assert r.status_code == 200
+        payload = r.json()
+        assert "count" in payload
+        assert "period" in payload
+        assert isinstance(payload["count"], int)
+        assert payload["count"] >= 0
+
+    def test_get_transactions_count_with_month_year(self, authorized_client):
+        """Explicit month + year → 200 with correct period in response."""
+        r = authorized_client.get("/pegazzo/management/balance/transactions/count?month=1&year=2026")
+        assert r.status_code == 200
+        payload = r.json()
+        assert payload["period"]["month"] == 1
+        assert payload["period"]["year"] == 2026
+
+    def test_get_transactions_count_with_status_pending(self, authorized_client):
+        """status=PENDING filter is accepted and returns 200."""
+        r = authorized_client.get("/pegazzo/management/balance/transactions/count?status=PENDING")
+        assert r.status_code == 200
+        assert "count" in r.json()
+
+    def test_get_transactions_count_with_status_rejected(self, authorized_client):
+        """status=REJECTED filter is accepted and returns 200."""
+        r = authorized_client.get("/pegazzo/management/balance/transactions/count?status=REJECTED")
+        assert r.status_code == 200
+        assert "count" in r.json()
+
+    def test_get_transactions_count_with_status_confirmed(self, authorized_client):
+        """status=CONFIRMED filter is accepted and returns 200."""
+        r = authorized_client.get("/pegazzo/management/balance/transactions/count?status=CONFIRMED")
+        assert r.status_code == 200
+        assert "count" in r.json()
+
+    def test_get_transactions_count_only_month_400(self, authorized_client):
+        """Providing only month (no year) returns 400."""
+        r = authorized_client.get("/pegazzo/management/balance/transactions/count?month=4")
+        assert r.status_code == 400
+        assert "Invalid metrics period" in r.json()["detail"]
+
+    def test_get_transactions_count_only_year_400(self, authorized_client):
+        """Providing only year (no month) returns 400."""
+        r = authorized_client.get("/pegazzo/management/balance/transactions/count?year=2026")
+        assert r.status_code == 400
+        assert "Invalid metrics period" in r.json()["detail"]
+
+    def test_get_transactions_count_invalid_month_422(self, authorized_client):
+        """month out of range (0 or 13) returns 422."""
+        r = authorized_client.get("/pegazzo/management/balance/transactions/count?month=13&year=2026")
+        assert r.status_code == 422
+
+    def test_get_transactions_count_invalid_status_422(self, authorized_client):
+        """Invalid status value returns 422."""
+        r = authorized_client.get("/pegazzo/management/balance/transactions/count?status=INVALID")
+        assert r.status_code == 422
+
+    def test_get_transactions_count_unauthorized(self, client):
+        """Unauthenticated request returns 401."""
+        r = client.get("/pegazzo/management/balance/transactions/count")
+        assert r.status_code == 401
+
+    def test_get_transactions_count_reflects_mock_data(self, authorized_client):
+        """Count matches the number of mock transactions in the current month."""
+        from datetime import datetime, timezone
+
+        now = datetime.now(timezone.utc)
+        authorized_client.balance_repo.reset()
+        authorized_client.balance_repo.transactions = [
+            __import__("app.models.balance", fromlist=["Transaction"]).Transaction(
+                amount=100,
+                reference="CNT-001",
+                date=datetime(now.year, now.month, 5, 10, 0, tzinfo=timezone.utc),
+                type="debit",
+                description="Test",
+                payment_method="cash",
+                status="PENDING",
+                category="Otro",
+            ),
+            __import__("app.models.balance", fromlist=["Transaction"]).Transaction(
+                amount=200,
+                reference="CNT-002",
+                date=datetime(now.year, now.month, 10, 10, 0, tzinfo=timezone.utc),
+                type="debit",
+                description="Test 2",
+                payment_method="cash",
+                status="REJECTED",
+                category="Otro",
+            ),
+        ]
+
+        r = authorized_client.get("/pegazzo/management/balance/transactions/count")
+        assert r.status_code == 200
+        assert r.json()["count"] == 2

@@ -827,3 +827,89 @@ class TestBalanceService:
 
         with pytest.raises(TransactionNotFoundException):
             self.service.authorize_transaction("NOEXIST", TransactionStatus.CONFIRMED, Role.OWNER)
+
+    # get_transactions_count tests
+
+    def test_get_transactions_count_defaults_to_current_month(self):
+        """No params → uses current month/year from datetime.now."""
+        start_dt = datetime(2026, 4, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end_dt = datetime(2026, 4, 30, 23, 59, 59, tzinfo=timezone.utc)
+
+        self.mock_repo.count_transactions_in_range.return_value = 7
+
+        with patch("app.services.balance.datetime") as mock_dt:
+            mock_dt.now.return_value = datetime(2026, 4, 15, 10, 0, 0, tzinfo=timezone.utc)
+            with patch("app.services.balance.period_bounds_utc", return_value=(start_dt, end_dt)) as mock_bounds:
+                result = self.service.get_transactions_count()
+
+        key_arg = mock_bounds.call_args.args[0]
+        assert key_arg.year == 2026
+        assert key_arg.month == 4
+
+        assert result["count"] == 7
+        assert result["period"]["month"] == 4
+        assert result["period"]["year"] == 2026
+
+    def test_get_transactions_count_with_specific_month_year(self):
+        """Explicit month/year are forwarded to repo."""
+        start_dt = datetime(2025, 3, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end_dt = datetime(2025, 3, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+        self.mock_repo.count_transactions_in_range.return_value = 3
+
+        with patch("app.services.balance.period_bounds_utc", return_value=(start_dt, end_dt)) as mock_bounds:
+            result = self.service.get_transactions_count(month=3, year=2025)
+
+        key_arg = mock_bounds.call_args.args[0]
+        assert key_arg.year == 2025
+        assert key_arg.month == 3
+
+        self.mock_repo.count_transactions_in_range.assert_called_once_with(
+            start_dt=start_dt,
+            end_dt=end_dt,
+            status=None,
+        )
+        assert result["count"] == 3
+        assert result["period"] == {"month": 3, "year": 2025}
+
+    def test_get_transactions_count_with_status_filter(self):
+        """Status is passed through to repo."""
+        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+        self.mock_repo.count_transactions_in_range.return_value = 2
+
+        with patch("app.services.balance.period_bounds_utc", return_value=(start_dt, end_dt)):
+            result = self.service.get_transactions_count(month=1, year=2026, status=TransactionStatus.PENDING)
+
+        self.mock_repo.count_transactions_in_range.assert_called_once_with(
+            start_dt=start_dt,
+            end_dt=end_dt,
+            status=TransactionStatus.PENDING,
+        )
+        assert result["count"] == 2
+
+    def test_get_transactions_count_no_status_counts_all(self):
+        """No status → status=None passed to repo (count all)."""
+        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+        self.mock_repo.count_transactions_in_range.return_value = 15
+
+        with patch("app.services.balance.period_bounds_utc", return_value=(start_dt, end_dt)):
+            result = self.service.get_transactions_count(month=1, year=2026)
+
+        self.mock_repo.count_transactions_in_range.assert_called_once_with(
+            start_dt=start_dt,
+            end_dt=end_dt,
+            status=None,
+        )
+        assert result["count"] == 15
+
+    def test_get_transactions_count_repo_error_propagates(self):
+        """Unexpected repo error bubbles up."""
+        with patch("app.services.balance.period_bounds_utc", return_value=(datetime(2026, 1, 1, tzinfo=timezone.utc), datetime(2026, 1, 31, tzinfo=timezone.utc))):
+            self.mock_repo.count_transactions_in_range.side_effect = RuntimeError("DB down")
+
+            with pytest.raises(RuntimeError, match="DB down"):
+                self.service.get_transactions_count(month=1, year=2026)
