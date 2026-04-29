@@ -13,6 +13,8 @@ from app.schemas.balance import (
     BalanceTrendQuerySchema,
     BalanceTrendResponseSchema,
     TransactionAuthorizationSchema,
+    TransactionCountQuerySchema,
+    TransactionCountResponseSchema,
     TransactionPatchSchema,
     TransactionResponseSchema,
     TransactionSchema,
@@ -133,6 +135,20 @@ def get_trend(
 ) -> BalanceTrendResponseSchema:
     """Get historical balance data."""
     return service.get_historical(period=params.period, limit=params.limit)
+
+
+@router.get(
+    "/transactions/count",
+    response_model=TransactionCountResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+def get_transactions_count(
+    params: TransactionCountQuerySchema = Depends(TransactionCountQuerySchema),
+    service: BalanceService = Depends(ServiceFactory.balance_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> TransactionCountResponseSchema:
+    """Get count of transactions for a given month/year with an optional status filter."""
+    return service.get_transactions_count(month=params.month, year=params.year, status=params.status)
 
 
 @router.get("/transactions", response_model=BalanceTransactionsResponseSchema, status_code=status.HTTP_200_OK)

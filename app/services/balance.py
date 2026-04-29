@@ -24,6 +24,7 @@ from app.schemas.balance import (
     BalanceTrendResponseSchema,
     ComparisonSchema,
     PaginationSchema,
+    TransactionCountResponseSchema,
     TransactionResponseSchema,
     TransactionSchema,
     WeeklyAveragesSchema,
@@ -261,6 +262,29 @@ class BalanceService:
             )
 
         return BalanceTrendResponseSchema(period_type=period, data=data)
+
+    def get_transactions_count(
+        self,
+        month: int | None = None,
+        year: int | None = None,
+        status: TransactionStatus | None = None,
+    ) -> TransactionCountResponseSchema:
+        """Count transactions for a given month/year with an optional status filter."""
+        if month is None and year is None:
+            now = datetime.now(timezone.utc)
+            month = now.month
+            year = now.year
+
+        key = PeriodKey(period_type=PeriodType.MONTH, year=year, month=month)
+        start_dt, end_dt = period_bounds_utc(key)
+
+        count = self.repository.count_transactions_in_range(
+            start_dt=start_dt,
+            end_dt=end_dt,
+            status=status,
+        )
+
+        return {"count": count, "period": {"month": month, "year": year}}
 
     def get_transactions(
         self,
