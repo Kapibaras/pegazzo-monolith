@@ -4,7 +4,7 @@ from mangum import Mangum
 
 import app.auth.core
 import app.database.events
-from app.config import DEBUG, ENVIRONMENT, AppConfig
+from app.config import CORS_ORIGINS, DEBUG, ENVIRONMENT, AppConfig
 from app.database.core import test_connection
 from app.routers import auth_router, balance_router, health_router, user_router
 
@@ -16,15 +16,18 @@ app = FastAPI(
 )
 
 
-if ENVIRONMENT == "LOCAL":
-    origins = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ]
-
+if ENVIRONMENT != "LOCAL":
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=origins,
+        allow_origins=CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
