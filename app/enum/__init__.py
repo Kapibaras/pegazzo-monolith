@@ -1,4 +1,5 @@
 from .auth import Role
 from .balance import PaymentMethod, Type
+from .crm import CarStatus, DriverStatus
 
-__all__ = ["PaymentMethod", "Role", "Type"]
+__all__ = ["CarStatus", "DriverStatus", "PaymentMethod", "Role", "Type"]
