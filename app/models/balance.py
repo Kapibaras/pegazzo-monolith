@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Index, Integer, Numeric, String
+from sqlalchemy import Column, ForeignKey, Index, Integer, Numeric, String
 from sqlalchemy.sql import func
 from sqlalchemy.types import DateTime
 
@@ -17,6 +17,6 @@ class Transaction(Base):
     payment_method = Column(String(50), nullable=False)
     status = Column(String(10), nullable=False, default="PENDING")
     category = Column(String(100), nullable=True)
-    car_id = Column(Integer, nullable=True)
+    car_id = Column(String(15), ForeignKey("car.id"), nullable=True)
 
     __table_args__ = (Index("ix_transaction_date", "date"),)
