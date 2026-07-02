@@ -14,7 +14,7 @@ class Contract(Base):
     end_date = Column(Date, nullable=False)
     type = Column(String(10), nullable=False)
     amount = Column(Numeric(12, 2), nullable=False)
-    gurantee_amount = Column(Numeric(12, 2), nullable=False)
+    guarantee_amount = Column(Numeric(12, 2), nullable=False)
     sanction_amount = Column(Numeric(12, 2), nullable=True)
     due_amount = Column(Numeric(12, 2), nullable=True)
     signed_document_in = Column(String(512), nullable=True)
