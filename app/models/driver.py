@@ -27,10 +27,10 @@ guarantor_document_table = Table(
     Column("document_id", Integer, ForeignKey("document.id"), primary_key=True, nullable=False),
 )
 
-references_document_table = Table(
-    "references_document",
+reference_document_table = Table(
+    "reference_document",
     Base.metadata,
-    Column("references_id", Integer, ForeignKey("references.id"), primary_key=True, nullable=False),
+    Column("reference_id", Integer, ForeignKey("reference.id"), primary_key=True, nullable=False),
     Column("document_id", Integer, ForeignKey("document.id"), primary_key=True, nullable=False),
 )
 
@@ -47,7 +47,7 @@ class Driver(Base):
 
     __tablename__ = "driver"
     id = Column(String(15), primary_key=True, nullable=False)
-    status = Column(String(10), nullable=False)
+    status = Column(String(20), nullable=False)
     name = Column(String(50), nullable=False)
     surnames = Column(String(100), nullable=False)
     telephones = Column(ARRAY(String(20)), nullable=False)
@@ -59,14 +59,16 @@ class Driver(Base):
     documents = relationship("Document", secondary=driver_document_table)
     guarantors = relationship("Guarantor", secondary=driver_guarantor_table)
     garage_address = Column(ARRAY(String(255)), nullable=False)
+    photo = Column(String(512), nullable=True)
+    archived_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
 
 
 class Reference(Base):
-    """References model class."""
+    """Reference model class."""
 
-    __tablename__ = "references"
+    __tablename__ = "reference"
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String(50), nullable=False)
     surnames = Column(String(100), nullable=False)
