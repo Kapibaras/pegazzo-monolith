@@ -17,36 +17,29 @@ from .incidence import Incidence, incidence_document_table
 from .users import Permission, Role, User, role_permission_table
 
 __all__ = [
-    # Users
-    "Role",
-    "User",
-    "Permission",
-    "role_permission_table",
-    # Balance
-    "Transaction",
-    # Car module
-    "Car",
-    "Insurance",
     "Associate",
-    "car_document_table",
-    "associate_car",
-    # Driver module
+    "Car",
+    "Contract",
+    "Document",
     "Driver",
-    "Reference",
+    "Event",
     "Guarantor",
+    "Incidence",
+    "Insurance",
+    "Permission",
+    "Reference",
+    "Role",
+    "Scheduler",
+    "Transaction",
+    "User",
+    "associate_car",
+    "car_document_table",
     "driver_document_table",
     "driver_guarantor_table",
     "driver_reference_table",
-    "guarantor_document_table",
-    "reference_document_table",
-    # Shared
-    "Document",
-    "Contract",
-    # Incidence
-    "Incidence",
-    "incidence_document_table",
-    # Event
-    "Event",
-    "Scheduler",
     "event_document_table",
+    "guarantor_document_table",
+    "incidence_document_table",
+    "reference_document_table",
+    "role_permission_table",
 ]
