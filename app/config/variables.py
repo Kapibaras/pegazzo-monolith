@@ -23,6 +23,18 @@ CORS_ORIGINS: list[str] = [
 ]
 
 
+class R2:
+    """Cloudflare R2 object storage configuration."""
+
+    ACCOUNT_ID: str = _require_env("R2_ACCOUNT_ID", "")
+    ACCESS_KEY_ID: str = _require_env("R2_ACCESS_KEY_ID", "")
+    SECRET_ACCESS_KEY: str = _require_env("R2_SECRET_ACCESS_KEY", "")
+    ENDPOINT: str = _require_env("R2_ENDPOINT", "")
+    DOCUMENTS_BUCKET: str = _require_env("R2_DOCUMENTS_BUCKET", "pegazzo-documents")
+    IMAGES_BUCKET: str = _require_env("R2_IMAGES_BUCKET", "pegazzo-images")
+    PUBLIC_URL: str = _require_env("R2_PUBLIC_URL", "")
+
+
 class AUTHORIZATION:
     """Authorization configuration."""
 
