@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 import pytest
@@ -6,7 +6,13 @@ import pytest
 from app.errors.transaction_metrics import TransactionMetricsPeriodError
 from app.schemas.dto.periods import PeriodKey
 from app.utils.metrics import percent_change
-from app.utils.periods import current_period_key, period_bounds_utc, previous_period_key
+from app.utils.periods import (
+    current_period_key,
+    get_period_date_range,
+    period_bounds_utc,
+    previous_period_key,
+    weeks_for_period,
+)
 
 
 class TestPeriodsUtils:
@@ -72,3 +78,92 @@ class TestPeriodsUtils:
         assert percent_change(current=2, previous=1) == Decimal("100.00")
         assert percent_change(current=110, previous=100) == Decimal("10.00")
         assert percent_change(current=1, previous=3) == Decimal("-66.67")
+
+    # --- get_period_date_range ---
+
+    def test_get_period_date_range_week(self):
+        key = PeriodKey(period_type="week", year=2026, week=1)
+        start, end = get_period_date_range(key)
+        assert start == date.fromisocalendar(2026, 1, 1)
+        assert end == start + timedelta(days=6)
+
+    def test_get_period_date_range_month(self):
+        key = PeriodKey(period_type="month", year=2026, month=3)
+        start, end = get_period_date_range(key)
+        assert start == date(2026, 3, 1)
+        assert end == date(2026, 3, 31)
+
+    def test_get_period_date_range_year(self):
+        key = PeriodKey(period_type="year", year=2026)
+        start, end = get_period_date_range(key)
+        assert start == date(2026, 1, 1)
+        assert end == date(2026, 12, 31)
+
+    def test_get_period_date_range_week_missing_week_raises(self):
+        key = PeriodKey(period_type="week", year=2026, week=None)
+        with pytest.raises(TransactionMetricsPeriodError):
+            get_period_date_range(key)
+
+    def test_get_period_date_range_month_missing_month_raises(self):
+        key = PeriodKey(period_type="month", year=2026, month=None)
+        with pytest.raises(TransactionMetricsPeriodError):
+            get_period_date_range(key)
+
+    def test_get_period_date_range_unknown_type_raises(self):
+        key = PeriodKey(period_type="INVALID", year=2026)
+        with pytest.raises(TransactionMetricsPeriodError):
+            get_period_date_range(key)
+
+    # --- weeks_for_period ---
+
+    def test_weeks_for_period_week_always_one(self):
+        assert weeks_for_period("week", 2026, None) == 1
+
+    def test_weeks_for_period_month(self):
+        result = weeks_for_period("month", 2026, 1)
+        assert isinstance(result, int)
+        assert result >= 4
+
+    def test_weeks_for_period_year(self):
+        result = weeks_for_period("year", 2026, None)
+        assert result in (52, 53)
+
+    def test_weeks_for_period_unknown_type_raises(self):
+        with pytest.raises(TransactionMetricsPeriodError):
+            weeks_for_period("INVALID", 2026, None)
+
+    # --- period_bounds_utc ---
+
+    def test_period_bounds_utc_year(self):
+        key = PeriodKey(period_type="year", year=2026)
+        start, end = period_bounds_utc(key)
+        assert start == datetime(2026, 1, 1, tzinfo=timezone.utc)
+        assert end == datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+    def test_period_bounds_utc_month(self):
+        key = PeriodKey(period_type="month", year=2026, month=2)
+        start, end = period_bounds_utc(key)
+        assert start == datetime(2026, 2, 1, tzinfo=timezone.utc)
+        assert end == datetime(2026, 2, 28, 23, 59, 59, tzinfo=timezone.utc)
+
+    def test_period_bounds_utc_month_missing_month_raises(self):
+        key = PeriodKey(period_type="month", year=2026, month=None)
+        with pytest.raises(TransactionMetricsPeriodError):
+            period_bounds_utc(key)
+
+    def test_period_bounds_utc_week(self):
+        key = PeriodKey(period_type="week", year=2026, week=1)
+        start, end = period_bounds_utc(key)
+        expected_start = datetime.fromisocalendar(2026, 1, 1).replace(tzinfo=timezone.utc)
+        assert start == expected_start
+        assert end == expected_start + timedelta(days=6, hours=23, minutes=59, seconds=59)
+
+    def test_period_bounds_utc_week_missing_week_raises(self):
+        key = PeriodKey(period_type="week", year=2026, week=None)
+        with pytest.raises(TransactionMetricsPeriodError):
+            period_bounds_utc(key)
+
+    def test_period_bounds_utc_unknown_type_raises(self):
+        key = PeriodKey(period_type="INVALID", year=2026)
+        with pytest.raises(TransactionMetricsPeriodError):
+            period_bounds_utc(key)
