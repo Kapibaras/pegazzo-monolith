@@ -1,0 +1,434 @@
+{
+  "info": {
+    "name": "PGZ-126 - Create Car",
+    "description": "Manual tests for POST /pegazzo/management/cars endpoint.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "csrf_access_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Login (run first)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Save CSRF token from cookie for subsequent requests",
+              "const cookies = pm.cookies.toObject();",
+              "const csrfToken = cookies['csrf_access_token'];",
+              "if (csrfToken) {",
+              "    pm.collectionVariables.set('csrf_access_token', csrfToken);",
+              "    console.log('CSRF token saved:', csrfToken);",
+              "} else {",
+              "    console.warn('No csrf_access_token cookie found. Check credentials.');",
+              "}",
+              "",
+              "pm.test('Login successful', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"YOUR_USERNAME\",\n  \"password\": \"YOUR_PASSWORD\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/pegazzo/internal/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["pegazzo", "internal", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "1. SUCCESS - Create car (full payload)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 201 Created', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response contains car id', function () {",
+              "    const data = pm.response.json();",
+              "    pm.expect(data.id).to.eql('CAR-001');",
+              "});",
+              "",
+              "pm.test('Response contains make, model, vin, plate', function () {",
+              "    const data = pm.response.json();",
+              "    pm.expect(data.make).to.eql('Toyota');",
+              "    pm.expect(data.model).to.eql('Corolla');",
+              "    pm.expect(data.vin).to.eql('1HGBH41JXMN109186');",
+              "    pm.expect(data.plate).to.eql('ABC-1234');",
+              "});",
+              "",
+              "pm.test('createdAt and updatedAt present', function () {",
+              "    const data = pm.response.json();",
+              "    pm.expect(data.createdAt).to.exist;",
+              "    pm.expect(data.updatedAt).to.exist;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"CAR-001\",\n  \"make\": \"Toyota\",\n  \"model\": \"Corolla\",\n  \"year\": \"2022\",\n  \"color\": \"White\",\n  \"status\": \"ACTIVE\",\n  \"vin\": \"1HGBH41JXMN109186\",\n  \"plate\": \"ABC-1234\",\n  \"bodyType\": \"Sedan\",\n  \"engineType\": \"Gasoline\",\n  \"transmission\": \"Automatic\",\n  \"engineSerialNumber\": \"ENG123456\",\n  \"odometer\": 0,\n  \"doorsNumber\": 4,\n  \"passengersNumber\": 5,\n  \"tireSpecification\": \"195/65R15\",\n  \"unitValue\": 250000.00,\n  \"unitBillingValue\": 240000.00,\n  \"billNumber\": \"BILL-001\",\n  \"publicVehicleRegistry\": \"REG-001\",\n  \"altaPublicVehicleRegistry\": \"2026-01-01T00:00:00Z\",\n  \"batteryModel\": \"BattX-Pro\",\n  \"batterySerialNumber\": \"BATT-123456\",\n  \"batteryDate\": \"2025-06-01T00:00:00Z\",\n  \"legalOwnerName\": \"Juan\",\n  \"legalOwnerSurnames\": \"García López\",\n  \"financedStatus\": \"PAID\",\n  \"insuranceProviderId\": 1,\n  \"policyNumber\": \"POL-2026-001\",\n  \"policyExpirationDate\": \"2027-06-01T00:00:00Z\",\n  \"policyType\": \"FULL\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/pegazzo/management/cars",
+          "host": ["{{base_url}}"],
+          "path": ["pegazzo", "management", "cars"]
+        }
+      }
+    },
+    {
+      "name": "2. SUCCESS - Create car with associate",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 201 Created', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Car id is CAR-002', function () {",
+              "    pm.expect(pm.response.json().id).to.eql('CAR-002');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"CAR-002\",\n  \"make\": \"Nissan\",\n  \"model\": \"Versa\",\n  \"year\": \"2023\",\n  \"color\": \"Black\",\n  \"status\": \"ACTIVE\",\n  \"vin\": \"3N1CN7AP5JK000001\",\n  \"plate\": \"XYZ-9999\",\n  \"bodyType\": \"Sedan\",\n  \"engineType\": \"Gasoline\",\n  \"transmission\": \"Manual\",\n  \"engineSerialNumber\": \"ENG-999999\",\n  \"odometer\": 1000,\n  \"doorsNumber\": 4,\n  \"passengersNumber\": 5,\n  \"tireSpecification\": \"185/65R15\",\n  \"unitValue\": 200000.00,\n  \"unitBillingValue\": 195000.00,\n  \"billNumber\": \"BILL-002\",\n  \"publicVehicleRegistry\": \"REG-002\",\n  \"altaPublicVehicleRegistry\": \"2026-01-01T00:00:00Z\",\n  \"batteryModel\": \"BattY\",\n  \"batterySerialNumber\": \"BATT-999999\",\n  \"batteryDate\": \"2025-06-01T00:00:00Z\",\n  \"legalOwnerName\": \"Maria\",\n  \"legalOwnerSurnames\": \"Lopez Perez\",\n  \"financedStatus\": \"FINANCED\",\n  \"insuranceProviderId\": 1,\n  \"policyNumber\": \"POL-2026-002\",\n  \"policyExpirationDate\": \"2027-06-01T00:00:00Z\",\n  \"policyType\": \"LIABILITY\",\n  \"associateId\": 1\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/pegazzo/management/cars",
+          "host": ["{{base_url}}"],
+          "path": ["pegazzo", "management", "cars"]
+        }
+      }
+    },
+    {
+      "name": "3. ERROR 400 - Duplicate car id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 400 Bad Request', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Error mentions duplicate id', function () {",
+              "    const detail = pm.response.json().detail;",
+              "    pm.expect(detail).to.include('CAR-001');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"CAR-001\",\n  \"make\": \"Honda\",\n  \"model\": \"Civic\",\n  \"year\": \"2021\",\n  \"color\": \"Blue\",\n  \"status\": \"ACTIVE\",\n  \"vin\": \"DIFFERENTVIN12345\",\n  \"plate\": \"NEW-0001\",\n  \"bodyType\": \"Sedan\",\n  \"engineType\": \"Gasoline\",\n  \"transmission\": \"Automatic\",\n  \"engineSerialNumber\": \"ENG-DIFF\",\n  \"odometer\": 0,\n  \"doorsNumber\": 4,\n  \"passengersNumber\": 5,\n  \"tireSpecification\": \"195/65R15\",\n  \"unitValue\": 300000.00,\n  \"unitBillingValue\": 290000.00,\n  \"billNumber\": \"BILL-003\",\n  \"publicVehicleRegistry\": \"REG-003\",\n  \"altaPublicVehicleRegistry\": \"2026-01-01T00:00:00Z\",\n  \"batteryModel\": \"BattZ\",\n  \"batterySerialNumber\": \"BATT-333\",\n  \"batteryDate\": \"2025-06-01T00:00:00Z\",\n  \"legalOwnerName\": \"Pedro\",\n  \"legalOwnerSurnames\": \"Ramirez\",\n  \"financedStatus\": \"PAID\",\n  \"insuranceProviderId\": 1,\n  \"policyNumber\": \"POL-003\",\n  \"policyExpirationDate\": \"2027-06-01T00:00:00Z\",\n  \"policyType\": \"FULL\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/pegazzo/management/cars",
+          "host": ["{{base_url}}"],
+          "path": ["pegazzo", "management", "cars"]
+        }
+      }
+    },
+    {
+      "name": "4. ERROR 400 - Duplicate VIN",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 400 Bad Request', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Error mentions duplicate VIN', function () {",
+              "    const detail = pm.response.json().detail;",
+              "    pm.expect(detail).to.include('1HGBH41JXMN109186');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"CAR-999\",\n  \"make\": \"Honda\",\n  \"model\": \"Civic\",\n  \"year\": \"2021\",\n  \"color\": \"Blue\",\n  \"status\": \"ACTIVE\",\n  \"vin\": \"1HGBH41JXMN109186\",\n  \"plate\": \"NEW-9999\",\n  \"bodyType\": \"Sedan\",\n  \"engineType\": \"Gasoline\",\n  \"transmission\": \"Automatic\",\n  \"engineSerialNumber\": \"ENG-DIFF\",\n  \"odometer\": 0,\n  \"doorsNumber\": 4,\n  \"passengersNumber\": 5,\n  \"tireSpecification\": \"195/65R15\",\n  \"unitValue\": 300000.00,\n  \"unitBillingValue\": 290000.00,\n  \"billNumber\": \"BILL-999\",\n  \"publicVehicleRegistry\": \"REG-999\",\n  \"altaPublicVehicleRegistry\": \"2026-01-01T00:00:00Z\",\n  \"batteryModel\": \"BattZ\",\n  \"batterySerialNumber\": \"BATT-999\",\n  \"batteryDate\": \"2025-06-01T00:00:00Z\",\n  \"legalOwnerName\": \"Pedro\",\n  \"legalOwnerSurnames\": \"Ramirez\",\n  \"financedStatus\": \"PAID\",\n  \"insuranceProviderId\": 1,\n  \"policyNumber\": \"POL-999\",\n  \"policyExpirationDate\": \"2027-06-01T00:00:00Z\",\n  \"policyType\": \"FULL\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/pegazzo/management/cars",
+          "host": ["{{base_url}}"],
+          "path": ["pegazzo", "management", "cars"]
+        }
+      }
+    },
+    {
+      "name": "5. ERROR 400 - Duplicate plate",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 400 Bad Request', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Error mentions duplicate plate', function () {",
+              "    const detail = pm.response.json().detail;",
+              "    pm.expect(detail).to.include('ABC-1234');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"CAR-998\",\n  \"make\": \"Honda\",\n  \"model\": \"Civic\",\n  \"year\": \"2021\",\n  \"color\": \"Blue\",\n  \"status\": \"ACTIVE\",\n  \"vin\": \"UNIQUEVIN00000001\",\n  \"plate\": \"ABC-1234\",\n  \"bodyType\": \"Sedan\",\n  \"engineType\": \"Gasoline\",\n  \"transmission\": \"Automatic\",\n  \"engineSerialNumber\": \"ENG-UNIQ\",\n  \"odometer\": 0,\n  \"doorsNumber\": 4,\n  \"passengersNumber\": 5,\n  \"tireSpecification\": \"195/65R15\",\n  \"unitValue\": 300000.00,\n  \"unitBillingValue\": 290000.00,\n  \"billNumber\": \"BILL-998\",\n  \"publicVehicleRegistry\": \"REG-998\",\n  \"altaPublicVehicleRegistry\": \"2026-01-01T00:00:00Z\",\n  \"batteryModel\": \"BattZ\",\n  \"batterySerialNumber\": \"BATT-998\",\n  \"batteryDate\": \"2025-06-01T00:00:00Z\",\n  \"legalOwnerName\": \"Pedro\",\n  \"legalOwnerSurnames\": \"Ramirez\",\n  \"financedStatus\": \"PAID\",\n  \"insuranceProviderId\": 1,\n  \"policyNumber\": \"POL-998\",\n  \"policyExpirationDate\": \"2027-06-01T00:00:00Z\",\n  \"policyType\": \"FULL\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/pegazzo/management/cars",
+          "host": ["{{base_url}}"],
+          "path": ["pegazzo", "management", "cars"]
+        }
+      }
+    },
+    {
+      "name": "6. ERROR 400 - Policy expiration date in the past",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 400 Bad Request', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Error mentions past date', function () {",
+              "    const detail = pm.response.json().detail.toLowerCase();",
+              "    pm.expect(detail).to.include('past');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"CAR-003\",\n  \"make\": \"Toyota\",\n  \"model\": \"Yaris\",\n  \"year\": \"2020\",\n  \"color\": \"Red\",\n  \"status\": \"ACTIVE\",\n  \"vin\": \"PASTVIN000000001\",\n  \"plate\": \"PAST-001\",\n  \"bodyType\": \"Hatchback\",\n  \"engineType\": \"Gasoline\",\n  \"transmission\": \"Automatic\",\n  \"engineSerialNumber\": \"ENG-PAST\",\n  \"odometer\": 5000,\n  \"doorsNumber\": 4,\n  \"passengersNumber\": 5,\n  \"tireSpecification\": \"185/65R15\",\n  \"unitValue\": 180000.00,\n  \"unitBillingValue\": 175000.00,\n  \"billNumber\": \"BILL-PAST\",\n  \"publicVehicleRegistry\": \"REG-PAST\",\n  \"altaPublicVehicleRegistry\": \"2026-01-01T00:00:00Z\",\n  \"batteryModel\": \"BattP\",\n  \"batterySerialNumber\": \"BATT-PAST\",\n  \"batteryDate\": \"2025-06-01T00:00:00Z\",\n  \"legalOwnerName\": \"Ana\",\n  \"legalOwnerSurnames\": \"Martinez\",\n  \"financedStatus\": \"PAID\",\n  \"insuranceProviderId\": 1,\n  \"policyNumber\": \"POL-PAST\",\n  \"policyExpirationDate\": \"2020-01-01T00:00:00Z\",\n  \"policyType\": \"FULL\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/pegazzo/management/cars",
+          "host": ["{{base_url}}"],
+          "path": ["pegazzo", "management", "cars"]
+        }
+      }
+    },
+    {
+      "name": "7. ERROR 400 - Non-existent insurance provider",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 400 Bad Request', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Error mentions insurance provider id', function () {",
+              "    const detail = pm.response.json().detail;",
+              "    pm.expect(detail).to.include('9999');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"CAR-004\",\n  \"make\": \"Toyota\",\n  \"model\": \"Camry\",\n  \"year\": \"2023\",\n  \"color\": \"Silver\",\n  \"status\": \"ACTIVE\",\n  \"vin\": \"INSVIN000000001\",\n  \"plate\": \"INS-001\",\n  \"bodyType\": \"Sedan\",\n  \"engineType\": \"Hybrid\",\n  \"transmission\": \"Automatic\",\n  \"engineSerialNumber\": \"ENG-INS\",\n  \"odometer\": 0,\n  \"doorsNumber\": 4,\n  \"passengersNumber\": 5,\n  \"tireSpecification\": \"215/55R17\",\n  \"unitValue\": 400000.00,\n  \"unitBillingValue\": 390000.00,\n  \"billNumber\": \"BILL-INS\",\n  \"publicVehicleRegistry\": \"REG-INS\",\n  \"altaPublicVehicleRegistry\": \"2026-01-01T00:00:00Z\",\n  \"batteryModel\": \"BattH\",\n  \"batterySerialNumber\": \"BATT-INS\",\n  \"batteryDate\": \"2025-06-01T00:00:00Z\",\n  \"legalOwnerName\": \"Carlos\",\n  \"legalOwnerSurnames\": \"Gomez\",\n  \"financedStatus\": \"PAID\",\n  \"insuranceProviderId\": 9999,\n  \"policyNumber\": \"POL-INS\",\n  \"policyExpirationDate\": \"2027-06-01T00:00:00Z\",\n  \"policyType\": \"FULL\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/pegazzo/management/cars",
+          "host": ["{{base_url}}"],
+          "path": ["pegazzo", "management", "cars"]
+        }
+      }
+    },
+    {
+      "name": "8. ERROR 400 - Non-existent associate",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 400 Bad Request', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Error mentions associate id', function () {",
+              "    const detail = pm.response.json().detail;",
+              "    pm.expect(detail).to.include('8888');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"CAR-005\",\n  \"make\": \"Mazda\",\n  \"model\": \"CX-5\",\n  \"year\": \"2023\",\n  \"color\": \"Gray\",\n  \"status\": \"ACTIVE\",\n  \"vin\": \"ASSVIN000000001\",\n  \"plate\": \"ASS-001\",\n  \"bodyType\": \"SUV\",\n  \"engineType\": \"Gasoline\",\n  \"transmission\": \"Automatic\",\n  \"engineSerialNumber\": \"ENG-ASS\",\n  \"odometer\": 0,\n  \"doorsNumber\": 4,\n  \"passengersNumber\": 5,\n  \"tireSpecification\": \"225/65R17\",\n  \"unitValue\": 500000.00,\n  \"unitBillingValue\": 490000.00,\n  \"billNumber\": \"BILL-ASS\",\n  \"publicVehicleRegistry\": \"REG-ASS\",\n  \"altaPublicVehicleRegistry\": \"2026-01-01T00:00:00Z\",\n  \"batteryModel\": \"BattM\",\n  \"batterySerialNumber\": \"BATT-ASS\",\n  \"batteryDate\": \"2025-06-01T00:00:00Z\",\n  \"legalOwnerName\": \"Sofia\",\n  \"legalOwnerSurnames\": \"Torres\",\n  \"financedStatus\": \"FINANCED\",\n  \"insuranceProviderId\": 1,\n  \"policyNumber\": \"POL-ASS\",\n  \"policyExpirationDate\": \"2027-06-01T00:00:00Z\",\n  \"policyType\": \"FULL\",\n  \"associateId\": 8888\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/pegazzo/management/cars",
+          "host": ["{{base_url}}"],
+          "path": ["pegazzo", "management", "cars"]
+        }
+      }
+    },
+    {
+      "name": "9. ERROR 401 - No authentication",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 401 Unauthorized', function () {",
+              "    pm.response.to.have.status(401);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"CAR-AUTH\",\n  \"make\": \"Toyota\",\n  \"model\": \"Corolla\",\n  \"year\": \"2022\",\n  \"color\": \"White\",\n  \"status\": \"ACTIVE\",\n  \"vin\": \"AUTHVIN000000001\",\n  \"plate\": \"AUTH-001\",\n  \"bodyType\": \"Sedan\",\n  \"engineType\": \"Gasoline\",\n  \"transmission\": \"Automatic\",\n  \"engineSerialNumber\": \"ENG-AUTH\",\n  \"odometer\": 0,\n  \"doorsNumber\": 4,\n  \"passengersNumber\": 5,\n  \"tireSpecification\": \"195/65R15\",\n  \"unitValue\": 250000.00,\n  \"unitBillingValue\": 240000.00,\n  \"billNumber\": \"BILL-AUTH\",\n  \"publicVehicleRegistry\": \"REG-AUTH\",\n  \"altaPublicVehicleRegistry\": \"2026-01-01T00:00:00Z\",\n  \"batteryModel\": \"BattA\",\n  \"batterySerialNumber\": \"BATT-AUTH\",\n  \"batteryDate\": \"2025-06-01T00:00:00Z\",\n  \"legalOwnerName\": \"Test\",\n  \"legalOwnerSurnames\": \"User\",\n  \"financedStatus\": \"PAID\",\n  \"insuranceProviderId\": 1,\n  \"policyNumber\": \"POL-AUTH\",\n  \"policyExpirationDate\": \"2027-06-01T00:00:00Z\",\n  \"policyType\": \"FULL\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/pegazzo/management/cars",
+          "host": ["{{base_url}}"],
+          "path": ["pegazzo", "management", "cars"]
+        }
+      }
+    },
+    {
+      "name": "10. ERROR 422 - Missing required field (vin)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 422 Unprocessable Entity', function () {",
+              "    pm.response.to.have.status(422);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"CAR-006\",\n  \"make\": \"Toyota\",\n  \"model\": \"Corolla\",\n  \"year\": \"2022\",\n  \"color\": \"White\",\n  \"status\": \"ACTIVE\",\n  \"plate\": \"MIS-001\",\n  \"bodyType\": \"Sedan\",\n  \"engineType\": \"Gasoline\",\n  \"transmission\": \"Automatic\",\n  \"engineSerialNumber\": \"ENG-MIS\",\n  \"odometer\": 0,\n  \"doorsNumber\": 4,\n  \"passengersNumber\": 5,\n  \"tireSpecification\": \"195/65R15\",\n  \"unitValue\": 250000.00,\n  \"unitBillingValue\": 240000.00,\n  \"billNumber\": \"BILL-MIS\",\n  \"publicVehicleRegistry\": \"REG-MIS\",\n  \"altaPublicVehicleRegistry\": \"2026-01-01T00:00:00Z\",\n  \"batteryModel\": \"BattX\",\n  \"batterySerialNumber\": \"BATT-MIS\",\n  \"batteryDate\": \"2025-06-01T00:00:00Z\",\n  \"legalOwnerName\": \"Test\",\n  \"legalOwnerSurnames\": \"Missing\",\n  \"financedStatus\": \"PAID\",\n  \"insuranceProviderId\": 1,\n  \"policyNumber\": \"POL-MIS\",\n  \"policyExpirationDate\": \"2027-06-01T00:00:00Z\",\n  \"policyType\": \"FULL\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/pegazzo/management/cars",
+          "host": ["{{base_url}}"],
+          "path": ["pegazzo", "management", "cars"]
+        }
+      }
+    }
+  ]
+}
