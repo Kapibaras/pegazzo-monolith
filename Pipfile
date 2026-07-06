@@ -19,6 +19,7 @@ httpx = "==0.24.1"
 alembic = "*"
 ruff = "*"
 argon2-cffi = "*"
+boto3 = "*"
 
 [dev-packages]
 pytest = "*"
