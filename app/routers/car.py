@@ -17,7 +17,7 @@ router = APIRouter(prefix="/management/car", tags=["Cars"])
 def create_car(
     body: CarSchema = Body(..., description="Car data"),
     service: CarService = Depends(ServiceFactory.car_service),
-    # _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
 ) -> CarResponseSchema:
     """Register a new car."""
     return service.create_car(data=body)
