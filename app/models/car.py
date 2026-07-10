@@ -16,7 +16,7 @@ car_document_table = Table(
 associate_car = Table(
     "associate_car",
     Base.metadata,
-    Column("associate_id", String(15), ForeignKey("associate.id"), primary_key=True, nullable=False),
+    Column("associate_id", Integer, ForeignKey("associate.id"), primary_key=True, nullable=False),
     Column("car_id", String(15), ForeignKey("car.id"), primary_key=True, nullable=False),
 )
 
@@ -26,7 +26,7 @@ class Car(Base):
 
     __tablename__ = "car"
     id = Column(String(15), primary_key=True, nullable=False)
-    status = Column(String(10), nullable=False)
+    status = Column(String(20), nullable=False)
     make = Column(String(50), nullable=False)
     model = Column(String(50), nullable=False)
     year = Column(String(4), nullable=False)
@@ -48,8 +48,6 @@ class Car(Base):
     tire_specification = Column(String(20), nullable=False)
     features = Column(JSON, nullable=False)
     details = Column(JSON, nullable=False)
-    owner_name = Column(String(50), nullable=False)
-    owner_surnames = Column(String(100), nullable=False)
     legal_owner_name = Column(String(50), nullable=False)
     legal_owner_surnames = Column(String(100), nullable=False)
     associate = relationship("Associate", secondary=associate_car, back_populates="cars")
@@ -62,6 +60,9 @@ class Car(Base):
     policy_expiration_date = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     policy_type = Column(String(20), nullable=False)
     financed_status = Column(String(20), nullable=False)
+    agency_image = Column(String(512), nullable=True)
+    photos = Column(ARRAY(String(512)), nullable=True)
+    archived_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
 
