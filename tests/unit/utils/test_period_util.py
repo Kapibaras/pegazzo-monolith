@@ -7,7 +7,6 @@ from app.errors.transaction_metrics import TransactionMetricsPeriodError
 from app.schemas.dto.periods import PeriodKey
 from app.utils.metrics import percent_change
 from app.utils.periods import (
-    current_period_key,
     get_period_date_range,
     period_bounds_utc,
     previous_period_key,

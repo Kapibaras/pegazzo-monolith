@@ -28,9 +28,11 @@ class DocumentService:
     """Document service class."""
 
     def __init__(self, repository: DocumentRepository):
+        """Initialize the document service with a repository."""
         self.repository = repository
 
     def request_upload_url(self, data: UploadUrlRequestSchema) -> UploadUrlResponseSchema:
+        """Validate the request and return a presigned PUT URL for direct R2 upload."""
         if data.content_type not in ALLOWED_CONTENT_TYPES:
             raise InvalidContentTypeException(data.content_type)
 
@@ -42,6 +44,7 @@ class DocumentService:
         return UploadUrlResponseSchema(upload_url=upload_url, key=key, expires_in=3600)
 
     def create_document(self, data: DocumentConfirmSchema) -> DocumentResponseSchema:
+        """Create a Document record and link it to the target entity."""
         self._assert_entity_exists(data.entity_type, data.entity_id)
 
         document = Document(
@@ -60,6 +63,7 @@ class DocumentService:
         return response
 
     def get_document(self, document_id: int) -> DocumentResponseSchema:
+        """Return document metadata with a fresh presigned GET URL."""
         document = self.repository.get_by_id(document_id)
         if not document:
             raise DocumentNotFoundException(document_id)
@@ -70,6 +74,7 @@ class DocumentService:
         return response
 
     def delete_document(self, document_id: int) -> None:
+        """Delete a document record from the database."""
         document = self.repository.get_by_id(document_id)
         if not document:
             raise DocumentNotFoundException(document_id)
@@ -85,8 +90,8 @@ class DocumentService:
         elif entity_type == DocumentEntityType.GUARANTOR:
             try:
                 guarantor_id = int(entity_id)
-            except ValueError:
-                raise EntityNotFoundException("guarantor", entity_id)
+            except ValueError as err:
+                raise EntityNotFoundException("guarantor", entity_id) from err
             if not self.repository.guarantor_exists(guarantor_id):
                 raise EntityNotFoundException("guarantor", entity_id)
 

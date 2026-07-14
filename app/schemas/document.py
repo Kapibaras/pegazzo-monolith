@@ -12,11 +12,13 @@ ALLOWED_CONTENT_TYPES = frozenset(
         "image/jpeg",
         "image/png",
         "image/webp",
-    }
+    },
 )
 
 
 class UploadUrlRequestSchema(BaseModel):
+    """Request body for generating a presigned PUT URL."""
+
     filename: str = Field(..., min_length=1, max_length=255)
     content_type: str = Field(..., description="MIME type of the file to upload")
     entity_type: DocumentEntityType
@@ -24,12 +26,16 @@ class UploadUrlRequestSchema(BaseModel):
 
 
 class UploadUrlResponseSchema(BaseModel):
+    """Response returned after generating a presigned PUT URL."""
+
     upload_url: str
     key: str
     expires_in: int = 3600
 
 
 class DocumentConfirmSchema(BaseModel):
+    """Request body for confirming a document upload and creating the DB record."""
+
     key: str = Field(..., min_length=1, description="R2 key returned from upload-url step")
     type: str = Field(..., min_length=1, max_length=20)
     entity_type: DocumentEntityType
@@ -38,6 +44,8 @@ class DocumentConfirmSchema(BaseModel):
 
 
 class DocumentResponseSchema(BaseModel):
+    """Response schema for a document record, including a temporary presigned GET URL."""
+
     id: int
     type: str
     url: str = Field(..., description="Temporary presigned GET URL")
