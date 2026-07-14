@@ -1,6 +1,14 @@
 from enum import StrEnum
 
 
+class DocumentEntityType(StrEnum):
+    """Enum for document target entity types."""
+
+    CAR = "car"
+    DRIVER = "driver"
+    GUARANTOR = "guarantor"
+
+
 class CarStatus(StrEnum):
     """Enum for car operational status."""
 
