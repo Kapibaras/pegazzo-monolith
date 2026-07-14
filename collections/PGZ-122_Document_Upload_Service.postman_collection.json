@@ -9,7 +9,7 @@
     { "key": "upload_url", "value": "" },
     { "key": "upload_key", "value": "" },
     { "key": "created_document_id", "value": "" },
-    { "key": "car_id", "value": "FILL_WITH_EXISTING_CAR_ID" }
+    { "key": "car_id", "value": "CAR-001" }
   ],
   "item": [
     {
