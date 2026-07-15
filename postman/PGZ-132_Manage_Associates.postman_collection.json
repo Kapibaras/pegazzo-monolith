@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "PGZ-132 - Manage Associates",
-    "description": "Manual tests for CRUD /pegazzo/management/associates endpoints.",
+    "description": "Manual tests for CRUD /pegazzo/management/cars/associates endpoints.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -104,7 +104,7 @@
               "raw": "{\n  \"name\": \"Carlos\",\n  \"surnames\": \"Gomez Ruiz\",\n  \"telephones\": [\"55-1234-5678\", \"800-987-6543\"]\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates"]
             }
@@ -142,7 +142,7 @@
               "raw": "{\n  \"name\": \"Sofia\",\n  \"surnames\": \"Lopez Torres\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates"]
             }
@@ -174,7 +174,7 @@
               "raw": "{\n  \"surnames\": \"Ramirez\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates"]
             }
@@ -206,7 +206,7 @@
               "raw": "{\n  \"name\": \"Pedro\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates"]
             }
@@ -237,7 +237,7 @@
               "raw": "{\n  \"name\": \"Test\",\n  \"surnames\": \"NoAuth\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates"]
             }
@@ -272,7 +272,7 @@
               { "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }
             ],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates"]
             }
@@ -307,7 +307,7 @@
               { "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }
             ],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates?search=Carlos",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates?search=Carlos",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates"],
               "query": [{ "key": "search", "value": "Carlos" }]
@@ -338,7 +338,7 @@
               { "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }
             ],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates?search=Nonexistent99999",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates?search=Nonexistent99999",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates"],
               "query": [{ "key": "search", "value": "Nonexistent99999" }]
@@ -364,7 +364,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates"]
             }
@@ -404,7 +404,7 @@
               "raw": "{\n  \"name\": \"Carlos Alberto\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates/{{created_associate_id}}",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates/{{created_associate_id}}",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates", "{{created_associate_id}}"]
             }
@@ -439,7 +439,7 @@
               "raw": "{\n  \"telephones\": [\"55-0000-9999\"]\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates/{{created_associate_id}}",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates/{{created_associate_id}}",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates", "{{created_associate_id}}"]
             }
@@ -474,7 +474,7 @@
               "raw": "{\n  \"name\": \"Ghost\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates/9999",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates/9999",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates", "9999"]
             }
@@ -505,7 +505,7 @@
               "raw": "{\n  \"name\": \"Ghost\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates/{{created_associate_id}}",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates/{{created_associate_id}}",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates", "{{created_associate_id}}"]
             }
@@ -540,7 +540,7 @@
               { "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }
             ],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates/9999",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates/9999",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates", "9999"]
             }
@@ -565,7 +565,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates/{{created_associate_id}}",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates/{{created_associate_id}}",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates", "{{created_associate_id}}"]
             }
@@ -595,7 +595,7 @@
               { "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }
             ],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates/{{created_associate_id}}",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates/{{created_associate_id}}",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates", "{{created_associate_id}}"]
             }
@@ -625,7 +625,7 @@
               { "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }
             ],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/associates/{{created_associate_id}}",
+              "raw": "{{base_url}}/pegazzo/management/cars/associates/{{created_associate_id}}",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "associates", "{{created_associate_id}}"]
             }

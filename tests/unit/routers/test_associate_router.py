@@ -1,7 +1,7 @@
 import pytest
 
 
-BASE_URL = "/pegazzo/management/associates"
+BASE_URL = "/pegazzo/management/cars/associates"
 
 
 class TestAssociateRouter:

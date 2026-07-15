@@ -9,7 +9,7 @@ from app.schemas.associate import AssociatePatchSchema, AssociateResponseSchema,
 from app.schemas.user import ActionSuccess
 from app.services.associate import AssociateService
 
-router = APIRouter(prefix="/management/associates", tags=["Associates"])
+router = APIRouter(prefix="/management/cars/associates", tags=["Cars", "Associates"])
 
 
 @router.post(
