@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "PGZ-131 - Manage Insurance Providers",
-    "description": "Manual tests for /pegazzo/management/insurances CRUD endpoints.",
+    "description": "Manual tests for /pegazzo/management/cars/insurances CRUD endpoints.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -98,7 +98,7 @@
               "raw": "{\n  \"name\": \"AXA Seguros\",\n  \"telephones\": [\"+521234567890\", \"+529876543210\"]\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances"]
             }
@@ -135,7 +135,7 @@
               "raw": "{\n  \"name\": \"GNP Seguros\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances"]
             }
@@ -172,7 +172,7 @@
               "raw": "{\n  \"name\": \"AXA Seguros\",\n  \"telephones\": [\"+521111111111\"]\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances"]
             }
@@ -204,7 +204,7 @@
               "raw": "{\n  \"telephones\": [\"+521234567890\"]\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances"]
             }
@@ -233,7 +233,7 @@
               "raw": "{\n  \"name\": \"Sin Auth\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances"]
             }
@@ -270,7 +270,7 @@
             "method": "GET",
             "header": [{ "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances"]
             }
@@ -303,7 +303,7 @@
             "method": "GET",
             "header": [{ "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances?search=AXA",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances?search=AXA",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances"],
               "query": [{ "key": "search", "value": "AXA" }]
@@ -335,7 +335,7 @@
             "method": "GET",
             "header": [{ "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances?search=INEXISTENTE",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances?search=INEXISTENTE",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances"],
               "query": [{ "key": "search", "value": "INEXISTENTE" }]
@@ -361,7 +361,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances"]
             }
@@ -403,7 +403,7 @@
               "raw": "{\n  \"name\": \"AXA Seguros México\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances/{{created_insurance_id}}",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances/{{created_insurance_id}}",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances", "{{created_insurance_id}}"]
             }
@@ -440,7 +440,7 @@
               "raw": "{\n  \"telephones\": [\"+529998887777\"]\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances/{{created_insurance_id}}",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances/{{created_insurance_id}}",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances", "{{created_insurance_id}}"]
             }
@@ -476,7 +476,7 @@
               "raw": "{\n  \"name\": \"No existe\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances/9999",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances/9999",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances", "9999"]
             }
@@ -512,7 +512,7 @@
               "raw": "{\n  \"name\": \"GNP Seguros\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances/{{created_insurance_id}}",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances/{{created_insurance_id}}",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances", "{{created_insurance_id}}"]
             }
@@ -541,7 +541,7 @@
               "raw": "{\n  \"name\": \"Sin Auth\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances/1",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances/1",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances", "1"]
             }
@@ -575,7 +575,7 @@
             "method": "DELETE",
             "header": [{ "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances/{{created_insurance_id}}",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances/{{created_insurance_id}}",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances", "{{created_insurance_id}}"],
               "description": "Run this AFTER creating a car that references this insurance provider"
@@ -601,7 +601,7 @@
             "method": "DELETE",
             "header": [{ "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances/9999",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances/9999",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances", "9999"]
             }
@@ -626,7 +626,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances/1",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances/1",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances", "1"]
             }
@@ -655,7 +655,7 @@
             "method": "DELETE",
             "header": [{ "key": "X-CSRF-ACCESS", "value": "{{csrf_access_token}}" }],
             "url": {
-              "raw": "{{base_url}}/pegazzo/management/insurances/{{created_insurance_id}}",
+              "raw": "{{base_url}}/pegazzo/management/cars/insurances/{{created_insurance_id}}",
               "host": ["{{base_url}}"],
               "path": ["pegazzo", "management", "insurances", "{{created_insurance_id}}"],
               "description": "Run this only when the insurance is NOT referenced by any car"
