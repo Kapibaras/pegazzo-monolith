@@ -1,11 +1,11 @@
 class TestInsuranceRouter:
-    """Tests for /pegazzo/management/insurances endpoints."""
+    """Tests for /pegazzo/management/cars/insurances endpoints."""
 
     # --- POST ---
 
     def test_create_insurance_success(self, authorized_client):
         response = authorized_client.post(
-            "/pegazzo/management/insurances",
+            "/pegazzo/management/cars/insurances",
             json={"name": "Qualitas", "telephones": ["+521112223333"]},
         )
         assert response.status_code == 201
@@ -16,7 +16,7 @@ class TestInsuranceRouter:
 
     def test_create_insurance_without_telephones(self, authorized_client):
         response = authorized_client.post(
-            "/pegazzo/management/insurances",
+            "/pegazzo/management/cars/insurances",
             json={"name": "HDI Seguros"},
         )
         assert response.status_code == 201
@@ -24,7 +24,7 @@ class TestInsuranceRouter:
 
     def test_create_insurance_duplicate_name(self, authorized_client):
         response = authorized_client.post(
-            "/pegazzo/management/insurances",
+            "/pegazzo/management/cars/insurances",
             json={"name": "AXA Seguros"},
         )
         assert response.status_code == 400
@@ -32,14 +32,14 @@ class TestInsuranceRouter:
 
     def test_create_insurance_unauthenticated(self, client):
         response = client.post(
-            "/pegazzo/management/insurances",
+            "/pegazzo/management/cars/insurances",
             json={"name": "Nueva"},
         )
         assert response.status_code == 401
 
     def test_create_insurance_missing_name(self, authorized_client):
         response = authorized_client.post(
-            "/pegazzo/management/insurances",
+            "/pegazzo/management/cars/insurances",
             json={"telephones": ["+521234567890"]},
         )
         assert response.status_code == 422
@@ -47,33 +47,33 @@ class TestInsuranceRouter:
     # --- GET ---
 
     def test_list_insurances(self, authorized_client):
-        response = authorized_client.get("/pegazzo/management/insurances")
+        response = authorized_client.get("/pegazzo/management/cars/insurances")
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
         assert len(data) == 2
 
     def test_list_insurances_with_search(self, authorized_client):
-        response = authorized_client.get("/pegazzo/management/insurances?search=AXA")
+        response = authorized_client.get("/pegazzo/management/cars/insurances?search=AXA")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
         assert data[0]["name"] == "AXA Seguros"
 
     def test_list_insurances_search_no_match(self, authorized_client):
-        response = authorized_client.get("/pegazzo/management/insurances?search=INEXISTENTE")
+        response = authorized_client.get("/pegazzo/management/cars/insurances?search=INEXISTENTE")
         assert response.status_code == 200
         assert response.json() == []
 
     def test_list_insurances_unauthenticated(self, client):
-        response = client.get("/pegazzo/management/insurances")
+        response = client.get("/pegazzo/management/cars/insurances")
         assert response.status_code == 401
 
     # --- PATCH ---
 
     def test_update_insurance_name(self, authorized_client):
         response = authorized_client.patch(
-            "/pegazzo/management/insurances/1",
+            "/pegazzo/management/cars/insurances/1",
             json={"name": "AXA Seguros MX"},
         )
         assert response.status_code == 200
@@ -81,7 +81,7 @@ class TestInsuranceRouter:
 
     def test_update_insurance_telephones(self, authorized_client):
         response = authorized_client.patch(
-            "/pegazzo/management/insurances/1",
+            "/pegazzo/management/cars/insurances/1",
             json={"telephones": ["+529991112222"]},
         )
         assert response.status_code == 200
@@ -89,7 +89,7 @@ class TestInsuranceRouter:
 
     def test_update_insurance_not_found(self, authorized_client):
         response = authorized_client.patch(
-            "/pegazzo/management/insurances/9999",
+            "/pegazzo/management/cars/insurances/9999",
             json={"name": "X"},
         )
         assert response.status_code == 404
@@ -97,33 +97,33 @@ class TestInsuranceRouter:
 
     def test_update_insurance_duplicate_name(self, authorized_client):
         response = authorized_client.patch(
-            "/pegazzo/management/insurances/1",
+            "/pegazzo/management/cars/insurances/1",
             json={"name": "GNP Seguros"},
         )
         assert response.status_code == 400
         assert "GNP Seguros" in response.json()["detail"]
 
     def test_update_insurance_unauthenticated(self, client):
-        response = client.patch("/pegazzo/management/insurances/1", json={"name": "X"})
+        response = client.patch("/pegazzo/management/cars/insurances/1", json={"name": "X"})
         assert response.status_code == 401
 
     # --- DELETE ---
 
     def test_delete_insurance_success(self, authorized_client):
-        response = authorized_client.delete("/pegazzo/management/insurances/2")
+        response = authorized_client.delete("/pegazzo/management/cars/insurances/2")
         assert response.status_code == 200
         assert "deleted" in response.json()["message"].lower()
 
     def test_delete_insurance_not_found(self, authorized_client):
-        response = authorized_client.delete("/pegazzo/management/insurances/9999")
+        response = authorized_client.delete("/pegazzo/management/cars/insurances/9999")
         assert response.status_code == 404
 
     def test_delete_insurance_in_use(self, authorized_client):
         authorized_client.insurance_repo.cars_referencing.add(1)
-        response = authorized_client.delete("/pegazzo/management/insurances/1")
+        response = authorized_client.delete("/pegazzo/management/cars/insurances/1")
         assert response.status_code == 400
         assert "cannot be deleted" in response.json()["detail"]
 
     def test_delete_insurance_unauthenticated(self, client):
-        response = client.delete("/pegazzo/management/insurances/1")
+        response = client.delete("/pegazzo/management/cars/insurances/1")
         assert response.status_code == 401
