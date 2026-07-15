@@ -16,7 +16,11 @@ def request_upload_url(
     service: DocumentService = Depends(ServiceFactory.document_service),
     _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
 ) -> UploadUrlResponseSchema:
-    """Generate a presigned PUT URL for uploading a document to private storage."""
+    """Generate a presigned PUT URL for uploading a document to private storage.
+
+    Allowed content types: application/pdf, image/jpeg, image/png, image/webp.
+    The client must PUT the file binary directly to the returned URL before confirming.
+    """
     return service.request_upload_url(body)
 
 
