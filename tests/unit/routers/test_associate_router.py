@@ -1,10 +1,9 @@
-import pytest
-
-
-BASE_URL = "/pegazzo/management/cars/associates"
+BASE_URL = "/pegazzo/management/cars/associate"
 
 
 class TestAssociateRouter:
+    """Associate Router Testing."""
+
     def test_create_associate_success(self, authorized_client):
         response = authorized_client.post(
             BASE_URL,
