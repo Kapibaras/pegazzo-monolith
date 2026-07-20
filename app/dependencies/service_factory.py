@@ -1,7 +1,7 @@
 from fastapi import Depends
 from fastapi_jwt_auth import AuthJWT
 
-from app.services import AuthService, BalanceService, UserService
+from app.services import AuthService, BalanceService, InsuranceService, UserService
 
 from .repository_factory import RepositoryFactory
 
@@ -38,3 +38,13 @@ class ServiceFactory:
         Yields:BalanceService: An instance of BalanceService initialized with the provided repository.
         """
         yield BalanceService(repository)
+
+    @staticmethod
+    def insurance_service(repository=Depends(RepositoryFactory.insurance_repository)):
+        """Provide an instance of InsuranceService.
+
+        Args:repository (InsuranceRepository): An instance of InsuranceRepository, injected via FastAPI's Depends.
+
+        Yields:InsuranceService: An instance of InsuranceService initialized with the provided repository.
+        """
+        yield InsuranceService(repository)
