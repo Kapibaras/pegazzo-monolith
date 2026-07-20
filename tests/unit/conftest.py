@@ -9,13 +9,14 @@ from app.dependencies import RepositoryFactory
 from app.enum.auth import Role
 from app.main import app
 from app.models.users import User
-from tests.mocks import BalanceRepositoryMock, InsuranceRepositoryMock, UserRepositoryMock
+from tests.mocks import AssociateRepositoryMock, BalanceRepositoryMock, InsuranceRepositoryMock, UserRepositoryMock
 
 user_repo_mock = UserRepositoryMock()
 _initial_user = user_repo_mock.users[0]
 
 balance_repo_mock = BalanceRepositoryMock()
 insurance_repo_mock = InsuranceRepositoryMock()
+associate_repo_mock = AssociateRepositoryMock()
 
 
 @pytest.fixture(autouse=True)
@@ -31,6 +32,7 @@ def reset_state():
     user_repo_mock.users = [_initial_user]
     balance_repo_mock.reset()
     insurance_repo_mock.reset()
+    associate_repo_mock.reset()
 
 
 @pytest.fixture
@@ -40,11 +42,13 @@ def client():
         RepositoryFactory.user_repository: lambda: user_repo_mock,
         RepositoryFactory.balance_repository: lambda: balance_repo_mock,
         RepositoryFactory.insurance_repository: lambda: insurance_repo_mock,
+        RepositoryFactory.associate_repository: lambda: associate_repo_mock,
     }
     client = TestClient(app)
     client.balance_repo = balance_repo_mock
     client.user_repo = user_repo_mock
     client.insurance_repo = insurance_repo_mock
+    client.associate_repo = associate_repo_mock
     return client
 
 
@@ -55,12 +59,14 @@ def authorized_client():
         RepositoryFactory.user_repository: lambda: user_repo_mock,
         RepositoryFactory.balance_repository: lambda: balance_repo_mock,
         RepositoryFactory.insurance_repository: lambda: insurance_repo_mock,
+        RepositoryFactory.associate_repository: lambda: associate_repo_mock,
     }
 
     client = TestClient(app)
     client.balance_repo = balance_repo_mock
     client.user_repo = user_repo_mock
     client.insurance_repo = insurance_repo_mock
+    client.associate_repo = associate_repo_mock
 
     with patch("app.utils.auth.AuthUtils.verify_password", return_value=True):
         response = client.post(
@@ -87,6 +93,7 @@ def admin_authorized_client():
         RepositoryFactory.user_repository: lambda: user_repo_mock,
         RepositoryFactory.balance_repository: lambda: balance_repo_mock,
         RepositoryFactory.insurance_repository: lambda: insurance_repo_mock,
+        RepositoryFactory.associate_repository: lambda: associate_repo_mock,
     }
 
     admin_user = User(
@@ -104,6 +111,7 @@ def admin_authorized_client():
     client = TestClient(app)
     client.balance_repo = balance_repo_mock
     client.user_repo = user_repo_mock
+    client.associate_repo = associate_repo_mock
 
     with patch("app.utils.auth.AuthUtils.verify_password", return_value=True):
         response = client.post(

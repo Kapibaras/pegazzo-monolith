@@ -6,7 +6,7 @@ import app.auth.core
 import app.database.events
 from app.config import CORS_ORIGINS, DEBUG, ENVIRONMENT, AppConfig
 from app.database.core import test_connection
-from app.routers import auth_router, balance_router, health_router, insurance_router, user_router
+from app.routers import associate_router, auth_router, balance_router, health_router, insurance_router, user_router
 
 app = FastAPI(
     debug=DEBUG,
@@ -53,6 +53,7 @@ app.include_router(auth_router, prefix="/pegazzo")
 app.include_router(user_router, prefix="/pegazzo")
 app.include_router(balance_router, prefix="/pegazzo")
 app.include_router(insurance_router, prefix="/pegazzo")
+app.include_router(associate_router, prefix="/pegazzo")
 
 # * HANDLERS * #
 
