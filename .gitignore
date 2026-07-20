@@ -79,5 +79,8 @@ docker-compose.yml
 *.swp
 *.orig
 
+/postman
+# This because we already have a collections for testing in any API Client
+
 #  ───── Claude ─────
 /.claude/*.local.*
