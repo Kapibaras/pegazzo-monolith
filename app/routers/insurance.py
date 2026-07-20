@@ -9,7 +9,7 @@ from app.schemas.insurance import InsurancePatchSchema, InsuranceResponseSchema,
 from app.schemas.user import ActionSuccess
 from app.services.insurance import InsuranceService
 
-router = APIRouter(prefix="/management/cars/insurances", tags=["Cars", "Insurance"])
+router = APIRouter(prefix="/management/cars/insurance", tags=["Cars", "Insurance"])
 
 
 @router.post(
