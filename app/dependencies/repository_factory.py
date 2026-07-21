@@ -1,7 +1,7 @@
 from fastapi import Depends
 
 from app.database import get_db
-from app.repositories import AssociateRepository, BalanceRepository, InsuranceRepository, UserRepository
+from app.repositories import AssociateRepository, BalanceRepository, CarRepository, InsuranceRepository, UserRepository
 
 
 class RepositoryFactory:
@@ -50,3 +50,14 @@ class RepositoryFactory:
         """
 
         yield AssociateRepository(db_session)
+
+    @staticmethod
+    def car_repository(db_session=Depends(get_db)):
+        """Provide an instance of CarRepository.
+
+        Args:db_session (Session): The database session, injected via FastAPI's Depends.
+
+        Yields:CarRepository: An instance of CarRepository initialized with the provided database session.
+        """
+
+        yield CarRepository(db_session)
