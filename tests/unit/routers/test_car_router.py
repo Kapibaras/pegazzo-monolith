@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta, timezone
 
-import pytest
-
 
 def _future_date(days: int = 365) -> str:
     return (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
@@ -47,10 +45,10 @@ BASE_PAYLOAD = {
 
 
 class TestCarRouter:
-    """Tests for POST /pegazzo/management/cars."""
+    """Tests for POST /pegazzo/management/car."""
 
     def test_create_car_success(self, authorized_client):
-        response = authorized_client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
+        response = authorized_client.post("/pegazzo/management/car", json=BASE_PAYLOAD)
 
         assert response.status_code == 201
         data = response.json()
@@ -62,52 +60,52 @@ class TestCarRouter:
 
     def test_create_car_with_associate(self, authorized_client):
         payload = {**BASE_PAYLOAD, "associateId": 1}
-        response = authorized_client.post("/pegazzo/management/cars", json=payload)
+        response = authorized_client.post("/pegazzo/management/car", json=payload)
         assert response.status_code == 201
 
     def test_create_car_duplicate_id(self, authorized_client):
-        authorized_client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
+        authorized_client.post("/pegazzo/management/car", json=BASE_PAYLOAD)
 
-        response = authorized_client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
+        response = authorized_client.post("/pegazzo/management/car", json=BASE_PAYLOAD)
         assert response.status_code == 400
         assert "CAR-001" in response.json()["detail"]
 
     def test_create_car_duplicate_vin(self, authorized_client):
-        authorized_client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
+        authorized_client.post("/pegazzo/management/car", json=BASE_PAYLOAD)
 
         payload = {**BASE_PAYLOAD, "id": "CAR-002", "plate": "XYZ-9999"}
-        response = authorized_client.post("/pegazzo/management/cars", json=payload)
+        response = authorized_client.post("/pegazzo/management/car", json=payload)
         assert response.status_code == 400
         assert "1HGBH41JXMN109186" in response.json()["detail"]
 
     def test_create_car_duplicate_plate(self, authorized_client):
-        authorized_client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
+        authorized_client.post("/pegazzo/management/car", json=BASE_PAYLOAD)
 
         payload = {**BASE_PAYLOAD, "id": "CAR-002", "vin": "2HGBH41JXMN999999"}
-        response = authorized_client.post("/pegazzo/management/cars", json=payload)
+        response = authorized_client.post("/pegazzo/management/car", json=payload)
         assert response.status_code == 400
         assert "ABC-1234" in response.json()["detail"]
 
     def test_create_car_policy_expiration_in_past(self, authorized_client):
         payload = {**BASE_PAYLOAD, "policyExpirationDate": _past_date()}
-        response = authorized_client.post("/pegazzo/management/cars", json=payload)
+        response = authorized_client.post("/pegazzo/management/car", json=payload)
         assert response.status_code == 400
         assert "past" in response.json()["detail"].lower()
 
     def test_create_car_nonexistent_insurance_provider(self, authorized_client):
         payload = {**BASE_PAYLOAD, "insuranceProviderId": 9999}
-        response = authorized_client.post("/pegazzo/management/cars", json=payload)
+        response = authorized_client.post("/pegazzo/management/car", json=payload)
         assert response.status_code == 400
         assert "9999" in response.json()["detail"]
 
     def test_create_car_nonexistent_associate(self, authorized_client):
         payload = {**BASE_PAYLOAD, "associateId": 9999}
-        response = authorized_client.post("/pegazzo/management/cars", json=payload)
+        response = authorized_client.post("/pegazzo/management/car", json=payload)
         assert response.status_code == 400
         assert "9999" in response.json()["detail"]
 
     def test_create_car_unauthenticated(self, client):
-        response = client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
+        response = client.post("/pegazzo/management/car", json=BASE_PAYLOAD)
         assert response.status_code == 401
 
     def test_create_car_employee_forbidden(self, authorized_client):
@@ -120,5 +118,5 @@ class TestCarRouter:
 
     def test_create_car_missing_required_field(self, authorized_client):
         payload = {k: v for k, v in BASE_PAYLOAD.items() if k != "vin"}
-        response = authorized_client.post("/pegazzo/management/cars", json=payload)
+        response = authorized_client.post("/pegazzo/management/car", json=payload)
         assert response.status_code == 422
