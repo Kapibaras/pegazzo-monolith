@@ -24,4 +24,3 @@ def test_connection():
         raise RuntimeError(message) from e
 
 
-import app.database.events
