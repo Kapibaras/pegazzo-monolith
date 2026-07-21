@@ -6,7 +6,7 @@ from app.enum.auth import Role
 from app.schemas.car import CarResponseSchema, CarSchema
 from app.services.car import CarService
 
-router = APIRouter(prefix="/management/cars", tags=["Cars"])
+router = APIRouter(prefix="/management/car", tags=["Cars"])
 
 
 @router.post(
