@@ -1,8 +1,21 @@
+from typing import Optional
+
+from sqlalchemy import or_
+
+from app.enum.balance import SortOrder
+from app.enum.crm import CarSortBy, CarStatus
 from app.errors.database import DBOperationError
 from app.models.car import Associate, Car, Insurance
 from app.utils.logging_config import logger
 
 from .abstract import DBRepository
+
+_CAR_SORT_COLUMNS = {
+    CarSortBy.MAKE: Car.make,
+    CarSortBy.PLATE: Car.plate,
+    CarSortBy.STATUS: Car.status,
+    CarSortBy.CREATED_AT: Car.created_at,
+}
 
 
 class CarRepository(DBRepository):
@@ -42,3 +55,39 @@ class CarRepository(DBRepository):
             raise DBOperationError("Error creating car in the database") from ex
 
         return car
+
+    def _base_query(self, status: Optional[CarStatus], search: Optional[str], archived: bool):
+        """Build a base query with the common filters applied."""
+        query = self.db.query(Car)
+        query = query.filter(Car.archived_at.isnot(None)) if archived else query.filter(Car.archived_at.is_(None))
+        if status:
+            query = query.filter(Car.status == status)
+        if search:
+            term = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Car.plate.ilike(term),
+                    Car.make.ilike(term),
+                    Car.model.ilike(term),
+                ),
+            )
+        return query
+
+    def count_cars(self, status: Optional[CarStatus], search: Optional[str], archived: bool) -> int:
+        """Return the total count of cars matching the given filters."""
+        return self._base_query(status, search, archived).count()
+
+    def list_cars(
+        self,
+        status: Optional[CarStatus],
+        search: Optional[str],
+        archived: bool,
+        sort_by: CarSortBy,
+        sort_order: SortOrder,
+        limit: int,
+        offset: int,
+    ) -> list[Car]:
+        """Return a paginated, sorted list of cars matching the given filters."""
+        column = _CAR_SORT_COLUMNS.get(sort_by, Car.created_at)
+        order = column.desc() if sort_order == SortOrder.DESC else column.asc()
+        return self._base_query(status, search, archived).order_by(order).offset(offset).limit(limit).all()
