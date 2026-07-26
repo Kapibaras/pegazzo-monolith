@@ -9,7 +9,15 @@ from app.dependencies import RepositoryFactory
 from app.enum.auth import Role
 from app.main import app
 from app.models.users import User
-from tests.mocks import AssociateRepositoryMock, BalanceRepositoryMock, CarRepositoryMock, DocumentRepositoryMock, InsuranceRepositoryMock, UserRepositoryMock
+from tests.mocks import (
+    AssociateRepositoryMock,
+    BalanceRepositoryMock,
+    CarRepositoryMock,
+    DocumentRepositoryMock,
+    ImageRepositoryMock,
+    InsuranceRepositoryMock,
+    UserRepositoryMock,
+)
 
 user_repo_mock = UserRepositoryMock()
 _initial_user = user_repo_mock.users[0]
@@ -19,6 +27,7 @@ insurance_repo_mock = InsuranceRepositoryMock()
 associate_repo_mock = AssociateRepositoryMock()
 car_repo_mock = CarRepositoryMock()
 document_repo_mock = DocumentRepositoryMock()
+image_repo_mock = ImageRepositoryMock()
 
 
 @pytest.fixture(autouse=True)
@@ -37,6 +46,7 @@ def reset_state():
     associate_repo_mock.reset()
     car_repo_mock.reset()
     document_repo_mock.reset()
+    image_repo_mock.reset()
 
 
 @pytest.fixture
@@ -49,6 +59,7 @@ def client():
         RepositoryFactory.associate_repository: lambda: associate_repo_mock,
         RepositoryFactory.car_repository: lambda: car_repo_mock,
         RepositoryFactory.document_repository: lambda: document_repo_mock,
+        RepositoryFactory.image_repository: lambda: image_repo_mock,
     }
     client = TestClient(app)
     client.balance_repo = balance_repo_mock
@@ -57,6 +68,7 @@ def client():
     client.associate_repo = associate_repo_mock
     client.car_repo = car_repo_mock
     client.document_repo = document_repo_mock
+    client.image_repo = image_repo_mock
     return client
 
 
@@ -70,6 +82,7 @@ def authorized_client():
         RepositoryFactory.associate_repository: lambda: associate_repo_mock,
         RepositoryFactory.car_repository: lambda: car_repo_mock,
         RepositoryFactory.document_repository: lambda: document_repo_mock,
+        RepositoryFactory.image_repository: lambda: image_repo_mock,
     }
 
     client = TestClient(app)
@@ -79,6 +92,7 @@ def authorized_client():
     client.associate_repo = associate_repo_mock
     client.car_repo = car_repo_mock
     client.document_repo = document_repo_mock
+    client.image_repo = image_repo_mock
 
     with patch("app.utils.auth.AuthUtils.verify_password", return_value=True):
         response = client.post(
@@ -108,6 +122,7 @@ def admin_authorized_client():
         RepositoryFactory.associate_repository: lambda: associate_repo_mock,
         RepositoryFactory.car_repository: lambda: car_repo_mock,
         RepositoryFactory.document_repository: lambda: document_repo_mock,
+        RepositoryFactory.image_repository: lambda: image_repo_mock,
     }
 
     admin_user = User(
@@ -129,6 +144,7 @@ def admin_authorized_client():
     client.associate_repo = associate_repo_mock
     client.car_repo = car_repo_mock
     client.document_repo = document_repo_mock
+    client.image_repo = image_repo_mock
 
     with patch("app.utils.auth.AuthUtils.verify_password", return_value=True):
         response = client.post(
