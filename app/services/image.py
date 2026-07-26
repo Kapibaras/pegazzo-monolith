@@ -65,7 +65,7 @@ class ImageService:
         if not car:
             raise ImageEntityNotFoundException("car", car_id)
         if len(car.photos or []) >= MAX_CAR_PHOTOS:
-            raise MaxPhotosExceededException()
+            raise MaxPhotosExceededException
         return self.repository.add_car_photo(car, data.url)
 
     def remove_car_photo(self, car_id: str, data: CarRemovePhotoSchema):
@@ -74,7 +74,7 @@ class ImageService:
         if not car:
             raise ImageEntityNotFoundException("car", car_id)
         if data.url not in (car.photos or []):
-            raise PhotoNotFoundException()
+            raise PhotoNotFoundException
         return self.repository.remove_car_photo(car, data.url)
 
     def set_driver_photo(self, driver_id: str, data: DriverPhotoSchema):
@@ -89,6 +89,5 @@ class ImageService:
         if entity_type in (ImageEntityType.CAR_AGENCY_IMAGE, ImageEntityType.CAR_PHOTO):
             if not self.repository.get_car_by_id(entity_id):
                 raise ImageEntityNotFoundException("car", entity_id)
-        elif entity_type == ImageEntityType.DRIVER_PHOTO:
-            if not self.repository.get_driver_by_id(entity_id):
-                raise ImageEntityNotFoundException("driver", entity_id)
+        elif entity_type == ImageEntityType.DRIVER_PHOTO and not self.repository.get_driver_by_id(entity_id):
+            raise ImageEntityNotFoundException("driver", entity_id)
