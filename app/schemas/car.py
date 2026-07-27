@@ -3,7 +3,8 @@ from typing import Any, Optional
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from app.enum.crm import CarStatus
+from app.enum.balance import SortOrder
+from app.enum.crm import CarSortBy, CarStatus
 from app.schemas.types import RequestUTCDatetime
 
 
@@ -61,6 +62,53 @@ class CarSchema(BaseModel):
 
     # Associate (optional)
     associate_id: Optional[int] = Field(default=None, description="FK to associate table")
+
+
+class CarListQuerySchema(BaseModel):
+    """Query parameters for GET /management/cars."""
+
+    page: int = Field(default=1, ge=1, description="Page number starting at 1")
+    limit: int = Field(default=10, ge=1, le=100, description="Records per page (max 100)")
+    status: Optional[CarStatus] = Field(default=None, description="Filter by status: ACTIVE, INACTIVE, IN_MAINTENANCE")
+    search: Optional[str] = Field(default=None, min_length=1, max_length=100, description="Search by plate, make or model")
+    archived: bool = Field(default=False, description="If true, return only archived cars; otherwise active cars only")
+    sort_by: CarSortBy = Field(default=CarSortBy.CREATED_AT, description="Field to sort by")
+    sort_order: SortOrder = Field(default=SortOrder.DESC, description="Sort direction: asc or desc")
+
+
+class CarSummarySchema(BaseModel):
+    """Lightweight car summary returned in the list endpoint."""
+
+    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
+
+    id: str
+    make: str
+    model: str
+    plate: str
+    status: str
+    year: str
+    color: str
+    agency_image: Optional[str] = None
+
+
+class PaginationSchema(BaseModel):
+    """Pagination metadata."""
+
+    page: int = Field(..., ge=1)
+    limit: int = Field(..., ge=1, le=100)
+    total: int = Field(..., ge=0)
+    total_pages: int = Field(..., ge=0)
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class CarListResponseSchema(BaseModel):
+    """Response for GET /management/cars."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    cars: list[CarSummarySchema] = Field(default_factory=list)
+    pagination: PaginationSchema
 
 
 class CarResponseSchema(BaseModel):

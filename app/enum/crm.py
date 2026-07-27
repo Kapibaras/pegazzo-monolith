@@ -25,6 +25,15 @@ class CarStatus(StrEnum):
     IN_MAINTENANCE = "IN_MAINTENANCE"
 
 
+class CarSortBy(StrEnum):
+    """Enum for car list sort fields."""
+
+    MAKE = "make"
+    PLATE = "plate"
+    STATUS = "status"
+    CREATED_AT = "created_at"
+
+
 class DriverStatus(StrEnum):
     """Enum for driver operational status."""
 

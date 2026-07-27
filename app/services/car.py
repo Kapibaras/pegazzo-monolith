@@ -1,3 +1,4 @@
+import math
 from datetime import datetime, timezone
 
 from app.errors.car import (
@@ -10,14 +11,38 @@ from app.errors.car import (
 )
 from app.models.car import Car
 from app.repositories.car import CarRepository
-from app.schemas.car import CarSchema
+from app.schemas.car import CarListQuerySchema, CarListResponseSchema, CarSchema, PaginationSchema
 
 
 class CarService:
     """Car service class."""
 
     def __init__(self, repository: CarRepository):
+        """Initialize the car service with a repository."""
         self.repository = repository
+
+    def list_cars(self, params: CarListQuerySchema) -> CarListResponseSchema:
+        """Return a paginated, filtered and sorted list of cars."""
+        offset = (params.page - 1) * params.limit
+        total = self.repository.count_cars(status=params.status, search=params.search, archived=params.archived)
+        cars = self.repository.list_cars(
+            status=params.status,
+            search=params.search,
+            archived=params.archived,
+            sort_by=params.sort_by,
+            sort_order=params.sort_order,
+            limit=params.limit,
+            offset=offset,
+        )
+        return CarListResponseSchema(
+            cars=cars,
+            pagination=PaginationSchema(
+                page=params.page,
+                limit=params.limit,
+                total=total,
+                total_pages=0 if total == 0 else math.ceil(total / params.limit),
+            ),
+        )
 
     def create_car(self, data: CarSchema) -> Car:
         """Create a new car with validations."""
@@ -32,7 +57,7 @@ class CarService:
 
         now_utc = datetime.now(timezone.utc)
         if data.policy_expiration_date <= now_utc:
-            raise PolicyExpirationDateInPastException()
+            raise PolicyExpirationDateInPastException
 
         if not self.repository.get_insurance_by_id(data.insurance_provider_id):
             raise InsuranceProviderNotFoundException(data.insurance_provider_id)

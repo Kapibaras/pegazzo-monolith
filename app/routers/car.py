@@ -3,10 +3,26 @@ from fastapi import APIRouter, Body, Depends, status
 from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
 from app.enum.auth import Role
-from app.schemas.car import CarResponseSchema, CarSchema
+from app.schemas.car import CarListQuerySchema, CarListResponseSchema, CarResponseSchema, CarSchema
 from app.services.car import CarService
 
-router = APIRouter(prefix="/management/car", tags=["Cars"])
+router = APIRouter(prefix="/management/cars", tags=["Cars"])
+
+
+@router.get("", response_model=CarListResponseSchema, status_code=status.HTTP_200_OK)
+def list_cars(
+    params: CarListQuerySchema = Depends(CarListQuerySchema),
+    service: CarService = Depends(ServiceFactory.car_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN, Role.EMPLOYEE])),
+) -> CarListResponseSchema:
+    """List cars with optional filters (status, search, archived), sorting and pagination.
+
+    - **search**: matches plate, make or model (case-insensitive).
+    - **archived**: set to true to retrieve archived cars; defaults to false (active cars only).
+    - **sort_by**: make, plate, status or created_at.
+    - **sort_order**: asc or desc.
+    """
+    return service.list_cars(params)
 
 
 @router.post(
