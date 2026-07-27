@@ -1,6 +1,14 @@
 from enum import StrEnum
 
 
+class ImageEntityType(StrEnum):
+    """Enum for image target entity types."""
+
+    CAR_AGENCY_IMAGE = "car_agency_image"
+    CAR_PHOTO = "car_photo"
+    DRIVER_PHOTO = "driver_photo"
+
+
 class DocumentEntityType(StrEnum):
     """Enum for document target entity types."""
 
