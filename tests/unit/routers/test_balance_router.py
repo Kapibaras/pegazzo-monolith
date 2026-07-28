@@ -380,11 +380,14 @@ class TestBalanceRouter:
 
     def test_get_trend_month_default_limit_success(self, authorized_client):
         """Default month limit = 6, returns chronological data and fills missing periods with zeros."""
+        now = datetime.now(timezone.utc)
+        target_month = now.month - 2 if now.month > 2 else now.month + 10
+        target_year = now.year if now.month > 2 else now.year - 1
 
-        authorized_client.balance_repo.mapping[("month", 2026, 1, None)] = TransactionMetrics(
+        authorized_client.balance_repo.mapping[("month", target_year, target_month, None)] = TransactionMetrics(
             period_type="month",
-            year=2026,
-            month=1,
+            year=target_year,
+            month=target_month,
             total_income=Decimal("4500"),
             total_expense=Decimal("2200"),
         )

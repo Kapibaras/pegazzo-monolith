@@ -7,6 +7,8 @@ from app.enum.balance import SortOrder
 from app.enum.crm import CarSortBy, CarStatus
 from app.schemas.types import RequestUTCDatetime
 
+_CAMEL = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
 
 class CarSchema(BaseModel):
     """Schema for creating a car."""
@@ -153,3 +155,94 @@ class CarResponseSchema(BaseModel):
     photos: Optional[Any] = None
     created_at: Any
     updated_at: Any
+
+
+class InsuranceDetailSchema(BaseModel):
+    """Insurance provider plus policy fields for the car detail response."""
+
+    model_config = _CAMEL
+
+    id: int
+    name: str
+    policy_number: str
+    policy_expiration_date: Any
+    policy_type: str
+
+
+class AssociateDetailSchema(BaseModel):
+    """Associate linked to the car."""
+
+    model_config = _CAMEL
+
+    id: int
+    name: str
+    surnames: str
+    telephones: list[str]
+
+
+class AssignedDriverSchema(BaseModel):
+    """Brief driver info derived from the active contract."""
+
+    model_config = _CAMEL
+
+    id: str
+    name: str
+    surnames: str
+
+
+class DocumentDetailSchema(BaseModel):
+    """Document with a temporary presigned GET URL and computed expiry status."""
+
+    model_config = _CAMEL
+
+    id: int
+    type: str
+    category: str
+    expiry_date: Optional[Any] = None
+    url: str
+    expiry_status: Optional[str] = None
+
+
+class CarDetailResponseSchema(BaseModel):
+    """Full car detail response."""
+
+    model_config = _CAMEL
+
+    id: str
+    make: str
+    model: str
+    year: str
+    color: str
+    status: str
+    vin: str
+    plate: str
+    body_type: str
+    engine_type: str
+    transmission: str
+    engine_serial_number: str
+    odometer: int
+    doors_number: int
+    passengers_number: int
+    tire_specification: str
+    unit_value: float
+    unit_billing_value: float
+    bill_number: str
+    public_vehicle_registry: str
+    alta_public_vehicle_registry: Any
+    battery_model: str
+    battery_serial_number: str
+    battery_date: Any
+    legal_owner_name: str
+    legal_owner_surnames: str
+    financed_status: str
+    features: Optional[Any] = None
+    details: Optional[Any] = None
+    agency_image: Optional[str] = None
+    photos: Optional[list[str]] = None
+    archived_at: Optional[Any] = None
+    created_at: Any
+    updated_at: Any
+    insurance: InsuranceDetailSchema
+    associate: Optional[AssociateDetailSchema] = None
+    documents: list[DocumentDetailSchema] = Field(default_factory=list)
+    assigned_driver: Optional[AssignedDriverSchema] = None

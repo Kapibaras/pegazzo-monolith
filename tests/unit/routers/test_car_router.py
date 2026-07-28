@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
 
 def _future_date(days: int = 365) -> str:
@@ -242,3 +243,113 @@ class TestCarRouter:
     def test_list_cars_unauthenticated(self, client):
         response = client.get("/pegazzo/management/cars")
         assert response.status_code == 401
+
+    # --- GET /{car_id} ---
+
+    def _create_car(self, client):
+        """Create CAR-001 in the mock and return the Car instance."""
+        client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
+        car = client.car_repo.get_by_id("CAR-001")
+        car.insurance_provider = client.car_repo.insurances[0]
+        car.associate = []
+        return car
+
+    def test_get_car_not_found(self, authorized_client):
+        response = authorized_client.get("/pegazzo/management/cars/NOTEXIST")
+        assert response.status_code == 404
+
+    def test_get_car_unauthenticated(self, client):
+        response = client.get("/pegazzo/management/cars/CAR-001")
+        assert response.status_code == 401
+
+    def test_get_car_basic_fields(self, authorized_client):
+        with patch("app.services.car.r2.generate_document_read_url", return_value="https://r2.example/doc"):
+            self._create_car(authorized_client)
+            response = authorized_client.get("/pegazzo/management/cars/CAR-001")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == "CAR-001"
+        assert data["make"] == "Toyota"
+        assert data["plate"] == "ABC-1234"
+        assert data["documents"] == []
+        assert data["assignedDriver"] is None
+        assert data["associate"] is None
+        assert data["insurance"]["name"] == "AXA"
+        assert data["insurance"]["policyNumber"] == BASE_PAYLOAD["policyNumber"]
+
+    def test_get_car_with_documents_expiry_status(self, authorized_client):
+        """Documents with expiry_date get a computed expiry_status."""
+        from app.models.document import Document
+
+        self._create_car(authorized_client)
+        now = datetime.now(timezone.utc)
+        doc_valid = Document(id=1, type="PDF", url="key/doc1.pdf", category="license",
+                             expiry_date=now + timedelta(days=60))
+        doc_expiring = Document(id=2, type="PDF", url="key/doc2.pdf", category="insurance",
+                                expiry_date=now + timedelta(days=10))
+        doc_expired = Document(id=3, type="PDF", url="key/doc3.pdf", category="registration",
+                               expiry_date=now - timedelta(days=1))
+        doc_no_expiry = Document(id=4, type="PDF", url="key/doc4.pdf", category="other",
+                                 expiry_date=None)
+        authorized_client.car_repo.car_documents["CAR-001"] = [
+            doc_valid, doc_expiring, doc_expired, doc_no_expiry,
+        ]
+
+        with patch("app.services.car.r2.generate_document_read_url", return_value="https://r2.example/doc"):
+            response = authorized_client.get("/pegazzo/management/cars/CAR-001")
+
+        assert response.status_code == 200
+        docs = {d["id"]: d for d in response.json()["documents"]}
+        assert docs[1]["expiryStatus"] == "valid"
+        assert docs[2]["expiryStatus"] == "expiring_soon"
+        assert docs[3]["expiryStatus"] == "expired"
+        assert docs[4]["expiryStatus"] is None
+        assert all(d["url"] == "https://r2.example/doc" for d in docs.values())
+
+    def test_get_car_with_assigned_driver(self, authorized_client):
+        """Active contract links a driver to the car."""
+        from app.models.contract import Contract
+        from app.models.driver import Driver
+
+        self._create_car(authorized_client)
+        driver = Driver(id="DRV-001", name="Luis", surnames="Gomez Ramirez",
+                        status="ACTIVE", telephones=["+521234567890"],
+                        license_number="LIC001", license_validity=datetime.now(timezone.utc),
+                        identification_number="ID001", address="Calle 1",
+                        garage_address=["Calle 2"])
+        contract = Contract(
+            id="CNT-001",
+            car_id="CAR-001",
+            driver_id="DRV-001",
+            start_date=(datetime.now(tz=timezone.utc) - timedelta(days=30)).date(),
+            end_date=(datetime.now(tz=timezone.utc) + timedelta(days=30)).date(),
+            type="monthly",
+            amount=5000,
+            guarantee_amount=1000,
+        )
+        contract.driver = driver
+        authorized_client.car_repo.contracts.append(contract)
+
+        with patch("app.services.car.r2.generate_document_read_url", return_value="https://r2.example/doc"):
+            response = authorized_client.get("/pegazzo/management/cars/CAR-001")
+
+        assert response.status_code == 200
+        driver_data = response.json()["assignedDriver"]
+        assert driver_data["id"] == "DRV-001"
+        assert driver_data["name"] == "Luis"
+        assert driver_data["surnames"] == "Gomez Ramirez"
+
+    def test_get_car_with_associate(self, authorized_client):
+        """Car linked to an associate returns associate data."""
+        self._create_car(authorized_client)
+        car = authorized_client.car_repo.get_by_id("CAR-001")
+        car.associate = [authorized_client.car_repo.associates[0]]
+
+        with patch("app.services.car.r2.generate_document_read_url", return_value="https://r2.example/doc"):
+            response = authorized_client.get("/pegazzo/management/cars/CAR-001")
+
+        assert response.status_code == 200
+        associate = response.json()["associate"]
+        assert associate["name"] == "Juan"
+        assert associate["surnames"] == "Pérez"

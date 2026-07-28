@@ -1,0 +1,106 @@
+{
+  "info": {
+    "name": "PGZ-128 – Get Car Detail",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "car_id", "value": "CAR-001" }
+  ],
+  "item": [
+    {
+      "name": "SETUP",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const names = ['csrf_access_token', 'csrf_refresh_token'];",
+                  "names.forEach((n) => {",
+                  "  const v = pm.cookies.get(n);",
+                  "  if (v) pm.environment.set(n, v);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"Ruben35\",\n  \"password\": \"1234\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/pegazzo/internal/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["pegazzo", "internal", "auth", "login"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "PASO 1 – Car detail (CAR-001 existente)",
+      "item": [
+        {
+          "name": "Get car detail – success",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-CSRF-TOKEN", "value": "{{csrf_access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/pegazzo/management/cars/{{car_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["pegazzo", "management", "cars", "{{car_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "PASO 2 – Car no encontrado (404)",
+      "item": [
+        {
+          "name": "Get car detail – 404",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-CSRF-TOKEN", "value": "{{csrf_access_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/pegazzo/management/cars/NOTEXIST",
+              "host": ["{{base_url}}"],
+              "path": ["pegazzo", "management", "cars", "NOTEXIST"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "PASO 3 – Sin autenticacion (401)",
+      "item": [
+        {
+          "name": "Get car detail – unauthenticated",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/pegazzo/management/cars/{{car_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["pegazzo", "management", "cars", "{{car_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
