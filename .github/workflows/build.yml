@@ -19,34 +19,53 @@ jobs:
           echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login "${{ secrets.REGISTRY_URL }}" \
             -u "${{ secrets.REGISTRY_USER }}" --password-stdin
 
+      - name: Preserve previous image for rollback
+        run: |
+          IMAGE="${{ secrets.REGISTRY_URL }}/pegazzo-monolith"
+          docker pull "$IMAGE:main" || true
+          docker tag "$IMAGE:main" "$IMAGE:previous" || true
+          docker push "$IMAGE:previous" || true
+
       - name: Build and push Docker image
         run: |
           IMAGE="${{ secrets.REGISTRY_URL }}/pegazzo-monolith:main"
           docker build -t "$IMAGE" .
           docker push "$IMAGE"
 
+  migrate-staging:
+    name: Migrate Staging DB
+    runs-on: ubuntu-latest
+    needs: build
+    environment: staging
+
+    steps:
+      - name: Run alembic migrations via SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+        with:
+          host: ${{ secrets.KVM_HOST }}
+          username: ${{ secrets.KVM_USER }}
+          key: ${{ secrets.KVM_SSH_KEY }}
+          envs: DATABASE_URL,REGISTRY_URL,REGISTRY_USER,REGISTRY_PASSWORD
+          script: |
+            IMAGE="$REGISTRY_URL/pegazzo-monolith:main"
+            echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" -u "$REGISTRY_USER" --password-stdin
+            docker pull "$IMAGE"
+            docker run --rm \
+              -e DATABASE_URL="$DATABASE_URL" \
+              "$IMAGE" \
+              alembic upgrade head
+
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    needs: build
+    needs: migrate-staging
 
     steps:
       - name: Trigger Dokploy staging webhook
         run: |
           curl -fsSL -X POST "${{ secrets.DOKPLOY_MONOLITH_STAGING_WEBHOOK }}"
-
-  migrate-staging:
-    name: Migrate Staging DB
-    runs-on: ubuntu-latest
-    needs: deploy-staging
-
-    steps:
-      - name: Run alembic migrations via SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.KVM_HOST }}
-          username: ${{ secrets.KVM_USER }}
-          key: ${{ secrets.KVM_SSH_KEY }}
-          script: |
-            docker exec $(docker ps -qf "name=pegazzo-monolith-staging") \
-              alembic upgrade head

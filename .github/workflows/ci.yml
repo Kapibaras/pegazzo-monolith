@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     name: Lint
@@ -14,16 +18,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install pipenv
-        run: pip install pipenv
-
-      - name: Install dependencies
-        run: pipenv install --dev
+      - name: Set up environment
+        uses: ./.github/actions/setup-env
 
       - name: Run ruff
         run: pipenv run ruff check .
@@ -38,16 +34,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install pipenv
-        run: pip install pipenv
-
-      - name: Install dependencies
-        run: pipenv install --dev
+      - name: Set up environment
+        uses: ./.github/actions/setup-env
 
       - name: Run unit tests
         run: pipenv run pytest tests/unit/ --cov=app --cov-fail-under=80
@@ -64,16 +52,8 @@ jobs:
   #     - name: Checkout code
   #       uses: actions/checkout@v4
   #
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v5
-  #       with:
-  #         python-version: "3.12"
-  #
-  #     - name: Install pipenv
-  #       run: pip install pipenv
-  #
-  #     - name: Install dependencies
-  #       run: pipenv install --dev
+  #     - name: Set up environment
+  #       uses: ./.github/actions/setup-env
   #
   #     - name: Run E2E tests
   #       run: pipenv run pytest tests/e2e/
