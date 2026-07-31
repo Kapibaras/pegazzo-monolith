@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.enum.balance import SortOrder, TransactionSortBy
 from app.models.balance import Transaction
@@ -14,7 +14,7 @@ class BalanceRepositoryMock:
             Transaction(
                 amount=1000,
                 reference="MOCK_REF_001",
-                date=datetime.now(timezone.utc),
+                date=datetime.now(UTC),
                 type="debit",
                 description="Initial mock transaction",
                 payment_method="cash",
@@ -30,13 +30,13 @@ class BalanceRepositoryMock:
             Transaction(
                 amount=1000,
                 reference="MOCK_REF_001",
-                date=datetime.now(timezone.utc),
+                date=datetime.now(UTC),
                 type="debit",
                 description="Initial mock transaction",
                 payment_method="cash",
                 status="CONFIRMED",
                 category="Otro",
-            )
+            ),
         ]
         self.mapping.clear()
 

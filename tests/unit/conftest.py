@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
@@ -132,8 +132,8 @@ def admin_authorized_client():
         password="hashed_password",
         role_id=2,
         role=user_repo_mock.roles["administrador"],
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
     user_repo_mock.users.append(admin_user)
 

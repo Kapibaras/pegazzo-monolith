@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
@@ -91,4 +91,4 @@ class ActionSuccess(BaseModel):
         description="Message indicating the action was successfully performed",
         example="User deleted successfully.",
     )
-    extra_data: Optional[Any] = Field(default=None, description="Additional data relevant to the action")
+    extra_data: Any | None = Field(default=None, description="Additional data relevant to the action")

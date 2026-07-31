@@ -24,7 +24,7 @@ class AssociateService:
         return self.repository.list_all(search=search)
 
     def update(self, associate_id: int, data: AssociatePatchSchema) -> Associate:
-        """Partially update an associate."""
+        """Update an associate partially."""
         associate = self.repository.get_by_id(associate_id)
         if not associate:
             raise AssociateNotFoundException(associate_id)

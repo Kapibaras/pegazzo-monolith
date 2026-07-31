@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, call, patch
 
 from sqlalchemy.orm import Session
@@ -33,7 +33,7 @@ def test_new_transaction_does_not_trigger_recalc(
     mock_recalc_period,
 ):
     """New transactions are always PENDING — no metrics recalculation."""
-    tx_dt = datetime(2026, 1, 10, 10, 0, 0, tzinfo=timezone.utc)
+    tx_dt = datetime(2026, 1, 10, 10, 0, 0, tzinfo=UTC)
     tx = make_tx(tx_dt, status="PENDING")
 
     session = mock_session(new=[tx])
@@ -51,8 +51,8 @@ def test_dirty_confirmed_transaction_with_date_change_triggers_old_and_new_perio
     mock_recalc_period,
 ):
     """Editing a CONFIRMED transaction's date triggers recalc for both old and new periods."""
-    old_dt = datetime(2025, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
-    new_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    old_dt = datetime(2025, 12, 31, 23, 59, 59, tzinfo=UTC)
+    new_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
 
     tx = make_tx(new_dt, status="CONFIRMED")
 
@@ -88,7 +88,7 @@ def test_dirty_pending_transaction_does_not_trigger_recalc(
     mock_recalc_period,
 ):
     """Editing a PENDING transaction does not trigger metrics recalculation."""
-    tx = make_tx(datetime(2026, 1, 10, tzinfo=timezone.utc), status="PENDING")
+    tx = make_tx(datetime(2026, 1, 10, tzinfo=UTC), status="PENDING")
 
     status_history = MagicMock()
     status_history.deleted = []
@@ -112,7 +112,7 @@ def test_status_transition_to_confirmed_triggers_recalc(
     mock_recalc_period,
 ):
     """Transitioning a transaction to CONFIRMED triggers metrics recalculation."""
-    tx_dt = datetime(2026, 3, 5, tzinfo=timezone.utc)
+    tx_dt = datetime(2026, 3, 5, tzinfo=UTC)
     tx = make_tx(tx_dt, status="CONFIRMED")
 
     date_history = MagicMock()
@@ -142,7 +142,7 @@ def test_deleted_confirmed_transaction_triggers_recalc(
     mock_recalc_period,
 ):
     """Deleting a CONFIRMED transaction triggers metrics recalculation."""
-    tx_dt = datetime(2026, 2, 5, 12, 0, 0, tzinfo=timezone.utc)
+    tx_dt = datetime(2026, 2, 5, 12, 0, 0, tzinfo=UTC)
     tx = make_tx(tx_dt, status="CONFIRMED")
 
     mock_get_periods.return_value = {
@@ -166,7 +166,7 @@ def test_deleted_pending_transaction_does_not_trigger_recalc(
     mock_recalc_period,
 ):
     """Deleting a PENDING transaction does NOT trigger metrics recalculation."""
-    tx_dt = datetime(2026, 2, 5, 12, 0, 0, tzinfo=timezone.utc)
+    tx_dt = datetime(2026, 2, 5, 12, 0, 0, tzinfo=UTC)
     tx = make_tx(tx_dt, status="PENDING")
 
     session = mock_session(deleted=[tx])

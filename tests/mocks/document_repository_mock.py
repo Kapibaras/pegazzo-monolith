@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.enum.crm import DocumentEntityType
 from app.errors.database import DBOperationError
@@ -20,8 +20,8 @@ class DocumentRepositoryMock:
                 confidence=None,
                 extracted_fields=None,
                 expiry_date=None,
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
             ),
         ]
         self._next_id = 2
@@ -57,8 +57,8 @@ class DocumentRepositoryMock:
             raise DBOperationError("Error creating document in the database")
         document.id = self._next_id
         self._next_id += 1
-        document.created_at = datetime.now(timezone.utc)
-        document.updated_at = datetime.now(timezone.utc)
+        document.created_at = datetime.now(UTC)
+        document.updated_at = datetime.now(UTC)
         self.documents.append(document)
         return document
 

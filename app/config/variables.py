@@ -9,10 +9,12 @@ DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
 
 def _require_env(key: str, fallback: str | None = None) -> str:
-    value = os.getenv(key, fallback if ENVIRONMENT == "LOCAL" else None)
-    if not value:
-        raise ValueError(f"{key} environment variable is required")
-    return value
+    value = os.getenv(key)
+    if value:
+        return value
+    if ENVIRONMENT == "LOCAL" and fallback is not None:
+        return fallback
+    raise ValueError(f"{key} environment variable is required")
 
 
 DATABASE_URL = _require_env("DATABASE_URL", "sqlite:///./dev.db")

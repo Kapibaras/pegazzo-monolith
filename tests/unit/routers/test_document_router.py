@@ -92,7 +92,6 @@ class TestDocumentRouter:
 
     def test_request_upload_url_employee_forbidden(self, authorized_client):
         """Employee (RBAC) cannot request upload URL — only OWNER/ADMIN."""
-        pass
 
     # -------------------------------------------------------------------------
     # POST /management/documents

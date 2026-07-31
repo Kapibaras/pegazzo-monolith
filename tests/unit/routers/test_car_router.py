@@ -1,12 +1,12 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 
 def _future_date(days: int = 365) -> str:
-    return (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+    return (datetime.now(UTC) + timedelta(days=days)).isoformat()
 
 
 def _past_date(days: int = 1) -> str:
-    return (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    return (datetime.now(UTC) - timedelta(days=days)).isoformat()
 
 
 BASE_PAYLOAD = {
@@ -114,7 +114,6 @@ class TestCarRouter:
 
     def test_create_car_employee_forbidden(self, authorized_client):
         """Employee role should not be allowed to create cars."""
-        pass
 
     def test_create_car_missing_required_field(self, authorized_client):
         payload = {k: v for k, v in BASE_PAYLOAD.items() if k != "vin"}
@@ -209,7 +208,7 @@ class TestCarRouter:
         """Active cars are returned by default; archived cars are hidden."""
         authorized_client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
         car = authorized_client.car_repo.get_by_id("CAR-001")
-        car.archived_at = datetime.now(timezone.utc)
+        car.archived_at = datetime.now(UTC)
 
         response = authorized_client.get("/pegazzo/management/cars")
         assert response.json()["cars"] == []
@@ -218,7 +217,7 @@ class TestCarRouter:
         """Archived cars are returned when archived=true."""
         authorized_client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
         car = authorized_client.car_repo.get_by_id("CAR-001")
-        car.archived_at = datetime.now(timezone.utc)
+        car.archived_at = datetime.now(UTC)
 
         response = authorized_client.get("/pegazzo/management/cars?archived=true")
         assert len(response.json()["cars"]) == 1

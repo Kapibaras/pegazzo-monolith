@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional, Set, Tuple
 
 from sqlalchemy import tuple_
 
@@ -77,7 +76,7 @@ class BalanceRepository(DBRepository):
         year: int,
         month: int | None = None,
         week: int | None = None,
-    ) -> Optional[TransactionMetrics]:
+    ) -> TransactionMetrics | None:
         """Get stored metrics for a given period key from transaction_metrics table."""
 
         q = self.db.query(TransactionMetrics).filter(
@@ -114,17 +113,17 @@ class BalanceRepository(DBRepository):
 
         match period_type:
             case PeriodType.YEAR:
-                years: Set[int] = {k.year for k in keys}
+                years: set[int] = {k.year for k in keys}
                 q = q.filter(TransactionMetrics.year.in_(years))
 
             case PeriodType.MONTH:
-                pairs: Set[Tuple[int, int]] = {(k.year, k.month) for k in keys if k.month is not None}
+                pairs: set[tuple[int, int]] = {(k.year, k.month) for k in keys if k.month is not None}
                 if not pairs:
                     return []
                 q = q.filter(tuple_(TransactionMetrics.year, TransactionMetrics.month).in_(pairs))
 
             case PeriodType.WEEK:
-                pairs: Set[Tuple[int, int]] = {(k.year, k.week) for k in keys if k.week is not None}
+                pairs: set[tuple[int, int]] = {(k.year, k.week) for k in keys if k.week is not None}
                 if not pairs:
                     return []
                 q = q.filter(tuple_(TransactionMetrics.year, TransactionMetrics.week).in_(pairs))
@@ -135,7 +134,7 @@ class BalanceRepository(DBRepository):
         self,
         start_dt: datetime,
         end_dt: datetime,
-        status: Optional[str] = None,
+        status: str | None = None,
     ) -> int:
         """Count transactions in a given date range."""
         q = self.db.query(Transaction).filter(Transaction.date >= start_dt, Transaction.date <= end_dt)
@@ -151,7 +150,7 @@ class BalanceRepository(DBRepository):
         offset: int,
         sort_by: TransactionSortBy,
         sort_order: SortOrder,
-        status: Optional[str] = None,
+        status: str | None = None,
     ) -> list[Transaction]:
         """List transactions in a given date range."""
         q = self.db.query(Transaction).filter(Transaction.date >= start_dt, Transaction.date <= end_dt)

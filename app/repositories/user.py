@@ -44,7 +44,7 @@ class UserRepository(DBRepository):
         except Exception as ex:
             self.db.rollback()
             logger.error(f"Error creating user {user.username} due to: {ex}")
-            raise DBOperationError("Error creating user in the database")
+            raise DBOperationError("Error creating user in the database") from ex
 
         return self.get_by_username(user.username)
 
@@ -59,7 +59,7 @@ class UserRepository(DBRepository):
         except Exception as ex:
             self.db.rollback()
             logger.error(f"Error updating user {user.username} due to: {ex}")
-            raise DBOperationError("Error updating user in the database")
+            raise DBOperationError("Error updating user in the database") from ex
 
         return self.get_by_username(user.username)
 
@@ -74,4 +74,4 @@ class UserRepository(DBRepository):
         except Exception as ex:
             self.db.rollback()
             logger.error(f"Error deleting user {user.username} due to: {ex}")
-            raise DBOperationError("Error deleting user in the database")
+            raise DBOperationError("Error deleting user in the database") from ex
