@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 RUN pip install pipenv --no-cache-dir
 
 COPY Pipfile Pipfile.lock ./
-RUN pipenv install --system --deploy
+RUN pipenv install --system --ignore-pipfile
 
 RUN adduser --disabled-password --gecos "" appuser
 
