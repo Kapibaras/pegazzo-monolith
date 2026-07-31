@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from app.models.balance import Transaction
@@ -199,7 +199,7 @@ class TestBalanceRouter:
         data = response.json()
         assert BalanceMetricsSimpleResponseSchema.model_validate(data)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         assert data["period"]["month"] == now.month
         assert data["period"]["year"] == now.year
 
@@ -260,16 +260,16 @@ class TestBalanceRouter:
             year=2026,
             month=1,
             week=5,
-            total_income=Decimal("500"),
-            total_expense=Decimal("200"),
-            balance=Decimal("300"),
+            total_income=Decimal(500),
+            total_expense=Decimal(200),
+            balance=Decimal(300),
             transaction_count=3,
             payment_method_breakdown={
                 "credit": {"amounts": {"cash": 200}, "percentages": {"cash": 100}},
                 "debit": {"amounts": {"transfer": 300}, "percentages": {"transfer": 100}},
             },
-            weekly_average_income=Decimal("125"),
-            weekly_average_expense=Decimal("50"),
+            weekly_average_income=Decimal(125),
+            weekly_average_expense=Decimal(50),
             income_expense_ratio=Decimal("2.5"),
         )
 
@@ -282,13 +282,13 @@ class TestBalanceRouter:
             period_type="month",
             year=2026,
             month=1,
-            total_income=Decimal("800"),
-            total_expense=Decimal("300"),
-            balance=Decimal("500"),
+            total_income=Decimal(800),
+            total_expense=Decimal(300),
+            balance=Decimal(500),
             transaction_count=5,
             payment_method_breakdown={},
-            weekly_average_income=Decimal("200"),
-            weekly_average_expense=Decimal("75"),
+            weekly_average_income=Decimal(200),
+            weekly_average_expense=Decimal(75),
             income_expense_ratio=Decimal("2.66"),
         )
 
@@ -300,13 +300,13 @@ class TestBalanceRouter:
         authorized_client.balance_repo.mapping[("year", 2026, None, None)] = TransactionMetrics(
             period_type="year",
             year=2026,
-            total_income=Decimal("1200"),
-            total_expense=Decimal("400"),
-            balance=Decimal("800"),
+            total_income=Decimal(1200),
+            total_expense=Decimal(400),
+            balance=Decimal(800),
             transaction_count=12,
             payment_method_breakdown={},
-            weekly_average_income=Decimal("100"),
-            weekly_average_expense=Decimal("33"),
+            weekly_average_income=Decimal(100),
+            weekly_average_expense=Decimal(33),
             income_expense_ratio=Decimal("3.0"),
         )
 
@@ -380,9 +380,9 @@ class TestBalanceRouter:
 
     def test_get_trend_month_default_limit_success(self, authorized_client):
         """Default month limit = 6, returns chronological data and fills missing periods with zeros."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         target_month = now.month - 2 if now.month > 2 else now.month + 10
         target_year = now.year if now.month > 2 else now.year - 1
 
@@ -390,8 +390,8 @@ class TestBalanceRouter:
             period_type="month",
             year=target_year,
             month=target_month,
-            total_income=Decimal("4500"),
-            total_expense=Decimal("2200"),
+            total_income=Decimal(4500),
+            total_expense=Decimal(2200),
         )
 
         r = authorized_client.get("/pegazzo/management/balance/metrics/trend?period=month")
@@ -419,8 +419,8 @@ class TestBalanceRouter:
             period_type="month",
             year=2025,
             month=12,
-            total_income=Decimal("5000"),
-            total_expense=Decimal("2500"),
+            total_income=Decimal(5000),
+            total_expense=Decimal(2500),
         )
 
         r = authorized_client.get("/pegazzo/management/balance/metrics/trend?period=month&limit=3")
@@ -443,8 +443,8 @@ class TestBalanceRouter:
             year=2026,
             month=1,
             week=5,
-            total_income=Decimal("500"),
-            total_expense=Decimal("200"),
+            total_income=Decimal(500),
+            total_expense=Decimal(200),
         )
 
         r = authorized_client.get("/pegazzo/management/balance/metrics/trend?period=week")
@@ -465,8 +465,8 @@ class TestBalanceRouter:
         authorized_client.balance_repo.mapping[("year", 2026, None, None)] = TransactionMetrics(
             period_type="year",
             year=2026,
-            total_income=Decimal("12000"),
-            total_expense=Decimal("4000"),
+            total_income=Decimal(12000),
+            total_expense=Decimal(4000),
         )
 
         r = authorized_client.get("/pegazzo/management/balance/metrics/trend?period=year")
@@ -517,7 +517,7 @@ class TestBalanceRouter:
             Transaction(
                 amount=100,
                 reference="TRX-001",
-                date=datetime(2026, 1, 5, 10, 30, tzinfo=timezone.utc),
+                date=datetime(2026, 1, 5, 10, 30, tzinfo=UTC),
                 type="debit",
                 description="Tx 1",
                 payment_method="cash",
@@ -527,7 +527,7 @@ class TestBalanceRouter:
             Transaction(
                 amount=200,
                 reference="TRX-002",
-                date=datetime(2026, 1, 10, 10, 30, tzinfo=timezone.utc),
+                date=datetime(2026, 1, 10, 10, 30, tzinfo=UTC),
                 type="debit",
                 description="Tx 2",
                 payment_method="cash",
@@ -537,7 +537,7 @@ class TestBalanceRouter:
             Transaction(
                 amount=300,
                 reference="TRX-003",
-                date=datetime(2026, 1, 1, 10, 30, tzinfo=timezone.utc),
+                date=datetime(2026, 1, 1, 10, 30, tzinfo=UTC),
                 type="debit",
                 description="Tx 3",
                 payment_method="cash",
@@ -569,7 +569,7 @@ class TestBalanceRouter:
             Transaction(
                 amount=100 + i,
                 reference=f"TRX-{i:03d}",
-                date=datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc),
+                date=datetime(2026, 1, 15, 12, 0, tzinfo=UTC),
                 type="debit",
                 description="Bulk",
                 payment_method="cash",
@@ -603,7 +603,7 @@ class TestBalanceRouter:
             Transaction(
                 amount=100,
                 reference="MID",
-                date=datetime(2026, 1, 2, 10, 0, tzinfo=timezone.utc),
+                date=datetime(2026, 1, 2, 10, 0, tzinfo=UTC),
                 type="debit",
                 description="",
                 payment_method="cash",
@@ -613,7 +613,7 @@ class TestBalanceRouter:
             Transaction(
                 amount=150,
                 reference="HIGH",
-                date=datetime(2026, 1, 2, 10, 0, tzinfo=timezone.utc),
+                date=datetime(2026, 1, 2, 10, 0, tzinfo=UTC),
                 type="debit",
                 description="",
                 payment_method="cash",
@@ -623,7 +623,7 @@ class TestBalanceRouter:
             Transaction(
                 amount=50,
                 reference="LOW",
-                date=datetime(2026, 1, 2, 10, 0, tzinfo=timezone.utc),
+                date=datetime(2026, 1, 2, 10, 0, tzinfo=UTC),
                 type="debit",
                 description="",
                 payment_method="cash",
@@ -651,7 +651,7 @@ class TestBalanceRouter:
             Transaction(
                 amount=10,
                 reference="A-100",
-                date=datetime(2026, 1, 2, 10, 0, tzinfo=timezone.utc),
+                date=datetime(2026, 1, 2, 10, 0, tzinfo=UTC),
                 type="debit",
                 description="",
                 payment_method="cash",
@@ -661,7 +661,7 @@ class TestBalanceRouter:
             Transaction(
                 amount=10,
                 reference="Z-100",
-                date=datetime(2026, 1, 2, 10, 0, tzinfo=timezone.utc),
+                date=datetime(2026, 1, 2, 10, 0, tzinfo=UTC),
                 type="debit",
                 description="",
                 payment_method="cash",
@@ -671,7 +671,7 @@ class TestBalanceRouter:
             Transaction(
                 amount=10,
                 reference="B-100",
-                date=datetime(2026, 1, 2, 10, 0, tzinfo=timezone.utc),
+                date=datetime(2026, 1, 2, 10, 0, tzinfo=UTC),
                 type="debit",
                 description="",
                 payment_method="cash",
@@ -1099,15 +1099,15 @@ class TestBalanceRouter:
 
     def test_get_transactions_count_reflects_mock_data(self, authorized_client):
         """Count matches the number of mock transactions in the current month."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         authorized_client.balance_repo.reset()
         authorized_client.balance_repo.transactions = [
             __import__("app.models.balance", fromlist=["Transaction"]).Transaction(
                 amount=100,
                 reference="CNT-001",
-                date=datetime(now.year, now.month, 5, 10, 0, tzinfo=timezone.utc),
+                date=datetime(now.year, now.month, 5, 10, 0, tzinfo=UTC),
                 type="debit",
                 description="Test",
                 payment_method="cash",
@@ -1117,7 +1117,7 @@ class TestBalanceRouter:
             __import__("app.models.balance", fromlist=["Transaction"]).Transaction(
                 amount=200,
                 reference="CNT-002",
-                date=datetime(now.year, now.month, 10, 10, 0, tzinfo=timezone.utc),
+                date=datetime(now.year, now.month, 10, 10, 0, tzinfo=UTC),
                 type="debit",
                 description="Test 2",
                 payment_method="cash",

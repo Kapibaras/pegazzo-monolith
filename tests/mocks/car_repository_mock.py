@@ -1,4 +1,3 @@
-from typing import Optional
 
 from app.enum.balance import SortOrder
 from app.enum.crm import CarSortBy, CarStatus
@@ -48,7 +47,7 @@ class CarRepositoryMock:
         self.cars.append(car)
         return car
 
-    def _filter(self, status: Optional[CarStatus], search: Optional[str], archived: bool) -> list[Car]:
+    def _filter(self, status: CarStatus | None, search: str | None, archived: bool) -> list[Car]:
         """Return cars matching the given filters."""
         result = []
         for car in self.cars:
@@ -65,14 +64,14 @@ class CarRepositoryMock:
             result.append(car)
         return result
 
-    def count_cars(self, status: Optional[CarStatus], search: Optional[str], archived: bool) -> int:
+    def count_cars(self, status: CarStatus | None, search: str | None, archived: bool) -> int:
         """Return the total count of cars matching the given filters."""
         return len(self._filter(status, search, archived))
 
     def list_cars(
         self,
-        status: Optional[CarStatus],
-        search: Optional[str],
+        status: CarStatus | None,
+        search: str | None,
         archived: bool,
         sort_by: CarSortBy,
         sort_order: SortOrder,

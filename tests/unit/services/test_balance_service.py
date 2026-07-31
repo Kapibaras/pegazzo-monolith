@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -526,7 +526,7 @@ class TestBalanceService:
         self.mock_repo.get_metrics_for_keys.return_value = []
 
         with patch("app.services.balance.datetime") as mock_dt:
-            mock_dt.now.return_value = datetime(2026, 1, 7, 12, 0, 0, tzinfo=timezone.utc)
+            mock_dt.now.return_value = datetime(2026, 1, 7, 12, 0, 0, tzinfo=UTC)
             result = self.service.get_historical(period=PeriodType.MONTH, limit=3)
 
         assert BalanceTrendResponseSchema.model_validate(result)
@@ -537,7 +537,7 @@ class TestBalanceService:
         self.mock_repo.get_metrics_for_keys.return_value = []
 
         with patch("app.services.balance.datetime") as mock_dt:
-            mock_dt.now.return_value = datetime(2026, 1, 7, 12, 0, 0, tzinfo=timezone.utc)
+            mock_dt.now.return_value = datetime(2026, 1, 7, 12, 0, 0, tzinfo=UTC)
 
             result = self.service.get_historical(period=PeriodType.MONTH, limit=3)
 
@@ -554,7 +554,7 @@ class TestBalanceService:
     def test_get_historical_fills_missing_periods_with_zeros_and_keeps_real_values(self):
         """If some periods exist in transaction_metrics and others don't, missing ones must be zero-filled."""
         with patch("app.services.balance.datetime") as mock_dt:
-            mock_dt.now.return_value = datetime(2026, 1, 7, 12, 0, 0, tzinfo=timezone.utc)
+            mock_dt.now.return_value = datetime(2026, 1, 7, 12, 0, 0, tzinfo=UTC)
 
             december_row = SimpleNamespace(
                 period_type="month",
@@ -589,7 +589,7 @@ class TestBalanceService:
         self.mock_repo.get_metrics_for_keys.return_value = []
 
         with patch("app.services.balance.datetime") as mock_dt:
-            mock_dt.now.return_value = datetime(2026, 2, 3, 12, 0, 0, tzinfo=timezone.utc)
+            mock_dt.now.return_value = datetime(2026, 2, 3, 12, 0, 0, tzinfo=UTC)
 
             result = self.service.get_historical(period=PeriodType.WEEK, limit=8)
 
@@ -605,7 +605,7 @@ class TestBalanceService:
         self.mock_repo.get_metrics_for_keys.return_value = []
 
         with patch("app.services.balance.datetime") as mock_dt:
-            mock_dt.now.return_value = datetime(2026, 1, 7, 12, 0, 0, tzinfo=timezone.utc)
+            mock_dt.now.return_value = datetime(2026, 1, 7, 12, 0, 0, tzinfo=UTC)
 
             result = self.service.get_historical(period=PeriodType.YEAR, limit=3)
 
@@ -621,8 +621,8 @@ class TestBalanceService:
     def test_get_transactions_calls_repo_with_bounds_and_pagination(self):
         """Service should compute offset and call repo with start/end, limit/offset, sort params."""
         # Arrange
-        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=UTC)
 
         self.mock_repo.count_transactions_in_range.return_value = 45
         self.mock_repo.list_transactions_in_range.return_value = []
@@ -668,8 +668,8 @@ class TestBalanceService:
 
     def test_get_transactions_total_zero_returns_zero_pages(self):
         """If total=0, total_pages must be 0 and transactions come from repo (likely empty)."""
-        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        end_dt = datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
+        end_dt = datetime(2026, 12, 31, 23, 59, 59, tzinfo=UTC)
 
         self.mock_repo.count_transactions_in_range.return_value = 0
         self.mock_repo.list_transactions_in_range.return_value = []
@@ -701,8 +701,8 @@ class TestBalanceService:
     )
     def test_get_transactions_total_pages_uses_ceil(self, total, limit, expected_pages):
         """total_pages must be ceil(total/limit) when total>0."""
-        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=UTC)
 
         self.mock_repo.count_transactions_in_range.return_value = total
         self.mock_repo.list_transactions_in_range.return_value = []
@@ -724,8 +724,8 @@ class TestBalanceService:
 
     def test_get_transactions_returns_repo_rows_in_response(self):
         """Service should return repo rows in `transactions`."""
-        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=UTC)
 
         tx1 = Transaction(reference="TRX-001", amount=100, date=start_dt, type="debit", description="A", payment_method="cash", status="CONFIRMED", category="Otro")
         tx2 = Transaction(reference="TRX-002", amount=200, date=end_dt, type="debit", description="B", payment_method="cash", status="CONFIRMED", category="Otro")
@@ -832,13 +832,13 @@ class TestBalanceService:
 
     def test_get_transactions_count_defaults_to_current_month(self):
         """No params → uses current month/year from datetime.now."""
-        start_dt = datetime(2026, 4, 1, 0, 0, 0, tzinfo=timezone.utc)
-        end_dt = datetime(2026, 4, 30, 23, 59, 59, tzinfo=timezone.utc)
+        start_dt = datetime(2026, 4, 1, 0, 0, 0, tzinfo=UTC)
+        end_dt = datetime(2026, 4, 30, 23, 59, 59, tzinfo=UTC)
 
         self.mock_repo.count_transactions_in_range.return_value = 7
 
         with patch("app.services.balance.datetime") as mock_dt:
-            mock_dt.now.return_value = datetime(2026, 4, 15, 10, 0, 0, tzinfo=timezone.utc)
+            mock_dt.now.return_value = datetime(2026, 4, 15, 10, 0, 0, tzinfo=UTC)
             with patch("app.services.balance.period_bounds_utc", return_value=(start_dt, end_dt)) as mock_bounds:
                 result = self.service.get_transactions_count()
 
@@ -852,8 +852,8 @@ class TestBalanceService:
 
     def test_get_transactions_count_with_specific_month_year(self):
         """Explicit month/year are forwarded to repo."""
-        start_dt = datetime(2025, 3, 1, 0, 0, 0, tzinfo=timezone.utc)
-        end_dt = datetime(2025, 3, 31, 23, 59, 59, tzinfo=timezone.utc)
+        start_dt = datetime(2025, 3, 1, 0, 0, 0, tzinfo=UTC)
+        end_dt = datetime(2025, 3, 31, 23, 59, 59, tzinfo=UTC)
 
         self.mock_repo.count_transactions_in_range.return_value = 3
 
@@ -874,8 +874,8 @@ class TestBalanceService:
 
     def test_get_transactions_count_with_status_filter(self):
         """Status is passed through to repo."""
-        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=UTC)
 
         self.mock_repo.count_transactions_in_range.return_value = 2
 
@@ -891,8 +891,8 @@ class TestBalanceService:
 
     def test_get_transactions_count_no_status_counts_all(self):
         """No status → status=None passed to repo (count all)."""
-        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+        start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=UTC)
 
         self.mock_repo.count_transactions_in_range.return_value = 15
 
@@ -908,7 +908,7 @@ class TestBalanceService:
 
     def test_get_transactions_count_repo_error_propagates(self):
         """Unexpected repo error bubbles up."""
-        with patch("app.services.balance.period_bounds_utc", return_value=(datetime(2026, 1, 1, tzinfo=timezone.utc), datetime(2026, 1, 31, tzinfo=timezone.utc))):
+        with patch("app.services.balance.period_bounds_utc", return_value=(datetime(2026, 1, 1, tzinfo=UTC), datetime(2026, 1, 31, tzinfo=UTC))):
             self.mock_repo.count_transactions_in_range.side_effect = RuntimeError("DB down")
 
             with pytest.raises(RuntimeError, match="DB down"):

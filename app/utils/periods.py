@@ -1,5 +1,5 @@
 import calendar
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from app.enum.balance import PeriodType
 from app.errors.transaction_metrics import TransactionMetricsPeriodError
@@ -162,8 +162,8 @@ def period_bounds_utc(key: PeriodKey) -> tuple[datetime, datetime]:
     match key.period_type:
         case "year":
             return (
-                datetime(key.year, 1, 1, tzinfo=timezone.utc),
-                datetime(key.year, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+                datetime(key.year, 1, 1, tzinfo=UTC),
+                datetime(key.year, 12, 31, 23, 59, 59, tzinfo=UTC),
             )
 
         case "month":
@@ -172,15 +172,15 @@ def period_bounds_utc(key: PeriodKey) -> tuple[datetime, datetime]:
 
             last_day = calendar.monthrange(key.year, key.month)[1]
             return (
-                datetime(key.year, key.month, 1, tzinfo=timezone.utc),
-                datetime(key.year, key.month, last_day, 23, 59, 59, tzinfo=timezone.utc),
+                datetime(key.year, key.month, 1, tzinfo=UTC),
+                datetime(key.year, key.month, last_day, 23, 59, 59, tzinfo=UTC),
             )
 
         case "week":
             if key.week is None:
                 raise TransactionMetricsPeriodError.week_requires_week()
 
-            start = datetime.fromisocalendar(key.year, key.week, 1).replace(tzinfo=timezone.utc)
+            start = datetime.fromisocalendar(key.year, key.week, 1).replace(tzinfo=UTC)
             end = start + timedelta(days=6, hours=23, minutes=59, seconds=59)
             return start, end
 

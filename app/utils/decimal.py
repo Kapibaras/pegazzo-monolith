@@ -19,4 +19,4 @@ def calculate_percentage(value: Decimal, total: Decimal) -> Decimal:
     """Calculate percentage with 2 decimals."""
     if total == 0:
         return Decimal("0.00")
-    return (value * Decimal("100") / total).quantize(DEC_2, rounding=ROUND_HALF_UP)
+    return (value * Decimal(100) / total).quantize(DEC_2, rounding=ROUND_HALF_UP)

@@ -1,4 +1,3 @@
-from typing import Optional
 
 from fastapi import APIRouter, Body, Depends, Path, Query, status
 
@@ -32,7 +31,7 @@ def create_associate(
     status_code=status.HTTP_200_OK,
 )
 def list_associates(
-    search: Optional[str] = Query(default=None, description="Filter by name or surnames"),
+    search: str | None = Query(default=None, description="Filter by name or surnames"),
     service: AssociateService = Depends(ServiceFactory.associate_service),
     _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN, Role.EMPLOYEE])),
 ) -> list[AssociateResponseSchema]:

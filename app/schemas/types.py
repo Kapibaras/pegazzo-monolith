@@ -1,11 +1,11 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
 from pydantic import AfterValidator, AwareDatetime
 
 
 def _normalize_to_utc(value: datetime) -> datetime:
-    return value.astimezone(timezone.utc)
+    return value.astimezone(UTC)
 
 
 RequestUTCDatetime = Annotated[AwareDatetime, AfterValidator(_normalize_to_utc)]

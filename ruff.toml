@@ -32,9 +32,12 @@ extend-select = [
     "PERF", # Performance checks
     "RUF",  # Ruff specific checks
     "TRY",  # Try-except checks
+    "UP",   # Pyupgrade checks (modernize Python syntax)
+    "FURB", # Refurb checks
+    "PIE",  # Unnecessary code checks
 ]
 
-fixable = ["I", "F401", "COM", "RUF022"]
+fixable = ["I", "F401", "COM", "RUF022", "UP", "FURB", "PIE"]
 extend-ignore = [
     "D100",   # ignore missing-module-docstring
     "B008",   # ignore function call in argument defaults

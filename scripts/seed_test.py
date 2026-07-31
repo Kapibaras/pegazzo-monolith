@@ -5,7 +5,6 @@
 
 def seed():
     """Seed the database with minimum fixed and predictable data for CI/E2E."""
-    pass
 
 
 if __name__ == "__main__":

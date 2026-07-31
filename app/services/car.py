@@ -1,5 +1,5 @@
 import math
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.errors.car import (
     AssociateNotFoundException,
@@ -55,7 +55,7 @@ class CarService:
         if self.repository.get_by_plate(data.plate):
             raise CarPlateAlreadyExistsException(data.plate)
 
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
         if data.policy_expiration_date <= now_utc:
             raise PolicyExpirationDateInPastException
 

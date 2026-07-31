@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.models.car import Car, Insurance
 from app.models.driver import Driver
@@ -39,8 +39,8 @@ _DEFAULT_CAR = Car(
     financed_status="owned",
     agency_image=None,
     photos=[],
-    created_at=datetime.now(timezone.utc),
-    updated_at=datetime.now(timezone.utc),
+    created_at=datetime.now(UTC),
+    updated_at=datetime.now(UTC),
 )
 
 _DEFAULT_DRIVER = Driver(
@@ -54,8 +54,8 @@ _DEFAULT_DRIVER = Driver(
     address="Calle 1",
     garage_address=["Calle 2"],
     photo=None,
-    created_at=datetime.now(timezone.utc),
-    updated_at=datetime.now(timezone.utc),
+    created_at=datetime.now(UTC),
+    updated_at=datetime.now(UTC),
 )
 
 

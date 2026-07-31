@@ -1,9 +1,8 @@
 from decimal import Decimal
-from typing import Union
 
 from app.utils.decimal import DEC_2, ROUND_HALF_UP
 
-Number = Union[int, float, Decimal, str]
+Number = int | float | Decimal | str
 
 
 def calculate_weekly_averages(
@@ -41,7 +40,7 @@ def percent_change(current: Number, previous: Number) -> Decimal:
     if prev == 0:
         return Decimal("0.00")
 
-    value = ((cur - prev) / prev) * Decimal("100")
+    value = ((cur - prev) / prev) * Decimal(100)
     return value.quantize(Decimal("0.01"))
 
 

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -40,7 +40,7 @@ class DocumentConfirmSchema(BaseModel):
     type: str = Field(..., min_length=1, max_length=20)
     entity_type: DocumentEntityType
     entity_id: str = Field(..., min_length=1)
-    expiry_date: Optional[RequestUTCDatetime] = Field(default=None)
+    expiry_date: RequestUTCDatetime | None = Field(default=None)
 
 
 class DocumentResponseSchema(BaseModel):
@@ -50,9 +50,9 @@ class DocumentResponseSchema(BaseModel):
     type: str
     url: str = Field(..., description="Temporary presigned GET URL")
     category: str
-    confidence: Optional[float] = None
-    extracted_fields: Optional[Any] = None
-    expiry_date: Optional[datetime] = None
+    confidence: float | None = None
+    extracted_fields: Any | None = None
+    expiry_date: datetime | None = None
     created_at: datetime
     updated_at: datetime
 

@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -51,8 +51,8 @@ class CarSchema(BaseModel):
     financed_status: str = Field(..., min_length=1, max_length=20)
 
     # Optional
-    features: Optional[Any] = Field(default=None)
-    details: Optional[Any] = Field(default=None)
+    features: Any | None = Field(default=None)
+    details: Any | None = Field(default=None)
 
     # Insurance (required)
     insurance_provider_id: int = Field(..., description="FK to insurance table")
@@ -61,7 +61,7 @@ class CarSchema(BaseModel):
     policy_type: str = Field(..., min_length=1, max_length=20)
 
     # Associate (optional)
-    associate_id: Optional[int] = Field(default=None, description="FK to associate table")
+    associate_id: int | None = Field(default=None, description="FK to associate table")
 
 
 class CarListQuerySchema(BaseModel):
@@ -69,8 +69,8 @@ class CarListQuerySchema(BaseModel):
 
     page: int = Field(default=1, ge=1, description="Page number starting at 1")
     limit: int = Field(default=10, ge=1, le=100, description="Records per page (max 100)")
-    status: Optional[CarStatus] = Field(default=None, description="Filter by status: ACTIVE, INACTIVE, IN_MAINTENANCE")
-    search: Optional[str] = Field(default=None, min_length=1, max_length=100, description="Search by plate, make or model")
+    status: CarStatus | None = Field(default=None, description="Filter by status: ACTIVE, INACTIVE, IN_MAINTENANCE")
+    search: str | None = Field(default=None, min_length=1, max_length=100, description="Search by plate, make or model")
     archived: bool = Field(default=False, description="If true, return only archived cars; otherwise active cars only")
     sort_by: CarSortBy = Field(default=CarSortBy.CREATED_AT, description="Field to sort by")
     sort_order: SortOrder = Field(default=SortOrder.DESC, description="Sort direction: asc or desc")
@@ -88,7 +88,7 @@ class CarSummarySchema(BaseModel):
     status: str
     year: str
     color: str
-    agency_image: Optional[str] = None
+    agency_image: str | None = None
 
 
 class PaginationSchema(BaseModel):
@@ -143,13 +143,13 @@ class CarResponseSchema(BaseModel):
     legal_owner_name: str
     legal_owner_surnames: str
     financed_status: str
-    features: Optional[Any] = None
-    details: Optional[Any] = None
+    features: Any | None = None
+    details: Any | None = None
     insurance_provider_id: int
     policy_number: str
     policy_expiration_date: Any
     policy_type: str
-    agency_image: Optional[str] = None
-    photos: Optional[Any] = None
+    agency_image: str | None = None
+    photos: Any | None = None
     created_at: Any
     updated_at: Any

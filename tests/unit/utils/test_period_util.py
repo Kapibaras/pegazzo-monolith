@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -136,14 +136,14 @@ class TestPeriodsUtils:
     def test_period_bounds_utc_year(self):
         key = PeriodKey(period_type="year", year=2026)
         start, end = period_bounds_utc(key)
-        assert start == datetime(2026, 1, 1, tzinfo=timezone.utc)
-        assert end == datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+        assert start == datetime(2026, 1, 1, tzinfo=UTC)
+        assert end == datetime(2026, 12, 31, 23, 59, 59, tzinfo=UTC)
 
     def test_period_bounds_utc_month(self):
         key = PeriodKey(period_type="month", year=2026, month=2)
         start, end = period_bounds_utc(key)
-        assert start == datetime(2026, 2, 1, tzinfo=timezone.utc)
-        assert end == datetime(2026, 2, 28, 23, 59, 59, tzinfo=timezone.utc)
+        assert start == datetime(2026, 2, 1, tzinfo=UTC)
+        assert end == datetime(2026, 2, 28, 23, 59, 59, tzinfo=UTC)
 
     def test_period_bounds_utc_month_missing_month_raises(self):
         key = PeriodKey(period_type="month", year=2026, month=None)
@@ -153,7 +153,7 @@ class TestPeriodsUtils:
     def test_period_bounds_utc_week(self):
         key = PeriodKey(period_type="week", year=2026, week=1)
         start, end = period_bounds_utc(key)
-        expected_start = datetime.fromisocalendar(2026, 1, 1).replace(tzinfo=timezone.utc)
+        expected_start = datetime.fromisocalendar(2026, 1, 1).replace(tzinfo=UTC)
         assert start == expected_start
         assert end == expected_start + timedelta(days=6, hours=23, minutes=59, seconds=59)
 

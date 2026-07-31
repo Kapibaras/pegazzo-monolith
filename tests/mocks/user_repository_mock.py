@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.enum.auth import Role as RoleEnum
 from app.errors.user import UserNotFoundException
@@ -23,8 +23,8 @@ class UserRepositoryMock:
                 password="hashed_password",
                 role_id=1,
                 role=self.roles["propietario"],
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
             ),
         ]
 
@@ -44,8 +44,8 @@ class UserRepositoryMock:
 
     def create_user(self, user: User) -> User:
         """Simulate user creation."""
-        user.created_at = datetime.now(timezone.utc)
-        user.updated_at = datetime.now(timezone.utc)
+        user.created_at = datetime.now(UTC)
+        user.updated_at = datetime.now(UTC)
         user.role = self.get_role_by_name(user.role.name) or self.roles["empleado"]
         self.users.append(user)
         return user
@@ -60,7 +60,7 @@ class UserRepositoryMock:
         existing_user.surnames = user.surnames
         existing_user.role = self.get_role_by_name(user.role.name)
         existing_user.role_id = existing_user.role.id
-        existing_user.updated_at = datetime.now(timezone.utc)
+        existing_user.updated_at = datetime.now(UTC)
         return existing_user
 
     def delete_user(self, user: User):
