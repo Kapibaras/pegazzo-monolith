@@ -11,34 +11,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Log in to container registry
+      - name: Build and push image on server
+        uses: appleboy/ssh-action@v1
         env:
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
           REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-        run: |
-          echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" \
-            -u "$REGISTRY_USER" --password-stdin
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          host: ${{ secrets.KVM_HOST }}
+          username: ${{ secrets.KVM_USER }}
+          key: ${{ secrets.KVM_SSH_KEY }}
+          envs: REGISTRY_URL,REGISTRY_USER,REGISTRY_PASSWORD,GH_TOKEN
+          command_timeout: 30m
+          script: |
+            IMAGE="$REGISTRY_URL/pegazzo-monolith"
+            echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" -u "$REGISTRY_USER" --password-stdin
 
-      - name: Preserve previous image for rollback
-        env:
-          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
-        run: |
-          IMAGE="$REGISTRY_URL/pegazzo-monolith"
-          docker pull "$IMAGE:main" || true
-          docker tag "$IMAGE:main" "$IMAGE:previous" || true
-          docker push "$IMAGE:previous" || true
+            # Preserve previous image for rollback
+            docker pull "$IMAGE:main" || true
+            docker tag "$IMAGE:main" "$IMAGE:previous" 2>/dev/null || true
+            docker push "$IMAGE:previous" || true
 
-      - name: Build and push Docker image
-        env:
-          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
-        run: |
-          IMAGE="$REGISTRY_URL/pegazzo-monolith:main"
-          docker build -t "$IMAGE" .
-          docker push "$IMAGE"
+            # Clone repo and build
+            rm -rf /tmp/pegazzo-build
+            git clone https://x-access-token:$GH_TOKEN@github.com/Kapibaras/pegazzo-monolith.git /tmp/pegazzo-build
+            cd /tmp/pegazzo-build
+            docker build -t "$IMAGE:main" .
+            docker push "$IMAGE:main"
+            rm -rf /tmp/pegazzo-build
 
   migrate-staging:
     name: Migrate Staging DB
