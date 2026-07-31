@@ -1,10 +1,13 @@
+from datetime import UTC, datetime
 
 from sqlalchemy import or_
 
 from app.enum.balance import SortOrder
 from app.enum.crm import CarSortBy, CarStatus
 from app.errors.database import DBOperationError
-from app.models.car import Associate, Car, Insurance
+from app.models.car import Associate, Car, Insurance, car_document_table
+from app.models.contract import Contract
+from app.models.document import Document
 from app.utils.logging_config import logger
 
 from .abstract import DBRepository
@@ -90,3 +93,25 @@ class CarRepository(DBRepository):
         column = _CAR_SORT_COLUMNS.get(sort_by, Car.created_at)
         order = column.desc() if sort_order == SortOrder.DESC else column.asc()
         return self._base_query(status, search, archived).order_by(order).offset(offset).limit(limit).all()
+
+    def get_car_documents(self, car_id: str) -> list[Document]:
+        """Return all documents linked to the given car."""
+        return (
+            self.db.query(Document)
+            .join(car_document_table, Document.id == car_document_table.c.document_id)
+            .filter(car_document_table.c.car_id == car_id)
+            .all()
+        )
+
+    def get_active_contract_for_car(self, car_id: str) -> Contract | None:
+        """Return the currently active contract for the car, or None."""
+        today = datetime.now(tz=UTC).date()
+        return (
+            self.db.query(Contract)
+            .filter(
+                Contract.car_id == car_id,
+                Contract.start_date <= today,
+                Contract.end_date >= today,
+            )
+            .first()
+        )

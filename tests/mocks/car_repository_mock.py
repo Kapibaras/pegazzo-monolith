@@ -1,7 +1,10 @@
+from datetime import UTC, datetime
 
 from app.enum.balance import SortOrder
 from app.enum.crm import CarSortBy, CarStatus
 from app.models.car import Associate, Car, Insurance
+from app.models.contract import Contract
+from app.models.document import Document
 
 _DEFAULT_INSURANCE = Insurance(id=1, name="AXA", telephones=["+521234567890"])
 _DEFAULT_ASSOCIATE = Associate(id=1, name="Juan", surnames="Pérez", telephones=["+521234567890"])
@@ -15,12 +18,16 @@ class CarRepositoryMock:
         self.cars: list[Car] = []
         self.insurances: list[Insurance] = [_DEFAULT_INSURANCE]
         self.associates: list[Associate] = [_DEFAULT_ASSOCIATE]
+        self.car_documents: dict[str, list[Document]] = {}
+        self.contracts: list[Contract] = []
 
     def reset(self):
         """Reset the mock state to its initial values."""
         self.cars = []
         self.insurances = [_DEFAULT_INSURANCE]
         self.associates = [_DEFAULT_ASSOCIATE]
+        self.car_documents = {}
+        self.contracts = []
 
     def get_by_id(self, car_id: str) -> Car | None:
         """Return the car with the given ID, or None."""
@@ -67,6 +74,22 @@ class CarRepositoryMock:
     def count_cars(self, status: CarStatus | None, search: str | None, archived: bool) -> int:
         """Return the total count of cars matching the given filters."""
         return len(self._filter(status, search, archived))
+
+    def get_car_documents(self, car_id: str) -> list[Document]:
+        """Return documents linked to the car."""
+        return self.car_documents.get(car_id, [])
+
+    def get_active_contract_for_car(self, car_id: str) -> Contract | None:
+        """Return the active contract for the car, or None."""
+        today = datetime.now(tz=UTC).date()
+        return next(
+            (
+                c
+                for c in self.contracts
+                if c.car_id == car_id and c.start_date <= today <= c.end_date
+            ),
+            None,
+        )
 
     def list_cars(
         self,

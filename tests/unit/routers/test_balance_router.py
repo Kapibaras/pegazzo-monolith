@@ -380,8 +380,6 @@ class TestBalanceRouter:
 
     def test_get_trend_month_default_limit_success(self, authorized_client):
         """Default month limit = 6, returns chronological data and fills missing periods with zeros."""
-        from datetime import datetime
-
         now = datetime.now(UTC)
         target_month = now.month - 2 if now.month > 2 else now.month + 10
         target_year = now.year if now.month > 2 else now.year - 1

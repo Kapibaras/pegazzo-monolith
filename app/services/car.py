@@ -1,9 +1,10 @@
 import math
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from app.errors.car import (
     AssociateNotFoundException,
     CarIdAlreadyExistsException,
+    CarNotFoundException,
     CarPlateAlreadyExistsException,
     CarVinAlreadyExistsException,
     InsuranceProviderNotFoundException,
@@ -11,7 +12,32 @@ from app.errors.car import (
 )
 from app.models.car import Car
 from app.repositories.car import CarRepository
-from app.schemas.car import CarListQuerySchema, CarListResponseSchema, CarSchema, PaginationSchema
+from app.schemas.car import (
+    AssignedDriverSchema,
+    AssociateDetailSchema,
+    CarDetailResponseSchema,
+    CarListQuerySchema,
+    CarListResponseSchema,
+    CarSchema,
+    DocumentDetailSchema,
+    InsuranceDetailSchema,
+    PaginationSchema,
+)
+from app.storage import r2
+
+_EXPIRING_SOON_DAYS = 30
+
+
+def _compute_expiry_status(expiry_date) -> str | None:
+    """Return valid / expiring_soon / expired based on expiry_date, or None if no expiry."""
+    if expiry_date is None:
+        return None
+    now = datetime.now(UTC)
+    if now > expiry_date:
+        return "expired"
+    if now + timedelta(days=_EXPIRING_SOON_DAYS) > expiry_date:
+        return "expiring_soon"
+    return "valid"
 
 
 class CarService:
@@ -20,6 +46,93 @@ class CarService:
     def __init__(self, repository: CarRepository):
         """Initialize the car service with a repository."""
         self.repository = repository
+
+    def get_car(self, car_id: str) -> CarDetailResponseSchema:
+        """Return the full detail for a single car, or raise 404 if not found."""
+        car = self.repository.get_by_id(car_id)
+        if not car:
+            raise CarNotFoundException(car_id)
+
+        documents = [
+            DocumentDetailSchema(
+                id=doc.id,
+                type=doc.type,
+                category=doc.category,
+                expiry_date=doc.expiry_date,
+                url=r2.generate_document_read_url(doc.url),
+                expiry_status=_compute_expiry_status(doc.expiry_date),
+            )
+            for doc in self.repository.get_car_documents(car_id)
+        ]
+
+        contract = self.repository.get_active_contract_for_car(car_id)
+        assigned_driver = None
+        if contract and contract.driver:
+            assigned_driver = AssignedDriverSchema(
+                id=contract.driver.id,
+                name=contract.driver.name,
+                surnames=contract.driver.surnames,
+            )
+
+        associate = None
+        if car.associate:
+            a = car.associate[0]
+            associate = AssociateDetailSchema(
+                id=a.id,
+                name=a.name,
+                surnames=a.surnames,
+                telephones=a.telephones,
+            )
+
+        ins = car.insurance_provider
+        insurance = InsuranceDetailSchema(
+            id=ins.id,
+            name=ins.name,
+            policy_number=car.policy_number,
+            policy_expiration_date=car.policy_expiration_date,
+            policy_type=car.policy_type,
+        )
+
+        return CarDetailResponseSchema(
+            id=car.id,
+            make=car.make,
+            model=car.model,
+            year=car.year,
+            color=car.color,
+            status=car.status,
+            vin=car.vin,
+            plate=car.plate,
+            body_type=car.body_type,
+            engine_type=car.engine_type,
+            transmission=car.transmission,
+            engine_serial_number=car.engine_serial_number,
+            odometer=car.odometer,
+            doors_number=car.doors_number,
+            passengers_number=car.passengers_number,
+            tire_specification=car.tire_specification,
+            unit_value=float(car.unit_value),
+            unit_billing_value=float(car.unit_billing_value),
+            bill_number=car.bill_number,
+            public_vehicle_registry=car.public_vehicle_registry,
+            alta_public_vehicle_registry=car.alta_public_vehicle_registry,
+            battery_model=car.battery_model,
+            battery_serial_number=car.battery_serial_number,
+            battery_date=car.battery_date,
+            legal_owner_name=car.legal_owner_name,
+            legal_owner_surnames=car.legal_owner_surnames,
+            financed_status=car.financed_status,
+            features=car.features,
+            details=car.details,
+            agency_image=car.agency_image,
+            photos=car.photos,
+            archived_at=car.archived_at,
+            created_at=car.created_at,
+            updated_at=car.updated_at,
+            insurance=insurance,
+            associate=associate,
+            documents=documents,
+            assigned_driver=assigned_driver,
+        )
 
     def list_cars(self, params: CarListQuerySchema) -> CarListResponseSchema:
         """Return a paginated, filtered and sorted list of cars."""

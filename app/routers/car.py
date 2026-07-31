@@ -3,7 +3,7 @@ from fastapi import APIRouter, Body, Depends, status
 from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
 from app.enum.auth import Role
-from app.schemas.car import CarListQuerySchema, CarListResponseSchema, CarResponseSchema, CarSchema
+from app.schemas.car import CarDetailResponseSchema, CarListQuerySchema, CarListResponseSchema, CarResponseSchema, CarSchema
 from app.services.car import CarService
 
 router = APIRouter(prefix="/management/cars", tags=["Cars"])
@@ -23,6 +23,22 @@ def list_cars(
     - **sort_order**: asc or desc.
     """
     return service.list_cars(params)
+
+
+@router.get("/{car_id}", response_model=CarDetailResponseSchema, status_code=status.HTTP_200_OK)
+def get_car(
+    car_id: str,
+    service: CarService = Depends(ServiceFactory.car_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN, Role.EMPLOYEE])),
+) -> CarDetailResponseSchema:
+    """Return the full detail for a car.
+
+    Includes all car fields, insurance/policy, linked associate, documents with presigned GET URLs
+    and computed expiry status, and the assigned driver from the active contract (if any).
+
+    Returns 404 if the car does not exist.
+    """
+    return service.get_car(car_id)
 
 
 @router.post(
