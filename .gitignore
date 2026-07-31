@@ -33,7 +33,7 @@ pip-wheel-metadata/
 .env
 
 # ───── Pipenv ─────
-Pipfile.lock
+# Pipfile.lock is committed intentionally for reproducible Docker builds and CI
 
 # ───── AWS / Serverless Framework ─────
 .serverless/
