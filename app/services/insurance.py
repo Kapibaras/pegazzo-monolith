@@ -30,7 +30,7 @@ class InsuranceService:
         return self.repository.list_all(search=search)
 
     def update(self, insurance_id: int, data: InsurancePatchSchema) -> Insurance:
-        """Partially update an insurance provider."""
+        """Update an insurance provider partially."""
         insurance = self.repository.get_by_id(insurance_id)
         if not insurance:
             raise InsuranceNotFoundException(insurance_id)

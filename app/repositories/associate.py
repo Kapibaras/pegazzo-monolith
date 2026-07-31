@@ -17,14 +17,14 @@ class AssociateRepository(DBRepository):
         query = self.db.query(Associate)
         if search:
             query = query.filter(
-                Associate.name.ilike(f"%{search}%") | Associate.surnames.ilike(f"%{search}%")
+                Associate.name.ilike(f"%{search}%") | Associate.surnames.ilike(f"%{search}%"),
             )
         return query.all()
 
     def has_linked_cars(self, associate_id: int) -> bool:
         """Check whether an associate has linked cars."""
         result = self.db.execute(
-            associate_car.select().where(associate_car.c.associate_id == associate_id)
+            associate_car.select().where(associate_car.c.associate_id == associate_id),
         ).first()
         return result is not None
 

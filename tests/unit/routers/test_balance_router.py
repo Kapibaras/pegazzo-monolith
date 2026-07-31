@@ -1078,7 +1078,7 @@ class TestBalanceRouter:
         assert "Invalid metrics period" in r.json()["detail"]
 
     def test_get_transactions_count_invalid_month_422(self, authorized_client):
-        """month out of range (0 or 13) returns 422."""
+        """Month out of range (0 or 13) returns 422."""
         r = authorized_client.get("/pegazzo/management/balance/transactions/count?month=13&year=2026")
         assert r.status_code == 422
 

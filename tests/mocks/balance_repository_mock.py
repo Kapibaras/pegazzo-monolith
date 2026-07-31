@@ -36,7 +36,7 @@ class BalanceRepositoryMock:
                 payment_method="cash",
                 status="CONFIRMED",
                 category="Otro",
-            )
+            ),
         ]
         self.mapping.clear()
 

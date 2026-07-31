@@ -1,7 +1,15 @@
 from fastapi import Depends
 
 from app.database import get_db
-from app.repositories import AssociateRepository, BalanceRepository, CarRepository, DocumentRepository, ImageRepository, InsuranceRepository, UserRepository
+from app.repositories import (
+    AssociateRepository,
+    BalanceRepository,
+    CarRepository,
+    DocumentRepository,
+    ImageRepository,
+    InsuranceRepository,
+    UserRepository,
+)
 
 
 class RepositoryFactory:
