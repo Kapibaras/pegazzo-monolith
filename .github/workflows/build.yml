@@ -65,6 +65,7 @@ jobs:
             echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" -u "$REGISTRY_USER" --password-stdin
             docker pull "$IMAGE"
             docker run --rm \
+              --network dokploy-network \
               -e DATABASE_URL="$DATABASE_URL" \
               "$IMAGE" \
               alembic upgrade head
