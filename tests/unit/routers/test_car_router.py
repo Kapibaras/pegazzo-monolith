@@ -1,13 +1,13 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 
 def _future_date(days: int = 365) -> str:
-    return (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+    return (datetime.now(UTC) + timedelta(days=days)).isoformat()
 
 
 def _past_date(days: int = 1) -> str:
-    return (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    return (datetime.now(UTC) - timedelta(days=days)).isoformat()
 
 
 BASE_PAYLOAD = {
@@ -115,7 +115,6 @@ class TestCarRouter:
 
     def test_create_car_employee_forbidden(self, authorized_client):
         """Employee role should not be allowed to create cars."""
-        pass
 
     def test_create_car_missing_required_field(self, authorized_client):
         payload = {k: v for k, v in BASE_PAYLOAD.items() if k != "vin"}
@@ -210,7 +209,7 @@ class TestCarRouter:
         """Active cars are returned by default; archived cars are hidden."""
         authorized_client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
         car = authorized_client.car_repo.get_by_id("CAR-001")
-        car.archived_at = datetime.now(timezone.utc)
+        car.archived_at = datetime.now(UTC)
 
         response = authorized_client.get("/pegazzo/management/cars")
         assert response.json()["cars"] == []
@@ -219,7 +218,7 @@ class TestCarRouter:
         """Archived cars are returned when archived=true."""
         authorized_client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
         car = authorized_client.car_repo.get_by_id("CAR-001")
-        car.archived_at = datetime.now(timezone.utc)
+        car.archived_at = datetime.now(UTC)
 
         response = authorized_client.get("/pegazzo/management/cars?archived=true")
         assert len(response.json()["cars"]) == 1
@@ -283,7 +282,7 @@ class TestCarRouter:
         from app.models.document import Document
 
         self._create_car(authorized_client)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         doc_valid = Document(id=1, type="PDF", url="key/doc1.pdf", category="license",
                              expiry_date=now + timedelta(days=60))
         doc_expiring = Document(id=2, type="PDF", url="key/doc2.pdf", category="insurance",
@@ -315,15 +314,15 @@ class TestCarRouter:
         self._create_car(authorized_client)
         driver = Driver(id="DRV-001", name="Luis", surnames="Gomez Ramirez",
                         status="ACTIVE", telephones=["+521234567890"],
-                        license_number="LIC001", license_validity=datetime.now(timezone.utc),
+                        license_number="LIC001", license_validity=datetime.now(UTC),
                         identification_number="ID001", address="Calle 1",
                         garage_address=["Calle 2"])
         contract = Contract(
             id="CNT-001",
             car_id="CAR-001",
             driver_id="DRV-001",
-            start_date=(datetime.now(tz=timezone.utc) - timedelta(days=30)).date(),
-            end_date=(datetime.now(tz=timezone.utc) + timedelta(days=30)).date(),
+            start_date=(datetime.now(tz=UTC) - timedelta(days=30)).date(),
+            end_date=(datetime.now(tz=UTC) + timedelta(days=30)).date(),
             type="monthly",
             amount=5000,
             guarantee_amount=1000,

@@ -9,5 +9,5 @@ def test_read_root():
     response = client.get("/")
     assert response.status_code == 200
     assert response.json() == {
-        "message": "Bienvenido a la API de Pegazzo Drivers"
+        "message": "Bienvenido a la API de Pegazzo Drivers",
     }

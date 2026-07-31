@@ -1,5 +1,5 @@
 import math
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from app.errors.car import (
     AssociateNotFoundException,
@@ -32,7 +32,7 @@ def _compute_expiry_status(expiry_date) -> str | None:
     """Return valid / expiring_soon / expired based on expiry_date, or None if no expiry."""
     if expiry_date is None:
         return None
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if now > expiry_date:
         return "expired"
     if now + timedelta(days=_EXPIRING_SOON_DAYS) > expiry_date:
@@ -168,7 +168,7 @@ class CarService:
         if self.repository.get_by_plate(data.plate):
             raise CarPlateAlreadyExistsException(data.plate)
 
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
         if data.policy_expiration_date <= now_utc:
             raise PolicyExpirationDateInPastException
 

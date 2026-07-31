@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 TYPE_MAP = {
     "debit": "1",
@@ -40,7 +40,7 @@ def generate_reference(type_value: str, payment_method: str) -> str:
     `[HHMMSS][TYPE][PAYMENT][DV]`, where DV is a Mod11 check digit.
     """
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     time_part = now.strftime("%H%M%S")
     type_digit = TYPE_MAP[type_value]

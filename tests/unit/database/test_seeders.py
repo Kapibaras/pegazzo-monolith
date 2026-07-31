@@ -29,7 +29,7 @@ def existing_role_db():
     # Mock
     db = Mock()
     db.query.return_value = db
-    db.filter_by.side_effect = lambda id=None: db
+    db.filter_by.side_effect = lambda **_: db
     db.first.side_effect = lambda: Role(id=1, name="old_owner") if db.query.call_count == 1 else Role(id=2, name="old_user")
     return db
 

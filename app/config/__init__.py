@@ -8,10 +8,10 @@ from .variables import (
 )
 
 __all__ = [
-    "AppConfig",
+    "AUTHORIZATION",
     "CORS_ORIGINS",
     "DATABASE_URL",
     "DEBUG",
     "ENVIRONMENT",
-    "AUTHORIZATION",
+    "AppConfig",
 ]

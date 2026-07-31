@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import Mock
 
@@ -26,7 +26,7 @@ class TestTransactionMetricsRepository:
     """Unit tests for TransactionMetricsRepository."""
 
     def test_get_affected_periods(self):
-        dt = datetime(2026, 1, 31, 12, 0, tzinfo=timezone.utc)
+        dt = datetime(2026, 1, 31, 12, 0, tzinfo=UTC)
 
         periods = get_affected_periods(dt)
 

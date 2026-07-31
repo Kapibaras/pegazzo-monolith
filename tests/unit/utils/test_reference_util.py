@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
@@ -19,7 +19,7 @@ def test_calculate_mod11_returns_x_when_10(value):
 def test_generate_reference_structure():
     """Test that generated reference has correct structure and components."""
 
-    fake_now = datetime(2025, 1, 1, 12, 34, 56, tzinfo=timezone.utc)
+    fake_now = datetime(2025, 1, 1, 12, 34, 56, tzinfo=UTC)
 
     with patch("app.utils.reference.datetime") as mock_datetime:
         mock_datetime.now.return_value = fake_now
@@ -40,7 +40,7 @@ def test_generate_reference_structure():
 def test_generate_reference_different_maps():
     """Test reference generation with other valid type/payment combinations."""
 
-    fake_now = datetime(2025, 1, 1, 10, 0, 30, tzinfo=timezone.utc)
+    fake_now = datetime(2025, 1, 1, 10, 0, 30, tzinfo=UTC)
 
     with patch("app.utils.reference.datetime") as mock_datetime:
         mock_datetime.now.return_value = fake_now
@@ -56,7 +56,7 @@ def test_generate_reference_different_maps():
 def test_generate_reference_invalid_type():
     """Should raise KeyError if type is not found in TYPE_MAP."""
     with patch("app.utils.reference.datetime") as mock_datetime:
-        mock_datetime.now.return_value = datetime.now(timezone.utc)
+        mock_datetime.now.return_value = datetime.now(UTC)
 
         with pytest.raises(KeyError):
             generate_reference("not_valid", "cash")
@@ -65,7 +65,7 @@ def test_generate_reference_invalid_type():
 def test_generate_reference_invalid_payment_method():
     """Should raise KeyError if payment method not in PAYMENT_MAP."""
     with patch("app.utils.reference.datetime") as mock_datetime:
-        mock_datetime.now.return_value = datetime.now(timezone.utc)
+        mock_datetime.now.return_value = datetime.now(UTC)
 
         with pytest.raises(KeyError):
             generate_reference("debit", "not_valid")

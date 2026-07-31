@@ -1,5 +1,4 @@
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from app.enum.balance import SortOrder
 from app.enum.crm import CarSortBy, CarStatus
@@ -55,7 +54,7 @@ class CarRepositoryMock:
         self.cars.append(car)
         return car
 
-    def _filter(self, status: Optional[CarStatus], search: Optional[str], archived: bool) -> list[Car]:
+    def _filter(self, status: CarStatus | None, search: str | None, archived: bool) -> list[Car]:
         """Return cars matching the given filters."""
         result = []
         for car in self.cars:
@@ -72,7 +71,7 @@ class CarRepositoryMock:
             result.append(car)
         return result
 
-    def count_cars(self, status: Optional[CarStatus], search: Optional[str], archived: bool) -> int:
+    def count_cars(self, status: CarStatus | None, search: str | None, archived: bool) -> int:
         """Return the total count of cars matching the given filters."""
         return len(self._filter(status, search, archived))
 
@@ -82,7 +81,7 @@ class CarRepositoryMock:
 
     def get_active_contract_for_car(self, car_id: str) -> Contract | None:
         """Return the active contract for the car, or None."""
-        today = datetime.now(tz=timezone.utc).date()
+        today = datetime.now(tz=UTC).date()
         return next(
             (
                 c
@@ -94,8 +93,8 @@ class CarRepositoryMock:
 
     def list_cars(
         self,
-        status: Optional[CarStatus],
-        search: Optional[str],
+        status: CarStatus | None,
+        search: str | None,
         archived: bool,
         sort_by: CarSortBy,
         sort_order: SortOrder,

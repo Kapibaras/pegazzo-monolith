@@ -32,16 +32,23 @@ extend-select = [
     "PERF", # Performance checks
     "RUF",  # Ruff specific checks
     "TRY",  # Try-except checks
+    "UP",   # Pyupgrade checks (modernize Python syntax)
+    "FURB", # Refurb checks
+    "PIE",  # Unnecessary code checks
 ]
 
-fixable = ["I", "F401"]
+fixable = ["I", "F401", "COM", "RUF022", "UP", "FURB", "PIE"]
 extend-ignore = [
     "D100",   # ignore missing-module-docstring
     "B008",   # ignore function call in argument defaults
     "D105",   # ignore missing docstring in magic methods
     "D104",   # ignore missing docstring in package
-    "D202",   # ignore blank lines bot allowed after function docstring
+    "D202",   # ignore blank lines not allowed after function docstring
     "TRY003", # ignore broad exception catching
+    "D107",   # ignore missing docstring in __init__ (simple constructors)
+    "FIX002", # ignore TODO/FIXME comments (intentional)
+    "C901",   # ignore complex function (requires larger refactor)
+    "B024",   # ignore abstract base without abstract methods (design choice)
 ]
 
 [lint.per-file-ignores]
@@ -50,4 +57,10 @@ extend-ignore = [
     "D102",   # ignore missing docstring in public method
     "D103",   # ignore missing docstring in public function
     "PT019",  # ignore pytest fixtures without 'self' parameter
+]
+"scripts/*" = [
+    "T201",   # print statements are intentional in scripts
+    "BLE001", # broad exception catching acceptable in scripts
+    "D101",   # class docstrings not required in scripts
+    "D103",   # function docstrings not required in scripts
 ]

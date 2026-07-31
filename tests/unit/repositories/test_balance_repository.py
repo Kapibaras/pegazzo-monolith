@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import Mock
 
 import pytest
@@ -345,8 +345,8 @@ class TestBalanceRepository:
         assert result == [metrics]
 
     def test_count_transactions_in_range_success(self):
-        start_dt = datetime(2026, 1, 1, tzinfo=timezone.utc)
-        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+        start_dt = datetime(2026, 1, 1, tzinfo=UTC)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=UTC)
 
         mock_query = self.mock_db.query.return_value
         mock_q1 = mock_query.filter.return_value
@@ -378,8 +378,8 @@ class TestBalanceRepository:
         ],
     )
     def test_list_transactions_in_range_success(self, sort_by, sort_order):
-        start_dt = datetime(2026, 1, 1, tzinfo=timezone.utc)
-        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+        start_dt = datetime(2026, 1, 1, tzinfo=UTC)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=UTC)
 
         limit = 10
         offset = 20
@@ -423,8 +423,8 @@ class TestBalanceRepository:
         assert result == [tx1, tx2]
 
     def test_list_transactions_in_range_default_sort_fallback(self):
-        start_dt = datetime(2026, 1, 1, tzinfo=timezone.utc)
-        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc)
+        start_dt = datetime(2026, 1, 1, tzinfo=UTC)
+        end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=UTC)
 
         mock_query = self.mock_db.query.return_value
         mock_q1 = mock_query.filter.return_value

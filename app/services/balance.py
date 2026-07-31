@@ -1,5 +1,5 @@
 import math
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 from app.enum.auth import Role
@@ -83,7 +83,7 @@ class BalanceService:
         transaction = Transaction(
             amount=data.amount,
             reference=generate_reference(data.type, data.payment_method),
-            date=data.date if data.date else datetime.now(timezone.utc),
+            date=data.date or datetime.now(UTC),
             type=data.type,
             description=data.description,
             payment_method=data.payment_method,
@@ -151,7 +151,7 @@ class BalanceService:
     def get_metrics(self, month: int | None = None, year: int | None = None) -> BalanceMetricsSimpleResponseSchema:
         """Get metrics."""
         if month is None and year is None:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             month = now.month
             year = now.year
 
@@ -235,7 +235,7 @@ class BalanceService:
 
     def get_historical(self, period: PeriodType, limit: int) -> BalanceTrendResponseSchema:
         """Get historical trend from precomputed transaction_metrics."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         current_key = current_period_key(period_type=period, now=now)
 
         keys = _build_historical_keys(current_key, limit)
@@ -271,7 +271,7 @@ class BalanceService:
     ) -> TransactionCountResponseSchema:
         """Count transactions for a given month/year with an optional status filter."""
         if month is None and year is None:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             month = now.month
             year = now.year
 

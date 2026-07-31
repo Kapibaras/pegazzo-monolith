@@ -1,5 +1,4 @@
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from sqlalchemy import or_
 
@@ -59,7 +58,7 @@ class CarRepository(DBRepository):
 
         return car
 
-    def _base_query(self, status: Optional[CarStatus], search: Optional[str], archived: bool):
+    def _base_query(self, status: CarStatus | None, search: str | None, archived: bool):
         """Build a base query with the common filters applied."""
         query = self.db.query(Car)
         query = query.filter(Car.archived_at.isnot(None)) if archived else query.filter(Car.archived_at.is_(None))
@@ -76,14 +75,14 @@ class CarRepository(DBRepository):
             )
         return query
 
-    def count_cars(self, status: Optional[CarStatus], search: Optional[str], archived: bool) -> int:
+    def count_cars(self, status: CarStatus | None, search: str | None, archived: bool) -> int:
         """Return the total count of cars matching the given filters."""
         return self._base_query(status, search, archived).count()
 
     def list_cars(
         self,
-        status: Optional[CarStatus],
-        search: Optional[str],
+        status: CarStatus | None,
+        search: str | None,
         archived: bool,
         sort_by: CarSortBy,
         sort_order: SortOrder,
@@ -106,7 +105,7 @@ class CarRepository(DBRepository):
 
     def get_active_contract_for_car(self, car_id: str) -> Contract | None:
         """Return the currently active contract for the car, or None."""
-        today = datetime.now(tz=timezone.utc).date()
+        today = datetime.now(tz=UTC).date()
         return (
             self.db.query(Contract)
             .filter(

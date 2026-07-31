@@ -1,5 +1,5 @@
-from datetime import datetime, timezone
-from typing import Annotated, Optional
+from datetime import UTC, datetime
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
@@ -31,10 +31,10 @@ class TransactionSchema(BaseModel):
 class TransactionPatchSchema(BaseModel):
     """Schema for updating a transaction."""
 
-    amount: Optional[float] = None
-    description: Optional[str] = None
-    payment_method: Optional[PaymentMethod] = None
-    category: Optional[str] = Field(default=None, min_length=1, max_length=100, description="Category of the transaction")
+    amount: float | None = None
+    description: str | None = None
+    payment_method: PaymentMethod | None = None
+    category: str | None = Field(default=None, min_length=1, max_length=100, description="Category of the transaction")
 
 
 class TransactionAuthorizationSchema(BaseModel):
@@ -62,9 +62,9 @@ class BalanceMetricsDetailedQuerySchema(BaseModel):
 
     period: PeriodType = Field(..., description="One of: week, month, year")
 
-    week: Optional[int] = Field(None, ge=1, le=53, description="ISO week number (1-53)")
-    month: Optional[int] = Field(None, ge=1, le=12, description="Month number (1-12)")
-    year: Optional[int] = Field(None, ge=2000, le=2100, description="Year (e.g., 2026)")
+    week: int | None = Field(None, ge=1, le=53, description="ISO week number (1-53)")
+    month: int | None = Field(None, ge=1, le=12, description="Month number (1-12)")
+    year: int | None = Field(None, ge=2000, le=2100, description="Year (e.g., 2026)")
 
     @model_validator(mode="after")
     def validate_period_requirements(self):
@@ -125,11 +125,11 @@ class BalanceTransactionsQuerySchema(BaseModel):
 
     period: PeriodType = Field(..., description="One of: week, month, year")
 
-    week: Optional[int] = Field(None, ge=1, le=53, description="Week number (1-53)")
-    month: Optional[int] = Field(None, ge=1, le=12, description="Month number (1-12)")
-    year: Optional[int] = Field(None, ge=2000, le=2100, description="Year (e.g., 2026)")
+    week: int | None = Field(None, ge=1, le=53, description="Week number (1-53)")
+    month: int | None = Field(None, ge=1, le=12, description="Month number (1-12)")
+    year: int | None = Field(None, ge=2000, le=2100, description="Year (e.g., 2026)")
 
-    status: Optional[TransactionStatus] = Field(
+    status: TransactionStatus | None = Field(
         default=None,
         description="Filter by status: PENDING, CONFIRMED, REJECTED",
     )
@@ -174,7 +174,7 @@ class TransactionCountQuerySchema(BaseModel):
 
     month: int | None = Field(None, ge=1, le=12, description="Month number (1-12)")
     year: int | None = Field(None, ge=2000, description="Year (e.g., 2026)")
-    status: Optional[TransactionStatus] = Field(
+    status: TransactionStatus | None = Field(
         default=None,
         description="Filter by status: PENDING, CONFIRMED, REJECTED",
     )
@@ -201,7 +201,7 @@ class TransactionResponseSchema(BaseModel):
     payment_method: PaymentMethod = Field(..., description="Payment method")
     status: TransactionStatus = Field(..., description="Approval status of the transaction")
     category: str | None = Field(default=None, description="Category of the transaction")
-    car_id: Optional[int] = Field(default=None, description="Associated car ID (nullable)")
+    car_id: int | None = Field(default=None, description="Associated car ID (nullable)")
 
     @field_validator("description", mode="before")
     @classmethod
@@ -325,12 +325,12 @@ class BalanceTrendDataPointSchema(BaseModel):
     period_start: datetime = Field(
         ...,
         description="Start datetime of the period (ISO 8601).",
-        examples=[datetime(2025, 8, 1, 0, 0, 0, tzinfo=timezone.utc)],
+        examples=[datetime(2025, 8, 1, 0, 0, 0, tzinfo=UTC)],
     )
     period_end: datetime = Field(
         ...,
         description="End datetime of the period (ISO 8601).",
-        examples=[datetime(2025, 8, 31, 23, 59, 59, tzinfo=timezone.utc)],
+        examples=[datetime(2025, 8, 31, 23, 59, 59, tzinfo=UTC)],
     )
     total_income: float = Field(
         ...,

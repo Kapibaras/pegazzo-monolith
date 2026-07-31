@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List, Optional
 
 from fastapi import Depends
 from fastapi_jwt_auth import AuthJWT
@@ -19,14 +18,14 @@ class AuthUser:
 class RequiresAuth:
     """RequiresAuth is a dependency that checks for authentication and authorization."""
 
-    def __init__(self, whitelist_roles: Optional[str | List[str]] = None) -> None:
+    def __init__(self, whitelist_roles: str | list[str] | None = None) -> None:
         """Analyze if it has authentication and valid authorization.
 
         Args:
             whitelist_roles (Optional[List[str]]): List of roles allowed to access the resource. If empty, all roles are allowed.
 
         """
-        self.whitelist_roles: List[str] = whitelist_roles if whitelist_roles else []
+        self.whitelist_roles: list[str] = whitelist_roles or []
 
     def __call__(self, authorize: AuthJWT = Depends()) -> AuthUser:
         """Validate the JWT token and check the role."""

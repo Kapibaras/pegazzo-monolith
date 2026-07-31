@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 from copy import copy
-from typing import Set, Tuple
 
 from sqlalchemy import event, inspect
 from sqlalchemy.orm import Session
@@ -23,7 +22,7 @@ def transaction_metrics_after_flush(session: Session, _flush_context: object) ->
     if session.info.get("_updating_metrics", False):
         return
 
-    affected: Set[Tuple[Transaction, Transaction | None]] = set()
+    affected: set[tuple[Transaction, Transaction | None]] = set()
 
     # New transactions start as PENDING — no metrics recalculation needed
 
@@ -59,7 +58,7 @@ def transaction_metrics_after_flush(session: Session, _flush_context: object) ->
     if not affected:
         return
 
-    affected_periods: Set[PeriodKey] = set()
+    affected_periods: set[PeriodKey] = set()
     for tx, old_tx in affected:
         affected_periods.update(get_affected_periods(tx.date))
         if old_tx is not None:
