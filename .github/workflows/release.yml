@@ -12,9 +12,10 @@ jobs:
   check-migrations:
     name: Check Pending Migrations
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Verify no pending migrations in production
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
@@ -42,7 +43,7 @@ jobs:
     environment: production
     steps:
       - name: Retag and push image to registry
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         env:
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
           REGISTRY_USER: ${{ secrets.REGISTRY_USER }}

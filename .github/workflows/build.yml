@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: build-staging
+  cancel-in-progress: false
+
 jobs:
   build:
     name: Build & Push Image
@@ -12,7 +16,7 @@ jobs:
 
     steps:
       - name: Build and push image on server
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         env:
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
           REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
@@ -49,7 +53,7 @@ jobs:
 
     steps:
       - name: Run alembic migrations via SSH
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
