@@ -1,0 +1,58 @@
+name: Migrate Database
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      direction:
+        description: "Migration direction"
+        required: true
+        type: choice
+        options:
+          - upgrade
+          - downgrade
+
+concurrency:
+  group: migrate-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Run Migrations (${{ inputs.environment }} / ${{ inputs.direction }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Run alembic ${{ inputs.direction }} via SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+        with:
+          host: ${{ secrets.KVM_HOST }}
+          username: ${{ secrets.KVM_USER }}
+          key: ${{ secrets.KVM_SSH_KEY }}
+          envs: DATABASE_URL,REGISTRY_URL,REGISTRY_USER,REGISTRY_PASSWORD
+          script: |
+            IMAGE="$REGISTRY_URL/pegazzo-monolith:main"
+            echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" -u "$REGISTRY_USER" --password-stdin
+            docker pull "$IMAGE"
+            docker run --rm \
+              --network dokploy-network \
+              -e DATABASE_URL="$DATABASE_URL" \
+              "$IMAGE" \
+              alembic ${{ inputs.direction }} head
+            echo "--- Migration state after run ---"
+            docker run --rm \
+              --network dokploy-network \
+              -e DATABASE_URL="$DATABASE_URL" \
+              "$IMAGE" \
+              alembic current
