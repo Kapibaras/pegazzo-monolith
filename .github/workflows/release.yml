@@ -12,7 +12,6 @@ jobs:
   check-migrations:
     name: Check Pending Migrations
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - name: Verify no pending migrations in production
         uses: appleboy/ssh-action@v1
@@ -40,6 +39,7 @@ jobs:
     name: Publish to Production
     runs-on: ubuntu-latest
     needs: check-migrations
+    environment: production
     steps:
       - name: Retag and push image to registry
         uses: appleboy/ssh-action@v1

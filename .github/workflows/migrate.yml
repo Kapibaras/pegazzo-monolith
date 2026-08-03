@@ -36,20 +36,33 @@ jobs:
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
           REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          DIRECTION: ${{ inputs.direction }}
         with:
           host: ${{ secrets.KVM_HOST }}
           username: ${{ secrets.KVM_USER }}
           key: ${{ secrets.KVM_SSH_KEY }}
-          envs: DATABASE_URL,REGISTRY_URL,REGISTRY_USER,REGISTRY_PASSWORD
+          envs: DATABASE_URL,REGISTRY_URL,REGISTRY_USER,REGISTRY_PASSWORD,ENVIRONMENT,DIRECTION
           script: |
-            IMAGE="$REGISTRY_URL/pegazzo-monolith:main"
+            # Use :latest for production (the last released image), :main for staging
+            if [ "$ENVIRONMENT" = "production" ]; then
+              IMAGE="$REGISTRY_URL/pegazzo-monolith:latest"
+            else
+              IMAGE="$REGISTRY_URL/pegazzo-monolith:main"
+            fi
             echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" -u "$REGISTRY_USER" --password-stdin
             docker pull "$IMAGE"
+            # alembic upgrade head / alembic downgrade -1
+            if [ "$DIRECTION" = "upgrade" ]; then
+              ALEMBIC_CMD="alembic upgrade head"
+            else
+              ALEMBIC_CMD="alembic downgrade -1"
+            fi
             docker run --rm \
               --network dokploy-network \
               -e DATABASE_URL="$DATABASE_URL" \
               "$IMAGE" \
-              alembic ${{ inputs.direction }} head
+              $ALEMBIC_CMD
             echo "--- Migration state after run ---"
             docker run --rm \
               --network dokploy-network \
