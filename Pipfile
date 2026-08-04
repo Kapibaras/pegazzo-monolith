@@ -29,6 +29,7 @@ pytest-asyncio = "*"
 faker = "*"
 pre-commit = "*"
 ruff = "*"
+packaging = "*"
 
 [requires]
 python_version = "3.12"
