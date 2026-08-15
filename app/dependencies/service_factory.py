@@ -5,6 +5,8 @@ from app.services import (
     AssociateService,
     AuthService,
     BalanceService,
+    CarFolioService,
+    CarModelService,
     CarService,
     DocumentService,
     ImageService,
@@ -67,6 +69,30 @@ class ServiceFactory:
         Yields:AssociateService: An instance of AssociateService initialized with the provided repository.
         """
         yield AssociateService(repository)
+
+    @staticmethod
+    def car_model_service(repository=Depends(RepositoryFactory.car_model_repository)):
+        """Provide an instance of CarModelService.
+
+        Args:repository (CarModelRepository): An instance of CarModelRepository, injected via FastAPI's Depends.
+
+        Yields:CarModelService: An instance of CarModelService initialized with the provided repository.
+        """
+        yield CarModelService(repository)
+
+    @staticmethod
+    def car_folio_service(
+        car_repository=Depends(RepositoryFactory.car_repository),
+        car_model_repository=Depends(RepositoryFactory.car_model_repository),
+    ):
+        """Provide an instance of CarFolioService.
+
+        Args:car_repository (CarRepository): An instance of CarRepository, injected via FastAPI's Depends.
+        Args:car_model_repository (CarModelRepository): An instance of CarModelRepository, injected via FastAPI's Depends.
+
+        Yields:CarFolioService: An instance of CarFolioService initialized with the provided repositories.
+        """
+        yield CarFolioService(car_repository, car_model_repository)
 
     @staticmethod
     def car_service(repository=Depends(RepositoryFactory.car_repository)):

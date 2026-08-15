@@ -4,7 +4,9 @@ from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
 from app.enum.auth import Role
 from app.schemas.car import CarDetailResponseSchema, CarListQuerySchema, CarListResponseSchema, CarResponseSchema, CarSchema
+from app.schemas.car_folio import CarFolioRequestSchema, CarFolioResponseSchema
 from app.services.car import CarService
+from app.services.car_folio import CarFolioService
 
 router = APIRouter(prefix="/management/cars", tags=["Cars"])
 
@@ -39,6 +41,27 @@ def get_car(
     Returns 404 if the car does not exist.
     """
     return service.get_car(car_id)
+
+
+@router.post(
+    "/folio",
+    response_model=CarFolioResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+def compute_car_folio(
+    body: CarFolioRequestSchema = Body(..., description="Inputs for folio computation"),
+    service: CarFolioService = Depends(ServiceFactory.car_folio_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> CarFolioResponseSchema:
+    """Compute the internal folio for a car without persisting anything.
+
+    The folio encodes the owner prefix, associate initials, car model abbreviation,
+    transmission and a per-associate consecutive counter.
+
+    Returns 400 if the associate does not exist or the make/model pair is not
+    registered in the CarModel catalog.
+    """
+    return service.compute_folio(data=body)
 
 
 @router.post(

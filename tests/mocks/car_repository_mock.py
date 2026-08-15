@@ -18,6 +18,7 @@ class CarRepositoryMock:
         self.cars: list[Car] = []
         self.insurances: list[Insurance] = [_DEFAULT_INSURANCE]
         self.associates: list[Associate] = [_DEFAULT_ASSOCIATE]
+        self.us_associate_ids: set[int] = set()
         self.car_documents: dict[str, list[Document]] = {}
         self.contracts: list[Contract] = []
 
@@ -26,6 +27,7 @@ class CarRepositoryMock:
         self.cars = []
         self.insurances = [_DEFAULT_INSURANCE]
         self.associates = [_DEFAULT_ASSOCIATE]
+        self.us_associate_ids = set()
         self.car_documents = {}
         self.contracts = []
 
@@ -78,6 +80,16 @@ class CarRepositoryMock:
     def get_car_documents(self, car_id: str) -> list[Document]:
         """Return documents linked to the car."""
         return self.car_documents.get(car_id, [])
+
+    def is_us_owner(self, associate_id: int) -> bool:
+        """Return True if the associate is in the US-owner set."""
+        return associate_id in self.us_associate_ids
+
+    def count_cars_for_associate(self, associate_id: int) -> int:
+        """Return the number of cars whose associate list contains the given associate_id."""
+        return sum(
+            1 for c in self.cars if any(a.id == associate_id for a in (c.associate or []))
+        )
 
     def get_active_contract_for_car(self, car_id: str) -> Contract | None:
         """Return the active contract for the car, or None."""
