@@ -3,6 +3,8 @@ from pydantic.alias_generators import to_camel
 
 
 class CarFolioRequestSchema(BaseModel):
+    """Request body for the folio computation endpoint."""
+
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     associate_id: int = Field(..., description="Associate who funded the car")
@@ -13,6 +15,8 @@ class CarFolioRequestSchema(BaseModel):
 
 
 class CarFolioResponseSchema(BaseModel):
+    """Response body for the folio computation endpoint."""
+
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     folio: str

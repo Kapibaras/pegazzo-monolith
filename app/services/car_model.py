@@ -17,7 +17,7 @@ class CarModelService:
         groups: dict[str, list[CarModelItemSchema]] = {}
         for entry in entries:
             groups.setdefault(entry.make, []).append(
-                CarModelItemSchema(id=entry.id, model=entry.model, abbreviation=entry.abbreviation)
+                CarModelItemSchema(id=entry.id, model=entry.model, abbreviation=entry.abbreviation),
             )
         return [CarModelGroupSchema(make=make, models=models) for make, models in sorted(groups.items())]
 

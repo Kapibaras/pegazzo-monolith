@@ -12,7 +12,7 @@ def _owner_prefix(is_us_owner: bool, legal_owner_is_pegazzo: bool) -> str:
 
 def _associate_initials(name: str, surnames: str) -> str:
     """Return initials: first letter of first given name + first letters of up to two surnames."""
-    parts = [name.strip().split()[0]] + surnames.strip().split()[:2]
+    parts = [name.strip().split()[0], *surnames.strip().split()[:2]]
     return "".join(p[0].upper() for p in parts if p)
 
 

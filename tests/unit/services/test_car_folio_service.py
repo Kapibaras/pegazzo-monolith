@@ -45,6 +45,8 @@ def _request(
 # ---------------------------------------------------------------------------
 
 class TestOwnerPrefix:
+    """Tests for the _owner_prefix helper function."""
+
     def test_legal_owner_is_pegazzo_returns_pg(self):
         assert _owner_prefix(is_us_owner=False, legal_owner_is_pegazzo=True) == "PG"
 
@@ -63,6 +65,8 @@ class TestOwnerPrefix:
 # ---------------------------------------------------------------------------
 
 class TestAssociateInitials:
+    """Tests for the _associate_initials helper function."""
+
     def test_standard_two_surnames(self):
         assert _associate_initials("Gabriela Lizeth", "Duran Rios") == "GDR"
 
@@ -84,6 +88,8 @@ class TestAssociateInitials:
 # ---------------------------------------------------------------------------
 
 class TestCarFolioService:
+    """Integration tests for CarFolioService.compute_folio."""
+
     def setup_method(self):
         self.car_repo = CarRepositoryMock()
         self.car_model_repo = CarModelRepositoryMock()
