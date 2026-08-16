@@ -37,7 +37,7 @@ BASE_PAYLOAD = {
     "batteryDate": _future_date(30),
     "legalOwnerName": "Juan",
     "legalOwnerSurnames": "García López",
-    "financedStatus": "PAID",
+    "isFinancedLiquidated": True,
     "insuranceProviderId": 1,
     "policyNumber": "POL-001",
     "policyExpirationDate": _future_date(365),
