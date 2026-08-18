@@ -1,7 +1,7 @@
 """Add pg_trgm extension and GIN indexes for car fuzzy search - PGZ-153
 
 Revision ID: 8321d89f249b
-Revises: 10536474dfd8
+Revises: 10536474dfd8, 3066a4ec1894
 Create Date: 2026-08-18 00:00:00.000000
 
 """
@@ -11,7 +11,7 @@ from typing import Sequence, Union
 from alembic import op
 
 revision: str = "8321d89f249b"
-down_revision: Union[str, None] = "10536474dfd8"
+down_revision: Union[str, Sequence[str], None] = ("10536474dfd8", "3066a4ec1894")
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
