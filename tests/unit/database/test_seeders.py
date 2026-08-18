@@ -39,13 +39,13 @@ class TestSeeders:
     """Class of tests for the seeders function, which inserts or updates roles in the database."""
 
     def test_seed_roles_insert_if_not_exists(self, mock_db):
-        """Verifies that roles are added when they do not exist previously in the database."""
+        """Verifies that roles and car models are added when they do not exist previously in the database."""
 
         # Act
         seeders(mock_db)
 
-        # Assert
-        assert mock_db.add.call_count == 3
+        # Assert — 3 roles + 14 car models + 2 associates + 2 owner_associates
+        assert mock_db.add.call_count == 21
         mock_db.commit.assert_called_once()
 
     def test_seed_roles_update_if_exists(self, existing_role_db):

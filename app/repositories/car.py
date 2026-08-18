@@ -5,7 +5,7 @@ from sqlalchemy import or_
 from app.enum.balance import SortOrder
 from app.enum.crm import CarSortBy, CarStatus
 from app.errors.database import DBOperationError
-from app.models.car import Associate, Car, Insurance, car_document_table
+from app.models.car import Associate, Car, Insurance, OwnerAssociate, associate_car, car_document_table
 from app.models.contract import Contract
 from app.models.document import Document
 from app.utils.logging_config import logger
@@ -101,6 +101,22 @@ class CarRepository(DBRepository):
             .join(car_document_table, Document.id == car_document_table.c.document_id)
             .filter(car_document_table.c.car_id == car_id)
             .all()
+        )
+
+    def is_us_owner(self, associate_id: int) -> bool:
+        """Return True if the associate is registered in the owner_associate table."""
+        return (
+            self.db.query(OwnerAssociate)
+            .filter(OwnerAssociate.associate_id == associate_id)
+            .first()
+        ) is not None
+
+    def count_cars_for_associate(self, associate_id: int) -> int:
+        """Return the number of cars linked to the given associate."""
+        return (
+            self.db.query(associate_car)
+            .filter(associate_car.c.associate_id == associate_id)
+            .count()
         )
 
     def get_active_contract_for_car(self, car_id: str) -> Contract | None:

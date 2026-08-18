@@ -69,3 +69,13 @@ class AssociateNotFoundException(HTTPException):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Associate with id '{associate_id}' was not found",
         )
+
+
+class CarModelNotFoundException(HTTPException):
+    """Exception raised when the (make, model) pair is not found in the CarModel catalog."""
+
+    def __init__(self, make: str, model: str):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Make/model combination '{make} {model}' is not registered in the catalog. Register it first before computing a folio.",
+        )

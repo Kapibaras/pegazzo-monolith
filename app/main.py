@@ -10,6 +10,7 @@ from app.routers import (
     associate_router,
     auth_router,
     balance_router,
+    car_model_router,
     car_router,
     document_router,
     health_router,
@@ -64,6 +65,7 @@ app.include_router(user_router, prefix="/pegazzo")
 app.include_router(balance_router, prefix="/pegazzo")
 app.include_router(insurance_router, prefix="/pegazzo")
 app.include_router(associate_router, prefix="/pegazzo")
+app.include_router(car_model_router, prefix="/pegazzo")
 app.include_router(car_router, prefix="/pegazzo")
 app.include_router(document_router, prefix="/pegazzo")
 app.include_router(image_router, prefix="/pegazzo")

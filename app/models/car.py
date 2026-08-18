@@ -91,3 +91,10 @@ class Associate(Base):
     cars = relationship("Car", secondary=associate_car, back_populates="associate")
     created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class OwnerAssociate(Base):
+    """Associates that get the 'US' owner prefix in the internal car folio."""
+
+    __tablename__ = "owner_associate"
+    associate_id = Column(Integer, ForeignKey("associate.id"), primary_key=True, nullable=False)

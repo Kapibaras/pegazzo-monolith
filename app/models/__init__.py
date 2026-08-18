@@ -1,5 +1,6 @@
 from .balance import Transaction
-from .car import Associate, Car, Insurance, associate_car, car_document_table
+from .car import Associate, Car, Insurance, OwnerAssociate, associate_car, car_document_table
+from .car_model import CarModel
 from .contract import Contract
 from .document import Document
 from .driver import (
@@ -19,6 +20,7 @@ from .users import Permission, Role, User, role_permission_table
 __all__ = [
     "Associate",
     "Car",
+    "CarModel",
     "Contract",
     "Document",
     "Driver",
@@ -26,6 +28,7 @@ __all__ = [
     "Guarantor",
     "Incidence",
     "Insurance",
+    "OwnerAssociate",
     "Permission",
     "Reference",
     "Role",
