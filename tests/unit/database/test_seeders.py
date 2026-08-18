@@ -44,8 +44,8 @@ class TestSeeders:
         # Act
         seeders(mock_db)
 
-        # Assert — 3 roles + 14 car models
-        assert mock_db.add.call_count == 17
+        # Assert — 3 roles + 14 car models + 2 associates + 2 owner_associates
+        assert mock_db.add.call_count == 21
         mock_db.commit.assert_called_once()
 
     def test_seed_roles_update_if_exists(self, existing_role_db):
