@@ -164,7 +164,7 @@ class TestCarFolioService:
                 bill_number="B1", public_vehicle_registry="R1",
                 battery_model="BX", battery_serial_number="BS1",
                 legal_owner_name="Juan", legal_owner_surnames="Perez",
-                financed_status="PAID", features={}, details={},
+                is_financed_liquidated=True, features={}, details={},
                 insurance_provider_id=1, policy_number="POL", policy_type="FULL",
             )
             car.associate = [associate]

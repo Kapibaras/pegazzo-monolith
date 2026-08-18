@@ -1,5 +1,6 @@
 from app.database.session import SessionLocal
 from app.enum.auth import Role as RoleEnum
+from app.models.car import Associate, OwnerAssociate
 from app.models.car_model import CarModel
 from app.models.users import Role
 
@@ -21,8 +22,16 @@ _CAR_MODELS = [
 ]
 
 
+_ASSOCIATES = [
+    Associate(id=1, name="Gaby", surnames="Flores", telephones=["+52 55 0000 0001"]),
+    Associate(id=2, name="Pedro", surnames="García", telephones=["+52 55 0000 0002"]),
+]
+
+_OWNER_ASSOCIATES = [1, 2]
+
+
 def seeders(db: SessionLocal):
-    """Seed roles and car model catalog into the database."""
+    """Seed roles, car model catalog, and associates into the database."""
     roles = [
         Role(id=1, name=RoleEnum.OWNER),
         Role(id=2, name=RoleEnum.ADMIN),
@@ -42,6 +51,19 @@ def seeders(db: SessionLocal):
             db.add(car_model)
         else:
             exists.abbreviation = car_model.abbreviation
+
+    for associate in _ASSOCIATES:
+        exists = db.query(Associate).filter_by(id=associate.id).first()
+        if not exists:
+            db.add(associate)
+        else:
+            exists.name = associate.name
+            exists.surnames = associate.surnames
+
+    for associate_id in _OWNER_ASSOCIATES:
+        exists = db.query(OwnerAssociate).filter_by(associate_id=associate_id).first()
+        if not exists:
+            db.add(OwnerAssociate(associate_id=associate_id))
 
     db.commit()
 
