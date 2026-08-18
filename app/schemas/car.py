@@ -100,7 +100,23 @@ class CarListQuerySchema(BaseModel):
     page: int = Field(default=1, ge=1, description="Page number starting at 1")
     limit: int = Field(default=10, ge=1, le=100, description="Records per page (max 100)")
     status: CarStatus | None = Field(default=None, description="Filter by status: ACTIVE, INACTIVE, IN_MAINTENANCE")
-    search: str | None = Field(default=None, min_length=1, max_length=100, description="Search by plate, make or model")
+    search: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=100,
+        description=(
+            "Fuzzy search over make, model and id. "
+            "A 4-digit token in the text is treated as a year filter. "
+            "Precedence: exact id > model > make."
+        ),
+    )
+    year: str | None = Field(
+        default=None,
+        min_length=4,
+        max_length=4,
+        pattern=r"^\d{4}$",
+        description="Exact year filter (e.g. 2022). Overrides any year token found in search.",
+    )
     archived: bool = Field(default=False, description="If true, return only archived cars; otherwise active cars only")
     sort_by: CarSortBy = Field(default=CarSortBy.CREATED_AT, description="Field to sort by")
     sort_order: SortOrder = Field(default=SortOrder.DESC, description="Sort direction: asc or desc")

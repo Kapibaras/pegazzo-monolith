@@ -1,6 +1,7 @@
+import re
 from datetime import UTC, datetime
 
-from sqlalchemy import or_
+from sqlalchemy import func
 
 from app.enum.balance import SortOrder
 from app.enum.crm import CarSortBy, CarStatus
@@ -16,8 +17,12 @@ _CAR_SORT_COLUMNS = {
     CarSortBy.MAKE: Car.make,
     CarSortBy.PLATE: Car.plate,
     CarSortBy.STATUS: Car.status,
+    CarSortBy.YEAR: Car.year,
     CarSortBy.CREATED_AT: Car.created_at,
 }
+
+_SIMILARITY_THRESHOLD = 0.3
+_YEAR_RE = re.compile(r"\b(\d{4})\b")
 
 
 class CarRepository(DBRepository):
@@ -58,31 +63,59 @@ class CarRepository(DBRepository):
 
         return car
 
-    def _base_query(self, status: CarStatus | None, search: str | None, archived: bool):
-        """Build a base query with the common filters applied."""
+    def _base_query(self, status: CarStatus | None, archived: bool):
+        """Build a base query with archive and status filters applied."""
         query = self.db.query(Car)
         query = query.filter(Car.archived_at.isnot(None)) if archived else query.filter(Car.archived_at.is_(None))
         if status:
             query = query.filter(Car.status == status)
-        if search:
-            term = f"%{search}%"
-            query = query.filter(
-                or_(
-                    Car.plate.ilike(term),
-                    Car.make.ilike(term),
-                    Car.model.ilike(term),
-                ),
-            )
         return query
 
-    def count_cars(self, status: CarStatus | None, search: str | None, archived: bool) -> int:
+    def _apply_search(self, query, search: str | None, year: str | None):
+        """Apply fuzzy search and year filter.
+
+        Precedence (highest to lowest):
+          1. Exact id match (case-insensitive)
+          2. Model fuzzy match  (word_similarity >= threshold)
+          3. Make fuzzy match   (word_similarity >= threshold)
+
+        A 4-digit token inside *search* is extracted as a year filter
+        unless *year* is already supplied explicitly.
+        """
+        effective_year = year
+        text = search or ""
+
+        if search:
+            m = _YEAR_RE.search(search)
+            if m:
+                effective_year = effective_year or m.group(1)
+                text = _YEAR_RE.sub("", search).strip()
+
+        if effective_year:
+            query = query.filter(Car.year == effective_year)
+
+        if not text:
+            return query
+
+        id_cond = func.lower(Car.id) == text.lower()
+        model_cond = func.word_similarity(text, Car.model) >= _SIMILARITY_THRESHOLD
+        make_cond = func.word_similarity(text, Car.make) >= _SIMILARITY_THRESHOLD
+
+        if query.filter(id_cond).first():
+            return query.filter(id_cond)
+        if query.filter(model_cond).first():
+            return query.filter(model_cond)
+        return query.filter(make_cond)
+
+    def count_cars(self, status: CarStatus | None, search: str | None, year: str | None, archived: bool) -> int:
         """Return the total count of cars matching the given filters."""
-        return self._base_query(status, search, archived).count()
+        return self._apply_search(self._base_query(status, archived), search, year).count()
 
     def list_cars(
         self,
         status: CarStatus | None,
         search: str | None,
+        year: str | None,
         archived: bool,
         sort_by: CarSortBy,
         sort_order: SortOrder,
@@ -92,7 +125,13 @@ class CarRepository(DBRepository):
         """Return a paginated, sorted list of cars matching the given filters."""
         column = _CAR_SORT_COLUMNS.get(sort_by, Car.created_at)
         order = column.desc() if sort_order == SortOrder.DESC else column.asc()
-        return self._base_query(status, search, archived).order_by(order).offset(offset).limit(limit).all()
+        return (
+            self._apply_search(self._base_query(status, archived), search, year)
+            .order_by(order)
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
 
     def get_car_documents(self, car_id: str) -> list[Document]:
         """Return all documents linked to the given car."""
