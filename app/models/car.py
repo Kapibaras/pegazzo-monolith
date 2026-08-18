@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Column, ForeignKey, Integer, Numeric, String, Table
+from sqlalchemy import JSON, Boolean, Column, Date, ForeignKey, Integer, Numeric, String, Table
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -59,7 +59,11 @@ class Car(Base):
     insurance_provider = relationship("Insurance")
     policy_expiration_date = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     policy_type = Column(String(20), nullable=False)
-    financed_status = Column(String(20), nullable=False)
+    is_financed_liquidated = Column(Boolean, nullable=False)
+    financing_agency = Column(String(100), nullable=True)
+    financing_purchase_date = Column(Date, nullable=True)
+    financing_term_months = Column(Integer, nullable=True)
+    financing_remaining_amount = Column(Numeric(12, 2), nullable=True)
     agency_image = Column(String(512), nullable=True)
     photos = Column(ARRAY(String(512)), nullable=True)
     archived_at = Column(DateTime(timezone=True), nullable=True)

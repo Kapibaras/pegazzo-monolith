@@ -1,6 +1,8 @@
+import datetime
+from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 from app.enum.balance import SortOrder
@@ -50,11 +52,37 @@ class CarSchema(BaseModel):
     # Owner
     legal_owner_name: str = Field(..., min_length=1, max_length=50)
     legal_owner_surnames: str = Field(..., min_length=1, max_length=100)
-    financed_status: str = Field(..., min_length=1, max_length=20)
+
+    # Financing
+    is_financed_liquidated: bool = Field(..., description="True if the financing is fully paid off")
+    financing_agency: str | None = Field(default=None, min_length=1, max_length=100)
+    financing_purchase_date: datetime.date | None = Field(default=None)
+    financing_term_months: int | None = Field(default=None, ge=1)
+    financing_remaining_amount: Decimal | None = Field(default=None, ge=0)
 
     # Optional
     features: Any | None = Field(default=None)
     details: Any | None = Field(default=None)
+
+    @model_validator(mode="after")
+    def check_financing_fields_required_when_not_liquidated(self) -> "CarSchema":
+        """Financing details are required when isFinancedLiquidated is false."""
+        if not self.is_financed_liquidated:
+            missing = [
+                f
+                for f in [
+                    "financing_agency",
+                    "financing_purchase_date",
+                    "financing_term_months",
+                    "financing_remaining_amount",
+                ]
+                if getattr(self, f) is None
+            ]
+            if missing:
+                raise ValueError(
+                    f"Required when isFinancedLiquidated is false: {', '.join(missing)}",
+                )
+        return self
 
     # Insurance (required)
     insurance_provider_id: int = Field(..., description="FK to insurance table")
@@ -144,7 +172,11 @@ class CarResponseSchema(BaseModel):
     battery_date: Any
     legal_owner_name: str
     legal_owner_surnames: str
-    financed_status: str
+    is_financed_liquidated: bool
+    financing_agency: str | None = None
+    financing_purchase_date: Any | None = None
+    financing_term_months: int | None = None
+    financing_remaining_amount: Any | None = None
     features: Any | None = None
     details: Any | None = None
     insurance_provider_id: int
@@ -234,7 +266,11 @@ class CarDetailResponseSchema(BaseModel):
     battery_date: Any
     legal_owner_name: str
     legal_owner_surnames: str
-    financed_status: str
+    is_financed_liquidated: bool
+    financing_agency: str | None = None
+    financing_purchase_date: Any | None = None
+    financing_term_months: int | None = None
+    financing_remaining_amount: Any | None = None
     features: Any | None = None
     details: Any | None = None
     agency_image: str | None = None
