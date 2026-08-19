@@ -235,7 +235,7 @@ class TestCarRouter:
             }
             authorized_client.post("/pegazzo/management/cars", json=payload)
 
-        response = authorized_client.get("/pegazzo/management/cars?sort_by=make&sort_order=asc")
+        response = authorized_client.get("/pegazzo/management/cars?sortBy=make&sortOrder=asc")
         assert response.status_code == 200
         makes = [c["make"] for c in response.json()["cars"]]
         assert makes == sorted(makes)

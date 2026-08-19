@@ -97,6 +97,8 @@ class CarSchema(BaseModel):
 class CarListQuerySchema(BaseModel):
     """Query parameters for GET /management/cars."""
 
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
     page: int = Field(default=1, ge=1, description="Page number starting at 1")
     limit: int = Field(default=10, ge=1, le=100, description="Records per page (max 100)")
     status: CarStatus | None = Field(default=None, description="Filter by status: ACTIVE, INACTIVE, IN_MAINTENANCE")

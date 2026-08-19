@@ -66,7 +66,8 @@ class TestCarSearchPrecedence:
     def test_model_search_with_make_prefix_still_model_only(self):
         """'nissan versa' returns only Versa, not Sentra or Magnite."""
         result = self.repo._filter(None, "nissan versa", None, False)
-        assert all(c.model == "Versa" for c in result)
+        assert len(result) == 1
+        assert result[0].model == "Versa"
 
     def test_make_search_returns_all_models(self):
         """'nissan' alone returns all Nissan cars regardless of model."""

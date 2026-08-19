@@ -17,11 +17,13 @@ def list_cars(
     service: CarService = Depends(ServiceFactory.car_service),
     _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN, Role.EMPLOYEE])),
 ) -> CarListResponseSchema:
-    """List cars with optional filters (status, search, archived), sorting and pagination.
+    """List cars with optional filters, fuzzy search, sorting and pagination.
 
-    - **search**: matches plate, make or model (case-insensitive).
+    - **search**: fuzzy match over make, model and id. A 4-digit token is treated as a year filter.
+      Precedence: exact id > model > make. Plate is not searched.
+    - **year**: exact year filter (e.g. 2022). Overrides any year token found in search.
     - **archived**: set to true to retrieve archived cars; defaults to false (active cars only).
-    - **sort_by**: make, plate, status or created_at.
+    - **sort_by**: make, plate, status, year or created_at.
     - **sort_order**: asc or desc.
     """
     return service.list_cars(params)

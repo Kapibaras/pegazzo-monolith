@@ -1,7 +1,7 @@
 import re
 from datetime import UTC, datetime
 
-from sqlalchemy import func
+from sqlalchemy import Integer, case, func
 
 from app.enum.balance import SortOrder
 from app.enum.crm import CarSortBy, CarStatus
@@ -17,7 +17,7 @@ _CAR_SORT_COLUMNS = {
     CarSortBy.MAKE: Car.make,
     CarSortBy.PLATE: Car.plate,
     CarSortBy.STATUS: Car.status,
-    CarSortBy.YEAR: Car.year,
+    CarSortBy.YEAR: func.cast(Car.year, Integer),
     CarSortBy.CREATED_AT: Car.created_at,
 }
 
@@ -72,9 +72,9 @@ class CarRepository(DBRepository):
         return query
 
     def _apply_search(self, query, search: str | None, year: str | None):
-        """Apply fuzzy search and year filter.
+        """Apply fuzzy search and year filter in a single SQL query.
 
-        Precedence (highest to lowest):
+        Precedence (highest to lowest), resolved via CASE in a single pass:
           1. Exact id match (case-insensitive)
           2. Model fuzzy match  (word_similarity >= threshold)
           3. Make fuzzy match   (word_similarity >= threshold)
@@ -98,14 +98,23 @@ class CarRepository(DBRepository):
             return query
 
         id_cond = func.lower(Car.id) == text.lower()
-        model_cond = func.word_similarity(text, Car.model) >= _SIMILARITY_THRESHOLD
-        make_cond = func.word_similarity(text, Car.make) >= _SIMILARITY_THRESHOLD
+        model_sim = func.word_similarity(text, Car.model)
+        make_sim = func.word_similarity(text, Car.make)
 
-        if query.filter(id_cond).first():
-            return query.filter(id_cond)
-        if query.filter(model_cond).first():
-            return query.filter(model_cond)
-        return query.filter(make_cond)
+        # Single pass: keep rows that match at least one tier.
+        # Precedence is strict — only the highest-matching tier for each row
+        # is exposed via the priority filter so lower tiers never bleed through.
+        priority = case(
+            (id_cond, 3),
+            (model_sim >= _SIMILARITY_THRESHOLD, 2),
+            (make_sim >= _SIMILARITY_THRESHOLD, 1),
+            else_=0,
+        )
+
+        # Subquery: find the max tier that exists in the current result set.
+        max_priority = query.with_entities(func.max(priority)).scalar_subquery()
+
+        return query.filter(priority == max_priority)
 
     def count_cars(self, status: CarStatus | None, search: str | None, year: str | None, archived: bool) -> int:
         """Return the total count of cars matching the given filters."""

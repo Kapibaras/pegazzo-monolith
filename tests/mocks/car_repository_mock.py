@@ -84,16 +84,19 @@ class CarRepositoryMock:
             return result
 
         t = text.lower()
+        tokens = t.split()
 
         id_matches = [c for c in result if c.id.lower() == t]
         if id_matches:
             return id_matches
 
-        model_matches = [c for c in result if t in c.model.lower()]
+        # Model match: any token found in model name
+        model_matches = [c for c in result if any(tok in c.model.lower() for tok in tokens)]
         if model_matches:
             return model_matches
 
-        return [c for c in result if t in c.make.lower()]
+        # Make match: any token found in make name
+        return [c for c in result if any(tok in c.make.lower() for tok in tokens)]
 
     def count_cars(self, status: CarStatus | None, search: str | None, year: str | None, archived: bool) -> int:
         """Return the total count of cars matching the given filters."""
@@ -139,5 +142,14 @@ class CarRepositoryMock:
         """Return a paginated, sorted list of cars matching the given filters."""
         cars = self._filter(status, search, year, archived)
         reverse = sort_order == SortOrder.DESC
-        cars.sort(key=lambda c: getattr(c, sort_by, "") or "", reverse=reverse)
+        def _sort_key(c):
+            val = getattr(c, sort_by, "") or ""
+            if sort_by == CarSortBy.YEAR:
+                try:
+                    return int(val)
+                except (ValueError, TypeError):
+                    return 0
+            return val
+
+        cars.sort(key=_sort_key, reverse=reverse)
         return cars[offset : offset + limit]
