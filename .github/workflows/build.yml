@@ -85,3 +85,8 @@ jobs:
           WEBHOOK_URL: ${{ secrets.DOKPLOY_MONOLITH_STAGING_WEBHOOK }}
         run: |
           curl -fsSL -X POST "$WEBHOOK_URL"
+
+      - name: Print deployed URL
+        run: |
+          echo "✅ SUCCESS — Monolith deployed to staging"
+          echo "   URL: https://staging.api.pegazzo.com"
