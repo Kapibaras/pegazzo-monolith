@@ -59,19 +59,19 @@ class TestCarSearchPrecedence:
 
     def test_model_search_excludes_other_models_same_make(self):
         """Searching 'versa' returns only Versas, not other Nissan models."""
-        result = self.repo._filter(None, "versa", None, False)
+        result = self.repo.filter_cars(None, "versa", None, False)
         assert all(c.model == "Versa" for c in result)
         assert len(result) == 1
 
     def test_model_search_with_make_prefix_still_model_only(self):
         """'nissan versa' returns only Versa, not Sentra or Magnite."""
-        result = self.repo._filter(None, "nissan versa", None, False)
+        result = self.repo.filter_cars(None, "nissan versa", None, False)
         assert len(result) == 1
         assert result[0].model == "Versa"
 
     def test_make_search_returns_all_models(self):
         """'nissan' alone returns all Nissan cars regardless of model."""
-        result = self.repo._filter(None, "nissan", None, False)
+        result = self.repo.filter_cars(None, "nissan", None, False)
         assert len(result) == 3
         assert all(c.make == "Nissan" for c in result)
 
@@ -79,13 +79,13 @@ class TestCarSearchPrecedence:
 
     def test_exact_id_match_returns_single_car(self):
         """An exact car ID returns only that car."""
-        result = self.repo._filter(None, "NIS-VR-001", None, False)
+        result = self.repo.filter_cars(None, "NIS-VR-001", None, False)
         assert len(result) == 1
         assert result[0].id == "NIS-VR-001"
 
     def test_exact_id_case_insensitive(self):
         """ID match is case-insensitive."""
-        result = self.repo._filter(None, "nis-vr-001", None, False)
+        result = self.repo.filter_cars(None, "nis-vr-001", None, False)
         assert len(result) == 1
         assert result[0].id == "NIS-VR-001"
 
@@ -93,32 +93,33 @@ class TestCarSearchPrecedence:
 
     def test_year_param_filters_results(self):
         """Explicit year param filters to that year only."""
-        result = self.repo._filter(None, None, "2021", False)
+        result = self.repo.filter_cars(None, None, "2021", False)
         assert all(c.year == "2021" for c in result)
         assert len(result) == 2
 
     def test_year_token_in_search_text_is_extracted(self):
         """A 4-digit year in the search text is treated as a year filter."""
-        result = self.repo._filter(None, "nissan 2021", None, False)
+        result = self.repo.filter_cars(None, "nissan 2021", None, False)
         assert all(c.make == "Nissan" and c.year == "2021" for c in result)
         assert len(result) == 1
 
     def test_explicit_year_overrides_text_year_token(self):
         """Explicit year= param wins over a year token in the search text."""
-        result = self.repo._filter(None, "nissan 2021", "2022", False)
+        result = self.repo.filter_cars(None, "nissan 2021", "2022", False)
         assert all(c.year == "2022" for c in result)
 
     def test_model_plus_year_filters_correctly(self):
         """Model match + year returns only cars with that model AND year."""
-        result = self.repo._filter(None, "corolla 2021", None, False)
+        result = self.repo.filter_cars(None, "corolla 2021", None, False)
         assert len(result) == 1
-        assert result[0].model == "Corolla" and result[0].year == "2021"
+        assert result[0].model == "Corolla"
+        assert result[0].year == "2021"
 
     # --- no match ---
 
     def test_no_match_returns_empty(self):
         """A term that matches nothing returns an empty list."""
-        result = self.repo._filter(None, "BMW", None, False)
+        result = self.repo.filter_cars(None, "BMW", None, False)
         assert result == []
 
     # --- count / list delegates to _filter ---

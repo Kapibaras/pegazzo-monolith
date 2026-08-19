@@ -142,7 +142,7 @@ class CarService:
         """Return a paginated, filtered and sorted list of cars."""
         offset = (params.page - 1) * params.limit
         total = self.repository.count_cars(
-            status=params.status, search=params.search, year=params.year, archived=params.archived
+            status=params.status, search=params.search, year=params.year, archived=params.archived,
         )
         cars = self.repository.list_cars(
             status=params.status,

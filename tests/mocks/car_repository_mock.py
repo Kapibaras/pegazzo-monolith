@@ -59,7 +59,7 @@ class CarRepositoryMock:
         self.cars.append(car)
         return car
 
-    def _filter(self, status: CarStatus | None, search: str | None, year: str | None, archived: bool) -> list[Car]:
+    def filter_cars(self, status: CarStatus | None, search: str | None, year: str | None, archived: bool) -> list[Car]:
         """Return cars matching the given filters with fuzzy-search precedence."""
         result = [
             c for c in self.cars
@@ -90,17 +90,15 @@ class CarRepositoryMock:
         if id_matches:
             return id_matches
 
-        # Model match: any token found in model name
         model_matches = [c for c in result if any(tok in c.model.lower() for tok in tokens)]
         if model_matches:
             return model_matches
 
-        # Make match: any token found in make name
         return [c for c in result if any(tok in c.make.lower() for tok in tokens)]
 
     def count_cars(self, status: CarStatus | None, search: str | None, year: str | None, archived: bool) -> int:
         """Return the total count of cars matching the given filters."""
-        return len(self._filter(status, search, year, archived))
+        return len(self.filter_cars(status, search, year, archived))
 
     def get_car_documents(self, car_id: str) -> list[Document]:
         """Return documents linked to the car."""
@@ -140,7 +138,7 @@ class CarRepositoryMock:
         offset: int,
     ) -> list[Car]:
         """Return a paginated, sorted list of cars matching the given filters."""
-        cars = self._filter(status, search, year, archived)
+        cars = self.filter_cars(status, search, year, archived)
         reverse = sort_order == SortOrder.DESC
         def _sort_key(c):
             val = getattr(c, sort_by, "") or ""

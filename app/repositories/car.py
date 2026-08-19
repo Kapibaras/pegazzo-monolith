@@ -101,9 +101,6 @@ class CarRepository(DBRepository):
         model_sim = func.word_similarity(text, Car.model)
         make_sim = func.word_similarity(text, Car.make)
 
-        # Single pass: keep rows that match at least one tier.
-        # Precedence is strict — only the highest-matching tier for each row
-        # is exposed via the priority filter so lower tiers never bleed through.
         priority = case(
             (id_cond, 3),
             (model_sim >= _SIMILARITY_THRESHOLD, 2),
@@ -111,7 +108,6 @@ class CarRepository(DBRepository):
             else_=0,
         )
 
-        # Subquery: find the max tier that exists in the current result set.
         max_priority = query.with_entities(func.max(priority)).scalar_subquery()
 
         return query.filter(priority == max_priority)
