@@ -184,12 +184,13 @@ class TestCarRouter:
         cars2 = response2.json()["cars"]
         assert all(c["status"] == "INACTIVE" for c in cars2)
 
-    def test_list_cars_search_by_plate(self, authorized_client):
+    def test_list_cars_search_by_plate_not_matched(self, authorized_client):
+        """Plate is no longer a search field — searching by plate returns no results."""
         authorized_client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
 
-        response = authorized_client.get("/pegazzo/management/cars?search=ABC")
+        response = authorized_client.get("/pegazzo/management/cars?search=ABC-1234")
         assert response.status_code == 200
-        assert len(response.json()["cars"]) == 1
+        assert len(response.json()["cars"]) == 0
 
     def test_list_cars_search_by_make(self, authorized_client):
         authorized_client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
@@ -234,7 +235,7 @@ class TestCarRouter:
             }
             authorized_client.post("/pegazzo/management/cars", json=payload)
 
-        response = authorized_client.get("/pegazzo/management/cars?sort_by=make&sort_order=asc")
+        response = authorized_client.get("/pegazzo/management/cars?sortBy=make&sortOrder=asc")
         assert response.status_code == 200
         makes = [c["make"] for c in response.json()["cars"]]
         assert makes == sorted(makes)

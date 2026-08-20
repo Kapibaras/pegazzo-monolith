@@ -141,10 +141,13 @@ class CarService:
     def list_cars(self, params: CarListQuerySchema) -> CarListResponseSchema:
         """Return a paginated, filtered and sorted list of cars."""
         offset = (params.page - 1) * params.limit
-        total = self.repository.count_cars(status=params.status, search=params.search, archived=params.archived)
+        total = self.repository.count_cars(
+            status=params.status, search=params.search, year=params.year, archived=params.archived,
+        )
         cars = self.repository.list_cars(
             status=params.status,
             search=params.search,
+            year=params.year,
             archived=params.archived,
             sort_by=params.sort_by,
             sort_order=params.sort_order,

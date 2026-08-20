@@ -1,3 +1,4 @@
+import re
 from datetime import UTC, datetime
 
 from app.enum.balance import SortOrder
@@ -5,6 +6,8 @@ from app.enum.crm import CarSortBy, CarStatus
 from app.models.car import Associate, Car, Insurance
 from app.models.contract import Contract
 from app.models.document import Document
+
+_YEAR_RE = re.compile(r"\b(\d{4})\b")
 
 _DEFAULT_INSURANCE = Insurance(id=1, name="AXA", telephones=["+521234567890"])
 _DEFAULT_ASSOCIATE = Associate(id=1, name="Juan", surnames="Pérez", telephones=["+521234567890"])
@@ -56,26 +59,46 @@ class CarRepositoryMock:
         self.cars.append(car)
         return car
 
-    def _filter(self, status: CarStatus | None, search: str | None, archived: bool) -> list[Car]:
-        """Return cars matching the given filters."""
-        result = []
-        for car in self.cars:
-            if archived and car.archived_at is None:
-                continue
-            if not archived and car.archived_at is not None:
-                continue
-            if status and car.status != status:
-                continue
-            if search:
-                s = search.lower()
-                if not (s in car.plate.lower() or s in car.make.lower() or s in car.model.lower()):
-                    continue
-            result.append(car)
-        return result
+    def filter_cars(self, status: CarStatus | None, search: str | None, year: str | None, archived: bool) -> list[Car]:
+        """Return cars matching the given filters with fuzzy-search precedence."""
+        result = [
+            c for c in self.cars
+            if not (archived and c.archived_at is None)
+            and not (not archived and c.archived_at is not None)
+            and (not status or c.status == status)
+        ]
 
-    def count_cars(self, status: CarStatus | None, search: str | None, archived: bool) -> int:
+        effective_year = year
+        text = search or ""
+
+        if search:
+            m = _YEAR_RE.search(search)
+            if m:
+                effective_year = effective_year or m.group(1)
+                text = _YEAR_RE.sub("", search).strip()
+
+        if effective_year:
+            result = [c for c in result if c.year == effective_year]
+
+        if not text:
+            return result
+
+        t = text.lower()
+        tokens = t.split()
+
+        id_matches = [c for c in result if c.id.lower() == t]
+        if id_matches:
+            return id_matches
+
+        model_matches = [c for c in result if any(tok in c.model.lower() for tok in tokens)]
+        if model_matches:
+            return model_matches
+
+        return [c for c in result if any(tok in c.make.lower() for tok in tokens)]
+
+    def count_cars(self, status: CarStatus | None, search: str | None, year: str | None, archived: bool) -> int:
         """Return the total count of cars matching the given filters."""
-        return len(self._filter(status, search, archived))
+        return len(self.filter_cars(status, search, year, archived))
 
     def get_car_documents(self, car_id: str) -> list[Document]:
         """Return documents linked to the car."""
@@ -107,6 +130,7 @@ class CarRepositoryMock:
         self,
         status: CarStatus | None,
         search: str | None,
+        year: str | None,
         archived: bool,
         sort_by: CarSortBy,
         sort_order: SortOrder,
@@ -114,7 +138,16 @@ class CarRepositoryMock:
         offset: int,
     ) -> list[Car]:
         """Return a paginated, sorted list of cars matching the given filters."""
-        cars = self._filter(status, search, archived)
+        cars = self.filter_cars(status, search, year, archived)
         reverse = sort_order == SortOrder.DESC
-        cars.sort(key=lambda c: getattr(c, sort_by, "") or "", reverse=reverse)
+        def _sort_key(c):
+            val = getattr(c, sort_by, "") or ""
+            if sort_by == CarSortBy.YEAR:
+                try:
+                    return int(val)
+                except (ValueError, TypeError):
+                    return 0
+            return val
+
+        cars.sort(key=_sort_key, reverse=reverse)
         return cars[offset : offset + limit]
