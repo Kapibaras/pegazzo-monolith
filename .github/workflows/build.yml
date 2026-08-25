@@ -81,10 +81,17 @@ jobs:
 
     steps:
       - name: Trigger Dokploy staging webhook
+        uses: appleboy/ssh-action@v1.2.5
         env:
           WEBHOOK_URL: ${{ secrets.DOKPLOY_MONOLITH_STAGING_WEBHOOK }}
-        run: |
-          curl -fsSL -X POST "$WEBHOOK_URL"
+        with:
+          host: ${{ secrets.KVM_HOST }}
+          username: ${{ secrets.KVM_USER }}
+          key: ${{ secrets.KVM_SSH_KEY }}
+          envs: WEBHOOK_URL
+          script: |
+            LOCAL_URL=$(echo "$WEBHOOK_URL" | sed 's|https://dokploy\.pegazzoauto\.com|http://localhost:3000|')
+            curl -fsSL -X POST "$LOCAL_URL"
 
       - name: Print deployed URL
         run: |
