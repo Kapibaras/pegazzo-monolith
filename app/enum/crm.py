@@ -31,6 +31,7 @@ class CarSortBy(StrEnum):
     MAKE = "make"
     PLATE = "plate"
     STATUS = "status"
+    YEAR = "year"
     CREATED_AT = "created_at"
 
 
