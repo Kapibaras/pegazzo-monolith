@@ -89,4 +89,4 @@ jobs:
       - name: Print deployed URL
         run: |
           echo "✅ SUCCESS — Monolith deployed to staging"
-          echo "   URL: https://staging.api.pegazzo.com"
+          echo "   URL: https://staging.api.pegazzoauto.com"

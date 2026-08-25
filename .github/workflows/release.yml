@@ -72,4 +72,4 @@ jobs:
       - name: Print deployed URL
         run: |
           echo "✅ SUCCESS — Monolith released to production"
-          echo "   URL: https://api.pegazzo.com"
+          echo "   URL: https://api.pegazzoauto.com"
