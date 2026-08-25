@@ -44,12 +44,7 @@ jobs:
           key: ${{ secrets.KVM_SSH_KEY }}
           envs: DATABASE_URL,REGISTRY_URL,REGISTRY_USER,REGISTRY_PASSWORD,ENVIRONMENT,DIRECTION
           script: |
-            # Use :latest for production (the last released image), :main for staging
-            if [ "$ENVIRONMENT" = "production" ]; then
-              IMAGE="$REGISTRY_URL/pegazzo-monolith:latest"
-            else
-              IMAGE="$REGISTRY_URL/pegazzo-monolith:main"
-            fi
+            IMAGE="$REGISTRY_URL/pegazzo-monolith:main"
             echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" -u "$REGISTRY_USER" --password-stdin
             docker pull "$IMAGE"
             # alembic upgrade head / alembic downgrade -1
