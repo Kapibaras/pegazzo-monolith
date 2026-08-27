@@ -1,6 +1,7 @@
 from .balance import Transaction
 from .car import Associate, Car, Insurance, OwnerAssociate, associate_car, car_document_table
 from .car_model import CarModel
+from .transaction_metrics import TransactionMetrics
 from .contract import Contract
 from .document import Document
 from .driver import (
@@ -34,6 +35,7 @@ __all__ = [
     "Role",
     "Scheduler",
     "Transaction",
+    "TransactionMetrics",
     "User",
     "associate_car",
     "car_document_table",
