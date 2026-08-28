@@ -2,6 +2,11 @@ from fastapi import status
 
 from app.errors import PegazzoException
 
+# NOTE: AssociateNotFoundException, InsuranceProviderNotFoundException, and CarModelNotFoundException
+# duplicate classes from their canonical modules but use HTTP 400 (Bad Request) instead of 404.
+# They represent FK validation errors during car creation ("the referenced entity doesn't exist"),
+# not direct resource lookups. Keep them separate until the team decides to unify.
+
 
 class CarNotFoundException(PegazzoException):
     """Exception raised when a car is not found."""
