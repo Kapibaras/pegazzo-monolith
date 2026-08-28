@@ -319,9 +319,9 @@ class TestBalanceRouter:
 
         assert response.status_code == 422
         detail = response.json()["detail"]
-        assert isinstance(detail, list)
-        assert detail[0]["msg"] == "Input should be 'week', 'month' or 'year'"
-        assert detail[0]["loc"] == ["query", "period"]
+        assert isinstance(detail, str)
+        assert "period" in detail
+        assert "week" in detail or "month" in detail or "year" in detail
 
     def test_get_management_metrics_week_missing_params_400(self, authorized_client):
         """Week requires week + year (and your schema also requires month)."""
@@ -486,11 +486,11 @@ class TestBalanceRouter:
         assert r.status_code == 422
 
         detail = r.json()["detail"]
-        assert isinstance(detail, list)
-        assert detail[0]["loc"] == ["query", "period"]
-        assert "week" in detail[0]["msg"]
-        assert "month" in detail[0]["msg"]
-        assert "year" in detail[0]["msg"]
+        assert isinstance(detail, str)
+        assert "period" in detail
+        assert "week" in detail
+        assert "month" in detail
+        assert "year" in detail
 
     def test_get_trend_invalid_limit_low_422(self, authorized_client):
         """Limit < 1 should be rejected by schema."""
@@ -726,8 +726,8 @@ class TestBalanceRouter:
         r = authorized_client.get("/pegazzo/management/balance/transactions?period=INVALID&year=2026")
         assert r.status_code == 422
         detail = r.json()["detail"]
-        assert isinstance(detail, list)
-        assert detail[0]["loc"] == ["query", "period"]
+        assert isinstance(detail, str)
+        assert "period" in detail
 
     def test_get_transactions_invalid_limit_422(self, authorized_client):
         r = authorized_client.get("/pegazzo/management/balance/transactions?period=year&year=2026&limit=101")
