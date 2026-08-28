@@ -1,6 +1,6 @@
 """Tests for global exception handlers registered on the FastAPI app."""
-from enum import Enum
-from typing import Literal
+
+from enum import StrEnum
 
 import pytest
 from fastapi import FastAPI
@@ -8,7 +8,6 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.testclient import TestClient
 
 from app.main import app
-
 
 # ---------------------------------------------------------------------------
 # Registration tests — verify handlers are actually registered on the app
@@ -31,7 +30,7 @@ def test_validation_exception_handler_registered():
 # ---------------------------------------------------------------------------
 
 
-class _Period(str, Enum):
+class _Period(StrEnum):
     week = "week"
     month = "month"
     year = "year"
@@ -49,7 +48,7 @@ def _make_test_app() -> FastAPI:
         errors = exc.errors()
         messages = []
         for error in errors:
-            loc = " → ".join(str(l) for l in error["loc"] if l != "body")
+            loc = " → ".join(str(part) for part in error["loc"] if part != "body")
             messages.append(f"{loc}: {error['msg']}")
         return JSONResponse(
             status_code=422,
