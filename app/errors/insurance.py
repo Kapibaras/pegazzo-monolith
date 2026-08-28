@@ -1,7 +1,9 @@
-from fastapi import HTTPException, status
+from fastapi import status
+
+from app.errors import PegazzoException
 
 
-class InsuranceNotFoundException(HTTPException):
+class InsuranceNotFoundException(PegazzoException):
     """Exception raised when an insurance provider is not found."""
 
     def __init__(self, insurance_id: int):
@@ -11,7 +13,7 @@ class InsuranceNotFoundException(HTTPException):
         )
 
 
-class InsuranceNameAlreadyExistsException(HTTPException):
+class InsuranceNameAlreadyExistsException(PegazzoException):
     """Exception raised when an insurance provider name already exists."""
 
     def __init__(self, name: str):
@@ -21,7 +23,7 @@ class InsuranceNameAlreadyExistsException(HTTPException):
         )
 
 
-class InsuranceInUseException(HTTPException):
+class InsuranceInUseException(PegazzoException):
     """Exception raised when trying to delete an insurance provider that is referenced by a car."""
 
     def __init__(self, insurance_id: int):

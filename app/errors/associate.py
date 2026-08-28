@@ -1,7 +1,9 @@
-from fastapi import HTTPException, status
+from fastapi import status
+
+from app.errors import PegazzoException
 
 
-class AssociateNotFoundException(HTTPException):
+class AssociateNotFoundException(PegazzoException):
     """Exception raised when an associate is not found."""
 
     def __init__(self, associate_id: int):
@@ -11,7 +13,7 @@ class AssociateNotFoundException(HTTPException):
         )
 
 
-class AssociateInUseException(HTTPException):
+class AssociateInUseException(PegazzoException):
     """Exception raised when trying to delete an associate that has linked cars."""
 
     def __init__(self, associate_id: int):

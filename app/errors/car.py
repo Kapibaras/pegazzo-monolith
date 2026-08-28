@@ -1,7 +1,9 @@
-from fastapi import HTTPException, status
+from fastapi import status
+
+from app.errors import PegazzoException
 
 
-class CarNotFoundException(HTTPException):
+class CarNotFoundException(PegazzoException):
     """Exception raised when a car is not found."""
 
     def __init__(self, car_id: str):
@@ -11,7 +13,7 @@ class CarNotFoundException(HTTPException):
         )
 
 
-class CarIdAlreadyExistsException(HTTPException):
+class CarIdAlreadyExistsException(PegazzoException):
     """Exception raised when a car id already exists."""
 
     def __init__(self, car_id: str):
@@ -21,7 +23,7 @@ class CarIdAlreadyExistsException(HTTPException):
         )
 
 
-class CarVinAlreadyExistsException(HTTPException):
+class CarVinAlreadyExistsException(PegazzoException):
     """Exception raised when a car VIN already exists."""
 
     def __init__(self, vin: str):
@@ -31,7 +33,7 @@ class CarVinAlreadyExistsException(HTTPException):
         )
 
 
-class CarPlateAlreadyExistsException(HTTPException):
+class CarPlateAlreadyExistsException(PegazzoException):
     """Exception raised when a car plate already exists."""
 
     def __init__(self, plate: str):
@@ -41,7 +43,7 @@ class CarPlateAlreadyExistsException(HTTPException):
         )
 
 
-class PolicyExpirationDateInPastException(HTTPException):
+class PolicyExpirationDateInPastException(PegazzoException):
     """Exception raised when the policy expiration date is in the past."""
 
     def __init__(self):
@@ -51,7 +53,7 @@ class PolicyExpirationDateInPastException(HTTPException):
         )
 
 
-class InsuranceProviderNotFoundException(HTTPException):
+class InsuranceProviderNotFoundException(PegazzoException):
     """Exception raised when the insurance provider does not exist."""
 
     def __init__(self, insurance_provider_id: int):
@@ -61,7 +63,7 @@ class InsuranceProviderNotFoundException(HTTPException):
         )
 
 
-class AssociateNotFoundException(HTTPException):
+class AssociateNotFoundException(PegazzoException):
     """Exception raised when the associate does not exist."""
 
     def __init__(self, associate_id: int):
@@ -71,7 +73,7 @@ class AssociateNotFoundException(HTTPException):
         )
 
 
-class CarModelNotFoundException(HTTPException):
+class CarModelNotFoundException(PegazzoException):
     """Exception raised when the (make, model) pair is not found in the CarModel catalog."""
 
     def __init__(self, make: str, model: str):

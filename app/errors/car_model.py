@@ -1,7 +1,9 @@
-from fastapi import HTTPException, status
+from fastapi import status
+
+from app.errors import PegazzoException
 
 
-class CarModelAlreadyExistsException(HTTPException):
+class CarModelAlreadyExistsException(PegazzoException):
     """Exception raised when a (make, model) pair already exists in the catalog."""
 
     def __init__(self, make: str, model: str):
@@ -11,7 +13,7 @@ class CarModelAlreadyExistsException(HTTPException):
         )
 
 
-class CarModelByIdNotFoundException(HTTPException):
+class CarModelByIdNotFoundException(PegazzoException):
     """Exception raised when a CarModel entry is not found by id."""
 
     def __init__(self, car_model_id: int):
