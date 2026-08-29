@@ -1,11 +1,12 @@
-from fastapi import HTTPException, status
+from fastapi import status
+
+from app.errors import PegazzoException
 
 
-class DBOperationError(HTTPException):
+class DBOperationError(PegazzoException):
     """Generic database operation error."""
 
     def __init__(self, detail: str = "Database operation failed"):
-        """Initialize the exception with a detail message."""
         super().__init__(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=detail,

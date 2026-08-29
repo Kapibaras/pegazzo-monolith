@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import HTTPException, status
+from fastapi import status
+
+from app.errors import PegazzoException
 
 
 class TransactionMetricsPeriodError(ValueError):
@@ -22,12 +24,10 @@ class TransactionMetricsPeriodError(ValueError):
         return cls(f"Unknown period_type: {period_type}.")
 
 
-class InvalidMetricsPeriodException(HTTPException):
+class InvalidMetricsPeriodException(PegazzoException):
     """Invalid month/year combination for metrics."""
 
     def __init__(self):
-        """Exception raised when month and year are not provided together."""
-
         super().__init__(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(

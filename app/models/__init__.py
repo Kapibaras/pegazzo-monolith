@@ -1,7 +1,6 @@
 from .balance import Transaction
 from .car import Associate, Car, Insurance, OwnerAssociate, associate_car, car_document_table
 from .car_model import CarModel
-from .transaction_metrics import TransactionMetrics
 from .contract import Contract
 from .document import Document
 from .driver import (
@@ -16,6 +15,7 @@ from .driver import (
 )
 from .event import Event, Scheduler, event_document_table
 from .incidence import Incidence, incidence_document_table
+from .transaction_metrics import TransactionMetrics
 from .users import Permission, Role, User, role_permission_table
 
 __all__ = [

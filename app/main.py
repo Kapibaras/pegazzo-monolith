@@ -1,5 +1,7 @@
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from mangum import Mangum
 
 import app.auth.core
@@ -42,6 +44,32 @@ else:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+    )
+
+
+# * EXCEPTION HANDLERS * #
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(_request, exc: RequestValidationError):
+    """Normalize Pydantic validation errors to { "detail": "..." }."""
+    errors = exc.errors()
+    messages = []
+    for error in errors:
+        loc = " → ".join(str(part) for part in error["loc"] if part != "body")
+        messages.append(f"{loc}: {error['msg']}")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "; ".join(messages)},
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(_request, _exc: Exception):
+    """Catch-all: guarantee { "detail": "..." } for unexpected errors."""
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
     )
 
 
