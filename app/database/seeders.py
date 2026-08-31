@@ -30,6 +30,16 @@ _ASSOCIATES = [
 
 _OWNER_ASSOCIATES = [1, 2]
 
+_USERS = [
+    {
+        "username": "PegazzoOwner",
+        "name": "Pegazzo",
+        "surnames": "Auto",
+        "password": "PegazzoProject$$",
+        "role_id": 1,
+    },
+]
+
 
 def seeders(db: SessionLocal):
     """Seed roles, car model catalog, and associates into the database."""
@@ -65,16 +75,6 @@ def seeders(db: SessionLocal):
         exists = db.query(OwnerAssociate).filter_by(associate_id=associate_id).first()
         if not exists:
             db.add(OwnerAssociate(associate_id=associate_id))
-
-    _USERS = [
-        {
-            "username": "PegazzoOwner",
-            "name": "Pegazzo",
-            "surnames": "Auto",
-            "password": "PegazzoProject$$",
-            "role_id": 1,
-        },
-    ]
 
     for user_data in _USERS:
         exists = db.query(User).filter_by(username=user_data["username"]).first()
