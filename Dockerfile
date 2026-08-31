@@ -13,9 +13,6 @@ RUN adduser --disabled-password --gecos "" appuser
 
 COPY . .
 
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
 RUN chown -R appuser:appuser /app
 
 USER appuser
@@ -32,4 +29,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8000/health || exit 1
 
-ENTRYPOINT ["./entrypoint.sh"]
+CMD ["gunicorn", "app.main:app", "-k", "uvicorn.workers.UvicornWorker", "--workers", "4", "--bind", "0.0.0.0:8000"]
