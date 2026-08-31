@@ -1,5 +1,8 @@
 name: Migrate Database
 
+# Manual-only workflow for database downgrades or emergency migrations.
+# Regular upgrades run automatically on container startup via entrypoint.sh.
+
 on:
   workflow_dispatch:
     inputs:
@@ -36,18 +39,16 @@ jobs:
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
           REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-          ENVIRONMENT: ${{ inputs.environment }}
           DIRECTION: ${{ inputs.direction }}
         with:
           host: ${{ secrets.KVM_HOST }}
           username: ${{ secrets.KVM_USER }}
           key: ${{ secrets.KVM_SSH_KEY }}
-          envs: DATABASE_URL,REGISTRY_URL,REGISTRY_USER,REGISTRY_PASSWORD,ENVIRONMENT,DIRECTION
+          envs: DATABASE_URL,REGISTRY_URL,REGISTRY_USER,REGISTRY_PASSWORD,DIRECTION
           script: |
             IMAGE="$REGISTRY_URL/pegazzo-monolith:main"
             echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" -u "$REGISTRY_USER" --password-stdin
             docker pull "$IMAGE"
-            # alembic upgrade head / alembic downgrade -1
             if [ "$DIRECTION" = "upgrade" ]; then
               ALEMBIC_CMD="alembic upgrade head"
             else

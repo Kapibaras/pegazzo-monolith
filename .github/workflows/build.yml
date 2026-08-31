@@ -15,44 +15,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Build and push image on server
-        uses: appleboy/ssh-action@v1.2.5
-        env:
-          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
-          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
-          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          host: ${{ secrets.KVM_HOST }}
-          username: ${{ secrets.KVM_USER }}
-          key: ${{ secrets.KVM_SSH_KEY }}
-          envs: REGISTRY_URL,REGISTRY_USER,REGISTRY_PASSWORD,GH_TOKEN
-          command_timeout: 30m
-          script: |
-            IMAGE="$REGISTRY_URL/pegazzo-monolith"
-            echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" -u "$REGISTRY_USER" --password-stdin
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            # Preserve previous image for rollback
-            docker pull "$IMAGE:main" || true
-            docker tag "$IMAGE:main" "$IMAGE:previous" 2>/dev/null || true
-            docker push "$IMAGE:previous" || true
+      - name: Log in to private registry
+        run: echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login "${{ secrets.REGISTRY_URL }}" -u "${{ secrets.REGISTRY_USER }}" --password-stdin
 
-            # Clone repo and build
-            rm -rf /tmp/pegazzo-build
-            git clone https://x-access-token:$GH_TOKEN@github.com/Kapibaras/pegazzo-monolith.git /tmp/pegazzo-build
-            cd /tmp/pegazzo-build
-            docker build -t "$IMAGE:main" .
-            docker push "$IMAGE:main"
-            rm -rf /tmp/pegazzo-build
+      - name: Preserve previous image for rollback
+        run: |
+          IMAGE="${{ secrets.REGISTRY_URL }}/pegazzo-monolith"
+          docker pull "$IMAGE:main" || true
+          docker tag "$IMAGE:main" "$IMAGE:previous" 2>/dev/null || true
+          docker push "$IMAGE:previous" || true
+
+      - name: Build and push image
+        run: |
+          IMAGE="${{ secrets.REGISTRY_URL }}/pegazzo-monolith"
+          docker build -t "$IMAGE:main" .
+          docker push "$IMAGE:main"
 
   migrate-staging:
     name: Migrate Staging DB
     runs-on: ubuntu-latest
     needs: build
     environment: staging
+    continue-on-error: true
 
     steps:
-      - name: Run alembic migrations via SSH
+      - name: Run alembic migrations via SSH (fallback)
         uses: appleboy/ssh-action@v1.2.5
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -78,22 +68,15 @@ jobs:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: migrate-staging
+    if: always() && needs.build.result == 'success'
+    environment: staging
 
     steps:
       - name: Trigger Dokploy staging webhook
-        uses: appleboy/ssh-action@v1.2.5
-        env:
-          WEBHOOK_URL: ${{ secrets.DOKPLOY_MONOLITH_STAGING_WEBHOOK }}
-        with:
-          host: ${{ secrets.KVM_HOST }}
-          username: ${{ secrets.KVM_USER }}
-          key: ${{ secrets.KVM_SSH_KEY }}
-          envs: WEBHOOK_URL
-          script: |
-            LOCAL_URL=$(echo "$WEBHOOK_URL" | sed 's|https://dokploy\.pegazzoauto\.com|http://localhost:3000|')
-            curl -fsSL -X POST "$LOCAL_URL"
+        run: curl -fsSL -X POST "${{ secrets.DOKPLOY_MONOLITH_STAGING_WEBHOOK }}"
 
       - name: Print deployed URL
         run: |
           echo "✅ SUCCESS — Monolith deployed to staging"
           echo "   URL: https://staging.api.pegazzoauto.com"
+          echo "   Note: Migrations also run automatically on container startup via entrypoint.sh"

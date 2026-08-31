@@ -9,65 +9,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  check-migrations:
-    name: Check Pending Migrations
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - name: Verify no pending migrations in production
-        uses: appleboy/ssh-action@v1.2.5
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
-          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
-          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-        with:
-          host: ${{ secrets.KVM_HOST }}
-          username: ${{ secrets.KVM_USER }}
-          key: ${{ secrets.KVM_SSH_KEY }}
-          envs: DATABASE_URL,REGISTRY_URL,REGISTRY_USER,REGISTRY_PASSWORD
-          script: |
-            IMAGE="$REGISTRY_URL/pegazzo-monolith:main"
-            echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" -u "$REGISTRY_USER" --password-stdin
-            docker pull "$IMAGE"
-            docker run --rm \
-              --network dokploy-network \
-              -e DATABASE_URL="$DATABASE_URL" \
-              "$IMAGE" \
-              alembic check
-
   release:
     name: Publish to Production
     runs-on: ubuntu-latest
-    needs: check-migrations
     environment: production
+
     steps:
-      - name: Retag and push image to registry
-        uses: appleboy/ssh-action@v1.2.5
+      - name: Log in to private registry
+        run: echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login "${{ secrets.REGISTRY_URL }}" -u "${{ secrets.REGISTRY_USER }}" --password-stdin
+
+      - name: Retag and push image
         env:
-          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
-          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
-          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
           TAG: ${{ github.event.release.tag_name }}
-        with:
-          host: ${{ secrets.KVM_HOST }}
-          username: ${{ secrets.KVM_USER }}
-          key: ${{ secrets.KVM_SSH_KEY }}
-          envs: REGISTRY_URL,REGISTRY_USER,REGISTRY_PASSWORD,TAG
-          script: |
-            IMAGE="$REGISTRY_URL/pegazzo-monolith"
-            echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" -u "$REGISTRY_USER" --password-stdin
-            docker pull "$IMAGE:main"
-            docker tag "$IMAGE:main" "$IMAGE:$TAG"
-            docker tag "$IMAGE:main" "$IMAGE:latest"
-            docker push "$IMAGE:$TAG"
-            docker push "$IMAGE:latest"
+        run: |
+          IMAGE="${{ secrets.REGISTRY_URL }}/pegazzo-monolith"
+          docker pull "$IMAGE:main"
+          docker tag "$IMAGE:main" "$IMAGE:$TAG"
+          docker tag "$IMAGE:main" "$IMAGE:latest"
+          docker push "$IMAGE:$TAG"
+          docker push "$IMAGE:latest"
 
       - name: Deploy to production via Dokploy webhook
-        env:
-          WEBHOOK_URL: ${{ secrets.DOKPLOY_MONOLITH_PRODUCTION_WEBHOOK }}
-        run: |
-          curl -fsSL -X POST "$WEBHOOK_URL"
+        run: curl -fsSL -X POST "${{ secrets.DOKPLOY_MONOLITH_PRODUCTION_WEBHOOK }}"
 
       - name: Print deployed URL
         run: |
