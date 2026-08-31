@@ -2,7 +2,8 @@ from app.database.session import SessionLocal
 from app.enum.auth import Role as RoleEnum
 from app.models.car import Associate, OwnerAssociate
 from app.models.car_model import CarModel
-from app.models.users import Role
+from app.models.users import Role, User
+from app.utils.auth import AuthUtils
 
 _CAR_MODELS = [
     CarModel(make="BMW", model="X3", abbreviation="BMW"),
@@ -64,6 +65,28 @@ def seeders(db: SessionLocal):
         exists = db.query(OwnerAssociate).filter_by(associate_id=associate_id).first()
         if not exists:
             db.add(OwnerAssociate(associate_id=associate_id))
+
+    _USERS = [
+        {
+            "username": "PegazzoOwner",
+            "name": "Pegazzo",
+            "surnames": "Auto",
+            "password": "PegazzoProject$$",
+            "role_id": 1,
+        },
+    ]
+
+    for user_data in _USERS:
+        exists = db.query(User).filter_by(username=user_data["username"]).first()
+        if not exists:
+            user = User(
+                username=user_data["username"],
+                name=user_data["name"],
+                surnames=user_data["surnames"],
+                password=AuthUtils.hash_password(user_data["password"]),
+                role_id=user_data["role_id"],
+            )
+            db.add(user)
 
     db.commit()
 
