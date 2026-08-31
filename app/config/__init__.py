@@ -4,6 +4,8 @@ from .variables import (
     CORS_ORIGINS,
     DATABASE_URL,
     DEBUG,
+    DOCS_PASSWORD,
+    DOCS_USER,
     ENVIRONMENT,
 )
 
@@ -12,6 +14,8 @@ __all__ = [
     "CORS_ORIGINS",
     "DATABASE_URL",
     "DEBUG",
+    "DOCS_PASSWORD",
+    "DOCS_USER",
     "ENVIRONMENT",
     "AppConfig",
 ]

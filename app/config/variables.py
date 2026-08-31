@@ -25,6 +25,10 @@ CORS_ORIGINS: list[str] = [
 ]
 
 
+DOCS_USER: str = os.getenv("DOCS_USER", "")
+DOCS_PASSWORD: str = os.getenv("DOCS_PASSWORD", "")
+
+
 class R2:
     """Cloudflare R2 object storage configuration."""
 
