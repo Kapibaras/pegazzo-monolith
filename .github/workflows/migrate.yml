@@ -25,42 +25,35 @@ concurrency:
 jobs:
   migrate:
     name: Run Migrations (${{ inputs.environment }} / ${{ inputs.direction }})
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     environment: ${{ inputs.environment }}
 
     steps:
-      - name: Run alembic ${{ inputs.direction }} via SSH
-        uses: appleboy/ssh-action@v1.2.5
+      - name: Run alembic ${{ inputs.direction }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
           REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-          ENVIRONMENT: ${{ inputs.environment }}
           DIRECTION: ${{ inputs.direction }}
-        with:
-          host: ${{ secrets.KVM_HOST }}
-          username: ${{ secrets.KVM_USER }}
-          key: ${{ secrets.KVM_SSH_KEY }}
-          envs: DATABASE_URL,REGISTRY_URL,REGISTRY_USER,REGISTRY_PASSWORD,ENVIRONMENT,DIRECTION
-          script: |
-            IMAGE="$REGISTRY_URL/pegazzo-monolith:main"
-            echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" -u "$REGISTRY_USER" --password-stdin
-            docker pull "$IMAGE"
-            # alembic upgrade head / alembic downgrade -1
-            if [ "$DIRECTION" = "upgrade" ]; then
-              ALEMBIC_CMD="alembic upgrade head"
-            else
-              ALEMBIC_CMD="alembic downgrade -1"
-            fi
-            docker run --rm \
-              --network dokploy-network \
-              -e DATABASE_URL="$DATABASE_URL" \
-              "$IMAGE" \
-              $ALEMBIC_CMD
-            echo "--- Migration state after run ---"
-            docker run --rm \
-              --network dokploy-network \
-              -e DATABASE_URL="$DATABASE_URL" \
-              "$IMAGE" \
-              alembic current
+        run: |
+          IMAGE="$REGISTRY_URL/pegazzo-monolith:main"
+          echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" -u "$REGISTRY_USER" --password-stdin
+          docker pull "$IMAGE"
+          # alembic upgrade head / alembic downgrade -1
+          if [ "$DIRECTION" = "upgrade" ]; then
+            ALEMBIC_CMD="alembic upgrade head"
+          else
+            ALEMBIC_CMD="alembic downgrade -1"
+          fi
+          docker run --rm \
+            --network dokploy-network \
+            -e DATABASE_URL="$DATABASE_URL" \
+            "$IMAGE" \
+            $ALEMBIC_CMD
+          echo "--- Migration state after run ---"
+          docker run --rm \
+            --network dokploy-network \
+            -e DATABASE_URL="$DATABASE_URL" \
+            "$IMAGE" \
+            alembic current
