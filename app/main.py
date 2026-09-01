@@ -25,7 +25,7 @@ from app.routers import (
     user_router,
 )
 
-is_production = ENVIRONMENT == "PRODUCTION"
+_serve_openapi = ENVIRONMENT == "LOCAL"
 
 app = FastAPI(
     debug=DEBUG,
@@ -34,7 +34,7 @@ app = FastAPI(
     version=AppConfig.VERSION,
     docs_url=None,
     redoc_url=None,
-    openapi_url=None if is_production else "/openapi.json",
+    openapi_url="/openapi.json" if _serve_openapi else None,
 )
 
 # --- API docs gating by environment ---
@@ -67,6 +67,11 @@ if ENVIRONMENT == "STAGING":
             openapi_url="/openapi.json",
             title=f"{AppConfig.NAME} - ReDoc",
         )
+
+    @app.get("/openapi.json", include_in_schema=False, dependencies=[Depends(_docs_auth)])
+    async def _openapi_schema_staging():
+        """Serve OpenAPI schema behind Basic Auth."""
+        return app.openapi()
 
 elif ENVIRONMENT == "LOCAL":
 
