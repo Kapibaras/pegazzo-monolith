@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv(encoding="utf-8")
 
-ENVIRONMENT = os.getenv("ENVIRONMENT", "LOCAL")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "LOCAL").upper()
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
 
