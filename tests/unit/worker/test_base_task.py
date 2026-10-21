@@ -30,7 +30,7 @@ class ConcreteTask(BaseTask):
         """Mark as processing."""
         self.processing_ids.add(record_id)
 
-    def mark_failed(self, record_id, reason):
+    def mark_failed(self, _session, record_id, reason):
         """Mark as failed."""
         self.failed_records[record_id] = reason
 

@@ -1,5 +1,3 @@
-version: "3.9"
-
 x-common-env: &common-env
   ENVIRONMENT: LOCAL
   DEBUG: "true"

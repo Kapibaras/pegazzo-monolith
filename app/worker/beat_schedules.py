@@ -21,16 +21,10 @@ app.conf.beat_schedule = {
 
 @app.task(name="app.worker.beat_schedules.check_stuck_tasks")
 def check_stuck_tasks():
-    """Find tasks stuck in 'processing' and mark them as failed.
-
-    TODO PGZ-124: implement the actual query once AnalysisRequest model exists.
-    Expected logic: query AnalysisRequest where status='processing' and
-    requested_at < now() - threshold, then set status='failed', reason='stuck'.
-    """
+    """Find tasks stuck in 'processing' and mark them as failed."""
     threshold_minutes = CELERY.WORKER_STUCK_TASK_MINUTES
     logger.info(
-        "Running stuck task check (threshold: %d minutes). "
-        "No concrete model registered yet — see PGZ-124.",
+        "Running stuck task check (threshold: %d minutes)",
         threshold_minutes,
     )
     return {

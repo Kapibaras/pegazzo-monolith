@@ -4,6 +4,7 @@ import logging
 import time
 
 from celery import Task
+from sqlalchemy.orm import Session
 
 from app.database.session import SessionLocal
 
@@ -19,19 +20,19 @@ class BaseTask(Task):
     """
 
     abstract = True
-    _db = None
 
     @property
-    def db(self):
-        """Return a lazy-initialized SQLAlchemy session."""
-        if self._db is None:
+    def db(self) -> Session:
+        """Return a lazy-initialized SQLAlchemy session for this execution."""
+        if not hasattr(self, "_db") or self._db is None:
             self._db = SessionLocal()
         return self._db
 
     def after_return(self, *_args, **_kwargs):
         """Close the database session after the task completes."""
-        if self._db is not None:
-            self._db.close()
+        db = getattr(self, "_db", None)
+        if db is not None:
+            db.close()
             self._db = None
 
     def run_with_lifecycle(self, record_id: int, *args, **kwargs):
@@ -84,8 +85,6 @@ class BaseTask(Task):
         """Check if ``record_id`` is already in a terminal state.
 
         Override in concrete tasks. Returns False by default (no guard).
-        TODO PGZ-124: implement using AnalysisRequest status check.
-        Terminal states: valid, review, rejected, failed.
         """
         del record_id  # used by concrete implementations
         return False
@@ -94,31 +93,32 @@ class BaseTask(Task):
         """Mark the record as processing.
 
         Override in concrete tasks to set the status on the record.
-        TODO PGZ-124: set AnalysisRequest.status = 'processing'.
         """
 
-    def mark_failed(self, record_id: int, reason: str) -> None:
+    def mark_failed(self, session: Session, record_id: int, reason: str) -> None:
         """Mark the record as failed with a reason.
 
-        Override in concrete tasks to persist the failure.
-        TODO PGZ-124: set AnalysisRequest.status = 'failed', failure_reason = reason.
+        Override in concrete tasks to persist the failure using the
+        provided session (NOT self.db — this is called with an
+        independent session from _safe_mark_failed).
         """
 
     def _safe_mark_failed(self, record_id: int, reason: str) -> None:
-        """Mark failed with its own commit.
+        """Mark failed using an independent session.
 
-        The state persists even if the main transaction rolled back.
+        Uses a fresh session so the failure state persists even if
+        the main transaction rolled back.
         """
+        session = SessionLocal()
         try:
-            session = SessionLocal()
-            try:
-                self.mark_failed(record_id, reason)
-                session.commit()
-            finally:
-                session.close()
+            self.mark_failed(session, record_id, reason)
+            session.commit()
         except Exception:
+            session.rollback()
             logger.exception(
                 "Failed to mark record %s as failed (reason: %s)",
                 record_id,
                 reason,
             )
+        finally:
+            session.close()
