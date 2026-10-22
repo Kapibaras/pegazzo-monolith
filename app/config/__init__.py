@@ -1,6 +1,7 @@
 from .constants import AppConfig
 from .variables import (
     AUTHORIZATION,
+    CELERY,
     CORS_ORIGINS,
     DATABASE_URL,
     DEBUG,
@@ -11,6 +12,7 @@ from .variables import (
 
 __all__ = [
     "AUTHORIZATION",
+    "CELERY",
     "CORS_ORIGINS",
     "DATABASE_URL",
     "DEBUG",

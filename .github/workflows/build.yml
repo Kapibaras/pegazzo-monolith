@@ -74,7 +74,23 @@ jobs:
           LOCAL_URL=$(echo "$WEBHOOK_URL" | sed 's|https://dokploy\.pegazzoauto\.com|http://localhost:3000|')
           curl -fsSL -X POST "$LOCAL_URL"
 
+      - name: Trigger Dokploy worker staging webhook
+        env:
+          WEBHOOK_URL: ${{ secrets.DOKPLOY_WORKER_STAGING_WEBHOOK }}
+        run: |
+          LOCAL_URL=$(echo "$WEBHOOK_URL" | sed 's|https://dokploy\.pegazzoauto\.com|http://localhost:3000|')
+          curl -fsSL -X POST "$LOCAL_URL"
+
+      - name: Trigger Dokploy beat staging webhook
+        env:
+          WEBHOOK_URL: ${{ secrets.DOKPLOY_BEAT_STAGING_WEBHOOK }}
+        run: |
+          LOCAL_URL=$(echo "$WEBHOOK_URL" | sed 's|https://dokploy\.pegazzoauto\.com|http://localhost:3000|')
+          curl -fsSL -X POST "$LOCAL_URL"
+
       - name: Print deployed URL
         run: |
           echo "SUCCESS — Monolith deployed to staging"
           echo "   URL: https://staging.api.pegazzoauto.com"
+          echo "   Worker: deployed"
+          echo "   Beat: deployed"

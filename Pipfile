@@ -20,6 +20,7 @@ alembic = "*"
 ruff = "*"
 argon2-cffi = "*"
 boto3 = "*"
+celery = {version = "*", extras = ["redis"]}
 
 [dev-packages]
 pytest = "*"

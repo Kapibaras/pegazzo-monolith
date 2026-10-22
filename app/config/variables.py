@@ -41,6 +41,15 @@ class R2:
     PUBLIC_URL: str = _require_env("R2_PUBLIC_URL", "")
 
 
+class CELERY:
+    """Celery task queue configuration."""
+
+    BROKER_URL: str = _require_env("CELERY_BROKER_URL", "redis://localhost:6379/0")
+    RESULT_BACKEND: str = _require_env("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
+    TASK_ALWAYS_EAGER: bool = os.getenv("CELERY_TASK_ALWAYS_EAGER", "false").lower() == "true"
+    WORKER_STUCK_TASK_MINUTES: int = int(os.getenv("WORKER_STUCK_TASK_MINUTES", "10"))
+
+
 class AUTHORIZATION:
     """Authorization configuration."""
 

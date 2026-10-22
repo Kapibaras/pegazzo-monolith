@@ -13,6 +13,7 @@ It includes full support for database migrations, testing, and local development
 - 🐍 **Pipenv** – dependency and virtual environment management
 - 🛠️ **Alembic** – database migrations
 - ✅ **Pytest** – testing framework
+- 🥬 **Celery + Redis** – async task queue for background jobs
 
 ---
 
@@ -108,6 +109,71 @@ alembic current
 
 ---
 
+## 🥬 Async Worker (Celery + Redis)
+
+The monolith includes a Celery worker for async background tasks (document analysis, future expiry alerts, etc.).
+
+### Architecture
+
+```
+FastAPI API  ──enqueue──>  Redis (broker)  ──deliver──>  Celery Worker
+                                                           │
+                                                     PostgreSQL (results)
+                                                           │
+                                                     Celery Beat (periodic checks)
+```
+
+- **Queue**: `documents` (default). Add more queues as needed in `app/worker/celery_app.py`.
+- **Retries**: Provider errors (503, 429, timeouts) retry with backoff ~5/15/45/90s, total budget ~3 min. See `app/worker/retry.py`.
+- **Time limits**: soft=4min, hard=5min per task.
+- **Stuck task check**: Beat runs every 5 min — records in `processing` longer than `WORKER_STUCK_TASK_MINUTES` (default 10) are marked `failed`.
+- **Idempotency**: Tasks skip records already in terminal state (at-least-once delivery safe).
+
+### Running locally with Docker Compose
+
+```bash
+docker compose up
+```
+
+This starts: PostgreSQL, Redis, API (port 8000), Worker, and Beat.
+
+### Running worker manually (without Docker)
+
+```bash
+# Start Redis (must be running)
+# Terminal 1 — Worker
+celery -A app.worker.celery_app worker --loglevel=INFO --concurrency=2 -Q documents
+
+# Terminal 2 — Beat (periodic tasks)
+celery -A app.worker.celery_app beat --loglevel=INFO
+```
+
+### Environment variables
+
+| Variable | Description | Default (LOCAL) |
+|---|---|---|
+| `CELERY_BROKER_URL` | Redis broker URL | `redis://localhost:6379/0` |
+| `CELERY_RESULT_BACKEND` | Redis result backend URL | `redis://localhost:6379/1` |
+| `CELERY_TASK_ALWAYS_EAGER` | Run tasks synchronously (for tests) | `false` |
+| `WORKER_STUCK_TASK_MINUTES` | Threshold for stuck task detection | `10` |
+
+### Adding a new task
+
+1. Create `app/worker/tasks/my_task.py`
+2. Define the task using `@app.task` from `app.worker.celery_app`
+3. For tasks with DB access, inherit from `BaseTask` (`app/worker/base.py`) and implement `process()`
+4. The task is auto-discovered — no registration needed
+
+### Health check
+
+`GET /health` returns a `broker` field:
+```json
+{"status": "ok", "database": "ok", "broker": "ok"}
+```
+Broker down is **non-fatal** — the API keeps running, but the flag shows `unreachable`.
+
+---
+
 ## 📂 Project Structure
 
 ```txt
@@ -125,6 +191,7 @@ pegazzo-monolith/
 │   ├── schemas/            # Pydantic schemas (request/response validation)
 │   ├── services/           # Business logic layer
 │   ├── utils/              # Utility functions and helpers
+│   ├── worker/             # Celery worker (tasks, retries, beat schedules)
 │   └── main.py             # FastAPI entrypoint
 ├── scripts/                # Utility or setup scripts
 ├── tests/                  # Test suite
