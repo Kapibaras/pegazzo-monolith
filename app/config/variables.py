@@ -30,15 +30,20 @@ DOCS_PASSWORD: str = os.getenv("DOCS_PASSWORD", "")
 
 
 class R2:
-    """Cloudflare R2 object storage configuration."""
+    """Cloudflare R2 object storage configuration.
 
-    ACCOUNT_ID: str = _require_env("R2_ACCOUNT_ID", "")
-    ACCESS_KEY_ID: str = _require_env("R2_ACCESS_KEY_ID", "")
-    SECRET_ACCESS_KEY: str = _require_env("R2_SECRET_ACCESS_KEY", "")
-    ENDPOINT: str = _require_env("R2_ENDPOINT", "")
-    DOCUMENTS_BUCKET: str = _require_env("R2_DOCUMENTS_BUCKET", "pegazzo-documents")
-    IMAGES_BUCKET: str = _require_env("R2_IMAGES_BUCKET", "pegazzo-images")
-    PUBLIC_URL: str = _require_env("R2_PUBLIC_URL", "")
+    Uses os.getenv instead of _require_env so that services which never
+    touch R2 (e.g. Celery beat) can start without these variables.
+    Actual validation happens at the point of use (R2 storage client).
+    """
+
+    ACCOUNT_ID: str = os.getenv("R2_ACCOUNT_ID", "")
+    ACCESS_KEY_ID: str = os.getenv("R2_ACCESS_KEY_ID", "")
+    SECRET_ACCESS_KEY: str = os.getenv("R2_SECRET_ACCESS_KEY", "")
+    ENDPOINT: str = os.getenv("R2_ENDPOINT", "")
+    DOCUMENTS_BUCKET: str = os.getenv("R2_DOCUMENTS_BUCKET", "pegazzo-documents")
+    IMAGES_BUCKET: str = os.getenv("R2_IMAGES_BUCKET", "pegazzo-images")
+    PUBLIC_URL: str = os.getenv("R2_PUBLIC_URL", "")
 
 
 class CELERY:
