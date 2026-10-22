@@ -21,6 +21,7 @@ ruff = "*"
 argon2-cffi = "*"
 boto3 = "*"
 celery = {version = "*", extras = ["redis"]}
+psycopg2-binary = "*"
 
 [dev-packages]
 pytest = "*"
