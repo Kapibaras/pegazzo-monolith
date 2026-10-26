@@ -9,4 +9,15 @@ from .image import ImageService
 from .insurance import InsuranceService
 from .user import UserService
 
-__all__ = ["AssociateService", "AuthService", "BalanceService", "CarFolioService", "CarModelService", "CarService", "DocumentService", "ImageService", "InsuranceService", "UserService"]
+__all__ = [
+    "AssociateService",
+    "AuthService",
+    "BalanceService",
+    "CarFolioService",
+    "CarModelService",
+    "CarService",
+    "DocumentService",
+    "ImageService",
+    "InsuranceService",
+    "UserService",
+]

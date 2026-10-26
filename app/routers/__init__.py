@@ -9,4 +9,15 @@ from .image import router as image_router
 from .insurance import router as insurance_router
 from .user import router as user_router
 
-__all__ = ["associate_router", "auth_router", "balance_router", "car_model_router", "car_router", "document_router", "health_router", "image_router", "insurance_router", "user_router"]
+__all__ = [
+    "associate_router",
+    "auth_router",
+    "balance_router",
+    "car_model_router",
+    "car_router",
+    "document_router",
+    "health_router",
+    "image_router",
+    "insurance_router",
+    "user_router",
+]

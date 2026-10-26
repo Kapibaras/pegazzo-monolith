@@ -7,4 +7,13 @@ from .image import ImageRepository
 from .insurance import InsuranceRepository
 from .user import UserRepository
 
-__all__ = ["AssociateRepository", "BalanceRepository", "CarModelRepository", "CarRepository", "DocumentRepository", "ImageRepository", "InsuranceRepository", "UserRepository"]
+__all__ = [
+    "AssociateRepository",
+    "BalanceRepository",
+    "CarModelRepository",
+    "CarRepository",
+    "DocumentRepository",
+    "ImageRepository",
+    "InsuranceRepository",
+    "UserRepository",
+]

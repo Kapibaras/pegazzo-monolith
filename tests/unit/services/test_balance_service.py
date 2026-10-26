@@ -727,8 +727,26 @@ class TestBalanceService:
         start_dt = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
         end_dt = datetime(2026, 1, 31, 23, 59, 59, tzinfo=UTC)
 
-        tx1 = Transaction(reference="TRX-001", amount=100, date=start_dt, type="debit", description="A", payment_method="cash", status="CONFIRMED", category="Otro")
-        tx2 = Transaction(reference="TRX-002", amount=200, date=end_dt, type="debit", description="B", payment_method="cash", status="CONFIRMED", category="Otro")
+        tx1 = Transaction(
+            reference="TRX-001",
+            amount=100,
+            date=start_dt,
+            type="debit",
+            description="A",
+            payment_method="cash",
+            status="CONFIRMED",
+            category="Otro",
+        )
+        tx2 = Transaction(
+            reference="TRX-002",
+            amount=200,
+            date=end_dt,
+            type="debit",
+            description="B",
+            payment_method="cash",
+            status="CONFIRMED",
+            category="Otro",
+        )
 
         self.mock_repo.count_transactions_in_range.return_value = 2
         self.mock_repo.list_transactions_in_range.return_value = [tx1, tx2]
@@ -908,7 +926,10 @@ class TestBalanceService:
 
     def test_get_transactions_count_repo_error_propagates(self):
         """Unexpected repo error bubbles up."""
-        with patch("app.services.balance.period_bounds_utc", return_value=(datetime(2026, 1, 1, tzinfo=UTC), datetime(2026, 1, 31, tzinfo=UTC))):
+        with patch(
+            "app.services.balance.period_bounds_utc",
+            return_value=(datetime(2026, 1, 1, tzinfo=UTC), datetime(2026, 1, 31, tzinfo=UTC)),
+        ):
             self.mock_repo.count_transactions_in_range.side_effect = RuntimeError("DB down")
 
             with pytest.raises(RuntimeError, match="DB down"):
