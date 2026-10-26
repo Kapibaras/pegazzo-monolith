@@ -1,0 +1,16 @@
+{
+  "name": "amortization_table",
+  "label_es": "Tabla de amortización",
+  "allowed_entity_types": ["car"],
+  "has_expiry": false,
+  "ai_analyzable": true,
+  "fields": {},
+  "expected_fields": [],
+  "optional_fields": [],
+  "validators": {},
+  "acceptance": {
+    "min_expected_filled": 1.0,
+    "min_accuracy": 0.9,
+    "max_validation_failures": 0
+  }
+}

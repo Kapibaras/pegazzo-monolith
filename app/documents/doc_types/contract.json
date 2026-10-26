@@ -1,0 +1,16 @@
+{
+  "name": "contract",
+  "label_es": "Contrato",
+  "allowed_entity_types": ["car", "driver"],
+  "has_expiry": true,
+  "ai_analyzable": false,
+  "fields": {},
+  "expected_fields": [],
+  "optional_fields": [],
+  "validators": {},
+  "acceptance": {
+    "min_expected_filled": 1.0,
+    "min_accuracy": 0.9,
+    "max_validation_failures": 0
+  }
+}

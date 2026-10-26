@@ -51,6 +51,7 @@ class Car(Base):
     legal_owner_name = Column(String(50), nullable=False)
     legal_owner_surnames = Column(String(100), nullable=False)
     associate = relationship("Associate", secondary=associate_car, back_populates="cars")
+    documents = relationship("Document", secondary=car_document_table)
     battery_model = Column(String(20), nullable=False)
     battery_serial_number = Column(String(30), nullable=False)
     battery_date = Column(DateTime(timezone=True), default=func.now(), nullable=False)

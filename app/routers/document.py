@@ -3,7 +3,13 @@ from fastapi import APIRouter, Body, Depends, Path, status
 from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
 from app.enum.auth import Role
-from app.schemas.document import DocumentConfirmSchema, DocumentResponseSchema, UploadUrlRequestSchema, UploadUrlResponseSchema
+from app.schemas.document import (
+    DocumentConfirmSchema,
+    DocumentDetailSchema,
+    DocumentResponseSchema,
+    UploadUrlRequestSchema,
+    UploadUrlResponseSchema,
+)
 from app.schemas.user import ActionSuccess
 from app.services.document import DocumentService
 
@@ -34,12 +40,12 @@ def create_document(
     return service.create_document(body)
 
 
-@router.get("/{document_id}", response_model=DocumentResponseSchema)
+@router.get("/{document_id}", response_model=DocumentDetailSchema)
 def get_document(
     document_id: int = Path(..., description="ID of the document"),
     service: DocumentService = Depends(ServiceFactory.document_service),
     _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN, Role.EMPLOYEE])),
-) -> DocumentResponseSchema:
+) -> DocumentDetailSchema:
     """Get document metadata and a temporary presigned download URL."""
     return service.get_document(document_id)
 
