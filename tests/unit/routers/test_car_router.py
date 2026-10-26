@@ -286,10 +286,10 @@ class TestCarRouter:
         now = datetime.now(UTC)
         doc_valid = Document(id=1, type="PDF", url="key/doc1.pdf", category="license", expiry_date=now + timedelta(days=60))
         doc_expiring = Document(
-            id=2, type="PDF", url="key/doc2.pdf", category="insurance", expiry_date=now + timedelta(days=10)
+            id=2, type="PDF", url="key/doc2.pdf", category="insurance", expiry_date=now + timedelta(days=10),
         )
         doc_expired = Document(
-            id=3, type="PDF", url="key/doc3.pdf", category="registration", expiry_date=now - timedelta(days=1)
+            id=3, type="PDF", url="key/doc3.pdf", category="registration", expiry_date=now - timedelta(days=1),
         )
         doc_no_expiry = Document(id=4, type="PDF", url="key/doc4.pdf", category="other", expiry_date=None)
         authorized_client.car_repo.car_documents["CAR-001"] = [
