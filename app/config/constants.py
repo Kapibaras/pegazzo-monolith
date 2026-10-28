@@ -1,4 +1,5 @@
 EXPIRING_SOON_DAYS = 30
+MAX_GUARANTORS_PER_DRIVER = 5
 
 
 class AppConfig:

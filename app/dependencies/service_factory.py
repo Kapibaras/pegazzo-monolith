@@ -10,6 +10,7 @@ from app.services import (
     CarService,
     DocumentService,
     DriverService,
+    GuarantorService,
     ImageService,
     InsuranceService,
     UserService,
@@ -129,3 +130,11 @@ class ServiceFactory:
     def driver_service(repository=Depends(RepositoryFactory.driver_repository)):
         """Provide an instance of DriverService."""
         yield DriverService(repository)
+
+    @staticmethod
+    def guarantor_service(
+        repository=Depends(RepositoryFactory.guarantor_repository),
+        driver_repository=Depends(RepositoryFactory.driver_repository),
+    ):
+        """Provide an instance of GuarantorService."""
+        yield GuarantorService(repository, driver_repository)

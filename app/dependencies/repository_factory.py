@@ -8,6 +8,7 @@ from app.repositories import (
     CarRepository,
     DocumentRepository,
     DriverRepository,
+    GuarantorRepository,
     ImageRepository,
     InsuranceRepository,
     UserRepository,
@@ -109,3 +110,8 @@ class RepositoryFactory:
     def driver_repository(db_session=Depends(get_db)):
         """Provide an instance of DriverRepository."""
         yield DriverRepository(db_session)
+
+    @staticmethod
+    def guarantor_repository(db_session=Depends(get_db)):
+        """Provide an instance of GuarantorRepository."""
+        yield GuarantorRepository(db_session)
