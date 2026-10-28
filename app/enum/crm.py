@@ -43,6 +43,14 @@ class DriverStatus(StrEnum):
     SUSPENDED = "SUSPENDED"
 
 
+class DocumentExpiryStatus(StrEnum):
+    """Enum for document expiry status."""
+
+    VALID = "valid"
+    EXPIRING_SOON = "expiring_soon"
+    EXPIRED = "expired"
+
+
 class DriverSortBy(StrEnum):
     """Enum for driver list sort fields."""
 

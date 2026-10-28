@@ -119,9 +119,15 @@ class TestDriverRouter:
         assert names == sorted(names, reverse=True)
 
     def test_sort_by_created_at_default_desc(self, authorized_client):
+        """Default sort is created_at DESC.
+
+        DRV-002 (2026-02-20) should come before DRV-001 (2026-01-15).
+        The summary schema does not expose createdAt, so we verify
+        ordering through the known seed IDs.
+        """
         response = authorized_client.get(self.ENDPOINT)
         ids = [d["id"] for d in response.json()["drivers"]]
-        assert ids[0] == "DRV-002"
+        assert ids == ["DRV-002", "DRV-001"]
 
     # -----------------------------------------------------------------
     # Pagination
@@ -243,6 +249,18 @@ class TestCreateDriver:
     # -----------------------------------------------------------------
     # RBAC
     # -----------------------------------------------------------------
+
+    def test_create_driver_employee_forbidden(self, employee_authorized_client):
+        response = employee_authorized_client.post(self.ENDPOINT, json=_VALID_DRIVER_BODY)
+        assert response.status_code == 403
+
+    def test_create_driver_license_validity_tomorrow_accepted(self, authorized_client):
+        from datetime import UTC, datetime, timedelta
+
+        tomorrow = (datetime.now(UTC) + timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        body = {**_VALID_DRIVER_BODY, "id": "DRV-TMRW", "licenseValidity": tomorrow}
+        response = authorized_client.post(self.ENDPOINT, json=body)
+        assert response.status_code == 201
 
     def test_create_driver_requires_auth(self, client):
         response = client.post(self.ENDPOINT, json=_VALID_DRIVER_BODY)
