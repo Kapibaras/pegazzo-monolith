@@ -5,6 +5,7 @@ from .car import router as car_router
 from .car_model import router as car_model_router
 from .document import router as document_router
 from .driver import router as driver_router
+from .guarantor import router as guarantor_router
 from .health import router as health_router
 from .image import router as image_router
 from .insurance import router as insurance_router
@@ -18,6 +19,7 @@ __all__ = [
     "car_router",
     "document_router",
     "driver_router",
+    "guarantor_router",
     "health_router",
     "image_router",
     "insurance_router",

@@ -20,6 +20,7 @@ from app.routers import (
     car_router,
     document_router,
     driver_router,
+    guarantor_router,
     health_router,
     image_router,
     insurance_router,
@@ -161,6 +162,7 @@ app.include_router(car_model_router, prefix="/pegazzo")
 app.include_router(car_router, prefix="/pegazzo")
 app.include_router(document_router, prefix="/pegazzo")
 app.include_router(driver_router, prefix="/pegazzo")
+app.include_router(guarantor_router, prefix="/pegazzo")
 app.include_router(image_router, prefix="/pegazzo")
 
 # * HANDLERS * #
