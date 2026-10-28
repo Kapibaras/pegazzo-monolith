@@ -155,3 +155,41 @@ def admin_authorized_client():
     )
 
     return c
+
+
+@pytest.fixture
+def employee_authorized_client():
+    """Client with valid JWT cookie for role 'employee'."""
+    app.dependency_overrides = _dependency_overrides()
+
+    employee_user = User(
+        username="employeeuser",
+        name="Employee",
+        surnames="User",
+        password="hashed_password",
+        role_id=3,
+        role=user_repo_mock.roles["empleado"],
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+    )
+    user_repo_mock.users.append(employee_user)
+
+    c = TestClient(app)
+    _attach_repos(c)
+
+    with patch("app.utils.auth.AuthUtils.verify_password", return_value=True):
+        response = c.post(
+            "/pegazzo/internal/auth/login",
+            json={"username": "employeeuser", "password": "password123"},
+        )
+
+    c.cookies.set("access_token_cookie", response.cookies.get("access_token_cookie"))
+    c.cookies.set("refresh_token_cookie", response.cookies.get("refresh_token_cookie"))
+    c.headers.update(
+        {
+            "X-CSRF-ACCESS": response.cookies.get("csrf_access_token"),
+            "X-CSRF-REFRESH": response.cookies.get("csrf_refresh_token"),
+        },
+    )
+
+    return c

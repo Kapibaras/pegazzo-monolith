@@ -94,6 +94,8 @@ class DriverRepositoryMock:
         return driver
 
     def _filter(self, status: DriverStatus | None, search: str | None, archived: bool) -> list[Driver]:
+        # NOTE: This mock uses substring matching for search. The real repository
+        # uses PostgreSQL word_similarity (fuzzy). Behavior may diverge on edge cases.
         result = [
             d
             for d in self.drivers

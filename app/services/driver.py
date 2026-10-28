@@ -1,4 +1,3 @@
-import math
 from datetime import UTC, datetime
 
 from app.errors.driver import (
@@ -48,12 +47,7 @@ class DriverService:
         )
         return DriverListResponseSchema(
             drivers=drivers,
-            pagination=PaginationSchema(
-                page=params.page,
-                limit=params.limit,
-                total=total,
-                total_pages=0 if total == 0 else math.ceil(total / params.limit),
-            ),
+            pagination=PaginationSchema.build(params.page, params.limit, total),
         )
 
     def create_driver(self, data: DriverCreateSchema) -> Driver:

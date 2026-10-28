@@ -1,4 +1,3 @@
-import math
 from datetime import UTC, datetime
 
 from app.errors.car import (
@@ -143,12 +142,7 @@ class CarService:
         )
         return CarListResponseSchema(
             cars=cars,
-            pagination=PaginationSchema(
-                page=params.page,
-                limit=params.limit,
-                total=total,
-                total_pages=0 if total == 0 else math.ceil(total / params.limit),
-            ),
+            pagination=PaginationSchema.build(params.page, params.limit, total),
         )
 
     def create_car(self, data: CarSchema) -> Car:

@@ -1,4 +1,5 @@
 import datetime
+import math
 from decimal import Decimal
 from typing import Any
 
@@ -6,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 from app.enum.balance import SortOrder
-from app.enum.crm import CarSortBy, CarStatus
+from app.enum.crm import CarSortBy, CarStatus, DocumentExpiryStatus
 from app.schemas.types import RequestUTCDatetime
 
 _CAMEL = ConfigDict(alias_generator=to_camel, populate_by_name=True)
@@ -149,6 +150,16 @@ class PaginationSchema(BaseModel):
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
+    @classmethod
+    def build(cls, page: int, limit: int, total: int) -> "PaginationSchema":
+        """Create a PaginationSchema computing total_pages automatically."""
+        return cls(
+            page=page,
+            limit=limit,
+            total=total,
+            total_pages=0 if total == 0 else math.ceil(total / limit),
+        )
+
 
 class CarListResponseSchema(BaseModel):
     """Response for GET /management/cars."""
@@ -250,7 +261,7 @@ class DocumentDetailSchema(BaseModel):
     category: str
     expiry_date: Any | None = None
     url: str
-    expiry_status: str | None = None
+    expiry_status: DocumentExpiryStatus | None = None
 
 
 class CarDetailResponseSchema(BaseModel):

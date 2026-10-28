@@ -38,7 +38,7 @@ class DriverSummarySchema(BaseModel):
     id: str
     name: str
     surnames: str
-    status: str
+    status: DriverStatus
     photo: str | None = None
 
 
@@ -76,7 +76,7 @@ class _DriverBaseSchema(BaseModel):
     id: str
     name: str
     surnames: str
-    status: str
+    status: DriverStatus
     telephones: list[str]
     license_number: str
     license_validity: datetime
