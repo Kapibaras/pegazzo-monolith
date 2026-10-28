@@ -1,3 +1,6 @@
+EXPIRING_SOON_DAYS = 30
+
+
 class AppConfig:
     """Application configuration constants."""
 

@@ -53,6 +53,9 @@ def reset_state():
     document_repo_mock.reset()
     driver_repo_mock.reset()
     image_repo_mock.reset()
+    yield
+    driver_repo_mock.reset()
+    car_repo_mock.reset()
 
 
 def _dependency_overrides():

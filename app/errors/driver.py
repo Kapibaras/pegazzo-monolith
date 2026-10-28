@@ -3,6 +3,16 @@ from fastapi import status
 from app.errors import PegazzoException
 
 
+class DriverNotFoundException(PegazzoException):
+    """Exception raised when a driver is not found."""
+
+    def __init__(self, driver_id: str):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Driver with id '{driver_id}' was not found",
+        )
+
+
 class DriverIdAlreadyExistsException(PegazzoException):
     """Exception raised when a driver id already exists."""
 
