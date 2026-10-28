@@ -14,11 +14,7 @@ class CarModelRepository(DBRepository):
 
     def get_by_make_and_model(self, make: str, model: str) -> CarModel | None:
         """Retrieve a car model entry by make and model (case-sensitive)."""
-        return (
-            self.db.query(CarModel)
-            .filter(CarModel.make == make, CarModel.model == model)
-            .first()
-        )
+        return self.db.query(CarModel).filter(CarModel.make == make, CarModel.model == model).first()
 
     def list_all(self) -> list[CarModel]:
         """Return all car model catalog entries ordered by make then model."""

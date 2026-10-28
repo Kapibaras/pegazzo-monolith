@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Body, Depends, Path, Query, status
 
 from app.auth import AuthUser, RequiresAuth

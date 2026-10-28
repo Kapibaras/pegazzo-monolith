@@ -62,7 +62,8 @@ class CarRepositoryMock:
     def filter_cars(self, status: CarStatus | None, search: str | None, year: str | None, archived: bool) -> list[Car]:
         """Return cars matching the given filters with fuzzy-search precedence."""
         result = [
-            c for c in self.cars
+            c
+            for c in self.cars
             if not (archived and c.archived_at is None)
             and not (not archived and c.archived_at is not None)
             and (not status or c.status == status)
@@ -110,19 +111,13 @@ class CarRepositoryMock:
 
     def count_cars_for_associate(self, associate_id: int) -> int:
         """Return the number of cars whose associate list contains the given associate_id."""
-        return sum(
-            1 for c in self.cars if any(a.id == associate_id for a in (c.associate or []))
-        )
+        return sum(1 for c in self.cars if any(a.id == associate_id for a in (c.associate or [])))
 
     def get_active_contract_for_car(self, car_id: str) -> Contract | None:
         """Return the active contract for the car, or None."""
         today = datetime.now(tz=UTC).date()
         return next(
-            (
-                c
-                for c in self.contracts
-                if c.car_id == car_id and c.start_date <= today <= c.end_date
-            ),
+            (c for c in self.contracts if c.car_id == car_id and c.start_date <= today <= c.end_date),
             None,
         )
 
@@ -140,6 +135,7 @@ class CarRepositoryMock:
         """Return a paginated, sorted list of cars matching the given filters."""
         cars = self.filter_cars(status, search, year, archived)
         reverse = sort_order == SortOrder.DESC
+
         def _sort_key(c):
             val = getattr(c, sort_by, "") or ""
             if sort_by == CarSortBy.YEAR:

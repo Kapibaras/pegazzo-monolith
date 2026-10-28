@@ -1,0 +1,48 @@
+{
+  "name": "ine",
+  "label_es": "INE / IFE (credencial para votar)",
+  "allowed_entity_types": ["driver", "guarantor"],
+  "has_expiry": true,
+  "ai_analyzable": true,
+  "fields": {
+    "document_type": "type of document exactly as printed on the card title",
+    "full_name": "full name as printed",
+    "first_surname": "paternal surname",
+    "second_surname": "maternal surname",
+    "given_name": "given name(s)",
+    "curp": "CURP",
+    "clave_elector": "voter key (clave de elector)",
+    "date_of_birth": "date of birth",
+    "address": "street line of the domicile only",
+    "colony": "colonia as printed, without the postal code",
+    "city": "municipality / city as printed",
+    "state": "state as printed",
+    "expiry_year": "last year of the validity (VIGENCIA), four digits",
+    "issue_year": "AÑO DE REGISTRO, four digits only",
+    "gender": "sexo as printed (H or M)",
+    "section": "electoral section",
+    "municipality": "municipality",
+    "postal_code": "5-digit postal code",
+    "id_number": "first line of the machine-readable zone on the back, starting with IDMEX"
+  },
+  "expected_fields": [
+    "document_type", "full_name", "curp", "clave_elector",
+    "date_of_birth", "address", "expiry_year", "gender"
+  ],
+  "optional_fields": [
+    "first_surname", "second_surname", "given_name", "colony",
+    "postal_code", "city", "state", "municipality", "issue_year",
+    "section", "id_number"
+  ],
+  "validators": {
+    "curp": { "regex": "[A-Z]{4}\\d{6}[HMX][A-Z]{2}[A-Z]{3}[A-Z0-9]\\d", "description": "CURP de 18 caracteres" },
+    "clave_elector": { "regex": "[A-Z]{6}\\d{8}[HM]\\d{3}", "description": "clave de elector de 18 caracteres" },
+    "id_number": { "regex": "IDMEX\\d{10}", "description": "IDMEX seguido de 10 dígitos" }
+  },
+  "acceptance": {
+    "min_expected_filled": 1.0,
+    "min_accuracy": 0.9,
+    "max_validation_failures": 0
+  },
+  "extra_instructions": "The scan may contain the front and the back of the card on the same page. Copy values exactly as printed."
+}

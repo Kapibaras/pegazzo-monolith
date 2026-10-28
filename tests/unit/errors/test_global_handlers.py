@@ -85,9 +85,7 @@ def test_validation_error_returns_detail_string(handler_client):
     assert response.status_code == 422
     body = response.json()
     assert "detail" in body
-    assert isinstance(body["detail"], str), (
-        f"Expected detail to be a string, got {type(body['detail'])}: {body['detail']}"
-    )
+    assert isinstance(body["detail"], str), f"Expected detail to be a string, got {type(body['detail'])}: {body['detail']}"
 
 
 def test_validation_error_detail_contains_field_and_message(handler_client):

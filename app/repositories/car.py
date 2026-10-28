@@ -149,19 +149,11 @@ class CarRepository(DBRepository):
 
     def is_us_owner(self, associate_id: int) -> bool:
         """Return True if the associate is registered in the owner_associate table."""
-        return (
-            self.db.query(OwnerAssociate)
-            .filter(OwnerAssociate.associate_id == associate_id)
-            .first()
-        ) is not None
+        return (self.db.query(OwnerAssociate).filter(OwnerAssociate.associate_id == associate_id).first()) is not None
 
     def count_cars_for_associate(self, associate_id: int) -> int:
         """Return the number of cars linked to the given associate."""
-        return (
-            self.db.query(associate_car)
-            .filter(associate_car.c.associate_id == associate_id)
-            .count()
-        )
+        return self.db.query(associate_car).filter(associate_car.c.associate_id == associate_id).count()
 
     def get_active_contract_for_car(self, car_id: str) -> Contract | None:
         """Return the currently active contract for the car, or None."""

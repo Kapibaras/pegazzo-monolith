@@ -1,12 +1,14 @@
 import uuid
 
 from app.enum.crm import DocumentEntityType
+from app.enum.document import DocumentAnalysisStatus, DocumentCategory
 from app.errors.document import DocumentNotFoundException, EntityNotFoundException, InvalidContentTypeException
 from app.models.document import Document
 from app.repositories.document import DocumentRepository
 from app.schemas.document import (
     ALLOWED_CONTENT_TYPES,
     DocumentConfirmSchema,
+    DocumentDetailSchema,
     DocumentResponseSchema,
     UploadUrlRequestSchema,
     UploadUrlResponseSchema,
@@ -50,7 +52,8 @@ class DocumentService:
         document = Document(
             type=data.type,
             url=data.key,
-            category="pending",
+            category=DocumentCategory.UNCLASSIFIED.value,
+            status=DocumentAnalysisStatus.NOT_ANALYZED.value,
             expiry_date=data.expiry_date,
         )
         document = self.repository.create(document)
@@ -62,14 +65,14 @@ class DocumentService:
         response.url = presigned_url
         return response
 
-    def get_document(self, document_id: int) -> DocumentResponseSchema:
+    def get_document(self, document_id: int) -> DocumentDetailSchema:
         """Return document metadata with a fresh presigned GET URL."""
         document = self.repository.get_by_id(document_id)
         if not document:
             raise DocumentNotFoundException(document_id)
 
         presigned_url = r2.generate_document_read_url(document.url)
-        response = DocumentResponseSchema.model_validate(document)
+        response = DocumentDetailSchema.model_validate(document)
         response.url = presigned_url
         return response
 
