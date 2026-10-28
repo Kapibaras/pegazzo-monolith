@@ -1,6 +1,22 @@
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
+
+from app.config.constants import EXPIRING_SOON_DAYS
+from app.enum.crm import DocumentExpiryStatus
+
+
+def compute_expiry_status(expiry_date, now: datetime | None = None) -> DocumentExpiryStatus | None:
+    """Return valid / expiring_soon / expired based on expiry_date, or None if no expiry."""
+    if expiry_date is None:
+        return None
+    if now is None:
+        now = datetime.now(UTC)
+    if now > expiry_date:
+        return DocumentExpiryStatus.EXPIRED
+    if now + timedelta(days=EXPIRING_SOON_DAYS) > expiry_date:
+        return DocumentExpiryStatus.EXPIRING_SOON
+    return DocumentExpiryStatus.VALID
 
 
 def start_of_month(year: int, month: int) -> date:

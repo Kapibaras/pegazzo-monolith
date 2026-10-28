@@ -1,5 +1,4 @@
-import math
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from app.errors.car import (
     AssociateNotFoundException,
@@ -24,20 +23,7 @@ from app.schemas.car import (
     PaginationSchema,
 )
 from app.storage import r2
-
-_EXPIRING_SOON_DAYS = 30
-
-
-def _compute_expiry_status(expiry_date) -> str | None:
-    """Return valid / expiring_soon / expired based on expiry_date, or None if no expiry."""
-    if expiry_date is None:
-        return None
-    now = datetime.now(UTC)
-    if now > expiry_date:
-        return "expired"
-    if now + timedelta(days=_EXPIRING_SOON_DAYS) > expiry_date:
-        return "expiring_soon"
-    return "valid"
+from app.utils.dates import compute_expiry_status
 
 
 class CarService:
@@ -60,7 +46,7 @@ class CarService:
                 category=doc.category,
                 expiry_date=doc.expiry_date,
                 url=r2.generate_document_read_url(doc.url),
-                expiry_status=_compute_expiry_status(doc.expiry_date),
+                expiry_status=compute_expiry_status(doc.expiry_date),
             )
             for doc in self.repository.get_car_documents(car_id)
         ]
@@ -156,12 +142,7 @@ class CarService:
         )
         return CarListResponseSchema(
             cars=cars,
-            pagination=PaginationSchema(
-                page=params.page,
-                limit=params.limit,
-                total=total,
-                total_pages=0 if total == 0 else math.ceil(total / params.limit),
-            ),
+            pagination=PaginationSchema.build(params.page, params.limit, total),
         )
 
     def create_car(self, data: CarSchema) -> Car:

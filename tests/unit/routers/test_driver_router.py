@@ -119,9 +119,15 @@ class TestDriverRouter:
         assert names == sorted(names, reverse=True)
 
     def test_sort_by_created_at_default_desc(self, authorized_client):
+        """Default sort is created_at DESC.
+
+        DRV-002 (2026-02-20) should come before DRV-001 (2026-01-15).
+        The summary schema does not expose createdAt, so we verify
+        ordering through the known seed IDs.
+        """
         response = authorized_client.get(self.ENDPOINT)
         ids = [d["id"] for d in response.json()["drivers"]]
-        assert ids[0] == "DRV-002"
+        assert ids == ["DRV-002", "DRV-001"]
 
     # -----------------------------------------------------------------
     # Pagination
@@ -155,7 +161,7 @@ class TestDriverRouter:
         assert response.status_code == 401
 
 
-@pytest.mark.usefixtures("authorized_client", "client", "admin_authorized_client")
+@pytest.mark.usefixtures("authorized_client", "client")
 class TestCreateDriver:
     """Tests for POST /management/drivers."""
 
@@ -244,6 +250,134 @@ class TestCreateDriver:
     # RBAC
     # -----------------------------------------------------------------
 
+    def test_create_driver_employee_forbidden(self, employee_authorized_client):
+        response = employee_authorized_client.post(self.ENDPOINT, json=_VALID_DRIVER_BODY)
+        assert response.status_code == 403
+
+    def test_create_driver_license_validity_tomorrow_accepted(self, authorized_client):
+        from datetime import UTC, datetime, timedelta
+
+        tomorrow = (datetime.now(UTC) + timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        body = {**_VALID_DRIVER_BODY, "id": "DRV-TMRW", "licenseValidity": tomorrow}
+        response = authorized_client.post(self.ENDPOINT, json=body)
+        assert response.status_code == 201
+
     def test_create_driver_requires_auth(self, client):
         response = client.post(self.ENDPOINT, json=_VALID_DRIVER_BODY)
+        assert response.status_code == 401
+
+
+@pytest.mark.usefixtures("authorized_client", "client")
+class TestGetDriverDetail:
+    """Tests for GET /management/drivers/{id}."""
+
+    ENDPOINT = "/pegazzo/management/drivers"
+
+    # -----------------------------------------------------------------
+    # Basic detail
+    # -----------------------------------------------------------------
+
+    def test_get_driver_basic_fields(self, authorized_client):
+        response = authorized_client.get(f"{self.ENDPOINT}/DRV-001")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == "DRV-001"
+        assert data["name"] == "Luis"
+        assert data["surnames"] == "García López"
+        assert data["status"] == "ACTIVE"
+        assert data["telephones"] == ["+521234567890"]
+        assert data["licenseNumber"] == "LIC001"
+        assert data["identificationNumber"] == "ID001"
+        assert data["address"] == "Calle 1 #100"
+        assert data["garageAddress"] == ["Calle 2 #200"]
+        assert "createdAt" in data
+        assert "updatedAt" in data
+
+    def test_get_driver_not_found(self, authorized_client):
+        response = authorized_client.get(f"{self.ENDPOINT}/NOTEXIST")
+        assert response.status_code == 404
+        assert "was not found" in response.json()["detail"]
+
+    # -----------------------------------------------------------------
+    # Documents
+    # -----------------------------------------------------------------
+
+    def test_get_driver_with_no_documents(self, authorized_client):
+        response = authorized_client.get(f"{self.ENDPOINT}/DRV-001")
+        assert response.json()["documents"] == []
+
+    def test_get_driver_with_documents(self, authorized_client):
+        from unittest.mock import patch
+
+        from app.models.document import Document
+
+        doc = Document(id=1, type="PDF", url="docs/ine.pdf", category="ine", expiry_date=None)
+        authorized_client.driver_repo.driver_documents["DRV-001"] = [doc]
+
+        with patch("app.services.driver.r2.generate_document_read_url", return_value="https://presigned.url/ine.pdf"):
+            response = authorized_client.get(f"{self.ENDPOINT}/DRV-001")
+
+        docs = response.json()["documents"]
+        assert len(docs) == 1
+        assert docs[0]["type"] == "PDF"
+        assert docs[0]["url"] == "https://presigned.url/ine.pdf"
+        assert docs[0]["category"] == "ine"
+
+    # -----------------------------------------------------------------
+    # Guarantors
+    # -----------------------------------------------------------------
+
+    def test_get_driver_with_no_guarantors(self, authorized_client):
+        response = authorized_client.get(f"{self.ENDPOINT}/DRV-001")
+        assert response.json()["guarantors"] == []
+
+    # -----------------------------------------------------------------
+    # Assigned car
+    # -----------------------------------------------------------------
+
+    def test_get_driver_no_assigned_car(self, authorized_client):
+        response = authorized_client.get(f"{self.ENDPOINT}/DRV-001")
+        assert response.json()["assignedCar"] is None
+
+    def test_get_driver_with_assigned_car(self, authorized_client):
+        from datetime import date
+        from unittest.mock import MagicMock
+
+        from app.models.contract import Contract
+
+        mock_car = MagicMock()
+        mock_car.id = "CAR-001"
+        mock_car.make = "Toyota"
+        mock_car.model = "Corolla"
+        mock_car.plate = "ABC123"
+        mock_car.agency_image = None
+
+        contract = Contract(
+            id="CTR-001",
+            start_date=date(2020, 1, 1),
+            end_date=date(2030, 12, 31),
+            type="rent",
+            amount=1000,
+            guarantee_amount=500,
+            car_id="CAR-001",
+            driver_id="DRV-001",
+        )
+        contract.car = mock_car
+
+        authorized_client.driver_repo.contracts.append(contract)
+
+        response = authorized_client.get(f"{self.ENDPOINT}/DRV-001")
+        car = response.json()["assignedCar"]
+        assert car is not None
+        assert car["id"] == "CAR-001"
+        assert car["make"] == "Toyota"
+        assert car["model"] == "Corolla"
+        assert car["plate"] == "ABC123"
+
+    # -----------------------------------------------------------------
+    # RBAC
+    # -----------------------------------------------------------------
+
+    def test_get_driver_requires_auth(self, client):
+        response = client.get(f"{self.ENDPOINT}/DRV-001")
         assert response.status_code == 401

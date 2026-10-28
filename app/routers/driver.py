@@ -3,7 +3,13 @@ from fastapi import APIRouter, Body, Depends, status
 from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
 from app.enum.auth import Role
-from app.schemas.driver import DriverCreateSchema, DriverListQuerySchema, DriverListResponseSchema, DriverResponseSchema
+from app.schemas.driver import (
+    DriverCreateSchema,
+    DriverDetailResponseSchema,
+    DriverListQuerySchema,
+    DriverListResponseSchema,
+    DriverResponseSchema,
+)
 from app.services.driver import DriverService
 
 router = APIRouter(prefix="/management/drivers", tags=["Drivers"])
@@ -31,3 +37,13 @@ def create_driver(
 ) -> DriverResponseSchema:
     """Register a new driver."""
     return service.create_driver(data=body)
+
+
+@router.get("/{driver_id}", response_model=DriverDetailResponseSchema, status_code=status.HTTP_200_OK)
+def get_driver(
+    driver_id: str,
+    service: DriverService = Depends(ServiceFactory.driver_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN, Role.EMPLOYEE])),
+) -> DriverDetailResponseSchema:
+    """Return the full detail for a single driver."""
+    return service.get_driver(driver_id)

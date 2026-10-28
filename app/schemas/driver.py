@@ -5,8 +5,10 @@ from pydantic.alias_generators import to_camel
 
 from app.enum.balance import SortOrder
 from app.enum.crm import DriverSortBy, DriverStatus
-from app.schemas.car import PaginationSchema
+from app.schemas.car import DocumentDetailSchema, PaginationSchema
 from app.schemas.types import RequestUTCDatetime
+
+_CAMEL = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
 
 
 class DriverListQuerySchema(BaseModel):
@@ -36,7 +38,7 @@ class DriverSummarySchema(BaseModel):
     id: str
     name: str
     surnames: str
-    status: str
+    status: DriverStatus
     photo: str | None = None
 
 
@@ -66,15 +68,15 @@ class DriverCreateSchema(BaseModel):
     garage_address: list[str] = Field(..., min_length=1)
 
 
-class DriverResponseSchema(BaseModel):
-    """Response for POST /management/drivers."""
+class _DriverBaseSchema(BaseModel):
+    """Shared driver fields for response schemas."""
 
-    model_config = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
+    model_config = _CAMEL
 
     id: str
     name: str
     surnames: str
-    status: str
+    status: DriverStatus
     telephones: list[str]
     license_number: str
     license_validity: datetime
@@ -84,3 +86,42 @@ class DriverResponseSchema(BaseModel):
     photo: str | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class DriverResponseSchema(_DriverBaseSchema):
+    """Response for POST /management/drivers."""
+
+
+class GuarantorDetailSchema(BaseModel):
+    """Guarantor with their documents."""
+
+    model_config = _CAMEL
+
+    id: int
+    name: str
+    surnames: str
+    telephones: list[str]
+    address: str
+    relation: str
+    documents: list[DocumentDetailSchema] = Field(default_factory=list)
+
+
+class AssignedCarSchema(BaseModel):
+    """Brief car info derived from the active contract."""
+
+    model_config = _CAMEL
+
+    id: str
+    make: str
+    model: str
+    plate: str
+    agency_image: str | None = None
+
+
+class DriverDetailResponseSchema(_DriverBaseSchema):
+    """Full driver detail response."""
+
+    archived_at: datetime | None = None
+    documents: list[DocumentDetailSchema] = Field(default_factory=list)
+    guarantors: list[GuarantorDetailSchema] = Field(default_factory=list)
+    assigned_car: AssignedCarSchema | None = None

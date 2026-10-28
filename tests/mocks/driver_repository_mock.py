@@ -2,6 +2,8 @@ from datetime import UTC, datetime
 
 from app.enum.balance import SortOrder
 from app.enum.crm import DriverSortBy, DriverStatus
+from app.models.contract import Contract
+from app.models.document import Document
 from app.models.driver import Driver
 
 _SEED_DRIVERS = [
@@ -61,14 +63,18 @@ class DriverRepositoryMock:
 
     def __init__(self):
         self.drivers: list[Driver] = []
+        self.driver_documents: dict[str, list[Document]] = {}
+        self.contracts: list[Contract] = []
         self.reset()
 
     def reset(self):
         self.drivers = [self._copy(d) for d in _SEED_DRIVERS]
+        self.driver_documents = {}
+        self.contracts = []
 
     @staticmethod
     def _copy(d: Driver) -> Driver:
-        return Driver(
+        driver = Driver(
             id=d.id,
             status=d.status,
             name=d.name,
@@ -84,8 +90,12 @@ class DriverRepositoryMock:
             created_at=d.created_at,
             updated_at=d.updated_at,
         )
+        driver.guarantors = list(d.guarantors)
+        return driver
 
     def _filter(self, status: DriverStatus | None, search: str | None, archived: bool) -> list[Driver]:
+        # NOTE: This mock uses substring matching for search. The real repository
+        # uses PostgreSQL word_similarity (fuzzy). Behavior may diverge on edge cases.
         result = [
             d
             for d in self.drivers
@@ -120,6 +130,20 @@ class DriverRepositoryMock:
 
     def get_by_license_number(self, license_number: str) -> Driver | None:
         return next((d for d in self.drivers if d.license_number == license_number), None)
+
+    def get_driver_documents(self, driver_id: str) -> list[Document]:
+        return self.driver_documents.get(driver_id, [])
+
+    def get_active_contract_for_driver(self, driver_id: str) -> Contract | None:
+        today = datetime.now(tz=UTC).date()
+        return next(
+            (
+                c
+                for c in self.contracts
+                if c.driver_id == driver_id and c.start_date <= today and c.end_date >= today
+            ),
+            None,
+        )
 
     def create_driver(self, driver: Driver) -> Driver:
         now = datetime.now(UTC)
