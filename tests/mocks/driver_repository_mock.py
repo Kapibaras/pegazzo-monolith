@@ -112,6 +112,24 @@ class DriverRepositoryMock:
     def count_drivers(self, status: DriverStatus | None, search: str | None, archived: bool) -> int:
         return len(self._filter(status, search, archived))
 
+    def get_by_id(self, driver_id: str) -> Driver | None:
+        return next((d for d in self.drivers if d.id == driver_id), None)
+
+    def get_by_identification_number(self, identification_number: str) -> Driver | None:
+        return next((d for d in self.drivers if d.identification_number == identification_number), None)
+
+    def get_by_license_number(self, license_number: str) -> Driver | None:
+        return next((d for d in self.drivers if d.license_number == license_number), None)
+
+    def create_driver(self, driver: Driver) -> Driver:
+        now = datetime.now(UTC)
+        if driver.created_at is None:
+            driver.created_at = now
+        if driver.updated_at is None:
+            driver.updated_at = now
+        self.drivers.append(driver)
+        return driver
+
     def list_drivers(
         self,
         status: DriverStatus | None,

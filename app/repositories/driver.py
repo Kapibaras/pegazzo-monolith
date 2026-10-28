@@ -2,8 +2,11 @@ from sqlalchemy import case, func
 
 from app.enum.balance import SortOrder
 from app.enum.crm import DriverSortBy, DriverStatus
+from app.errors.database import DBOperationError
 from app.models.driver import Driver
-from app.repositories.abstract.db_repository import DBRepository
+from app.utils.logging_config import logger
+
+from .abstract import DBRepository
 
 _SIMILARITY_THRESHOLD = 0.3
 
@@ -16,6 +19,30 @@ _DRIVER_SORT_COLUMNS = {
 
 class DriverRepository(DBRepository):
     """Data-access layer for the Driver entity."""
+
+    def get_by_id(self, driver_id: str) -> Driver | None:
+        """Retrieve a driver by id."""
+        return self.db.query(Driver).filter(Driver.id == driver_id).first()
+
+    def get_by_identification_number(self, identification_number: str) -> Driver | None:
+        """Retrieve a driver by identification number."""
+        return self.db.query(Driver).filter(Driver.identification_number == identification_number).first()
+
+    def get_by_license_number(self, license_number: str) -> Driver | None:
+        """Retrieve a driver by license number."""
+        return self.db.query(Driver).filter(Driver.license_number == license_number).first()
+
+    def create_driver(self, driver: Driver) -> Driver:
+        """Persist a new driver to the database."""
+        try:
+            self.db.add(driver)
+            self.db.commit()
+            self.db.refresh(driver)
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error creating driver %s due to: %s", driver.id, ex, exc_info=True)
+            raise DBOperationError("Error creating driver in the database") from ex
+        return driver
 
     def _base_query(self, status: DriverStatus | None, archived: bool):
         """Build a base query with archive and status filters applied."""
