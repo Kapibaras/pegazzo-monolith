@@ -41,3 +41,11 @@ class DriverStatus(StrEnum):
     ACTIVE = "ACTIVE"
     INACTIVE = "INACTIVE"
     SUSPENDED = "SUSPENDED"
+
+
+class DriverSortBy(StrEnum):
+    """Enum for driver list sort fields."""
+
+    NAME = "name"
+    STATUS = "status"
+    CREATED_AT = "created_at"
