@@ -3,14 +3,24 @@ from datetime import UTC, datetime
 
 from app.errors.driver import (
     DriverIdAlreadyExistsException,
+    DriverNotFoundException,
     IdentificationNumberAlreadyExistsException,
     LicenseNumberAlreadyExistsException,
     LicenseValidityInPastException,
 )
 from app.models.driver import Driver
 from app.repositories.driver import DriverRepository
-from app.schemas.car import PaginationSchema
-from app.schemas.driver import DriverCreateSchema, DriverListQuerySchema, DriverListResponseSchema
+from app.schemas.car import DocumentDetailSchema, PaginationSchema
+from app.schemas.driver import (
+    AssignedCarSchema,
+    DriverCreateSchema,
+    DriverDetailResponseSchema,
+    DriverListQuerySchema,
+    DriverListResponseSchema,
+    GuarantorDetailSchema,
+)
+from app.storage import r2
+from app.utils.dates import compute_expiry_status
 
 
 class DriverService:
@@ -74,3 +84,76 @@ class DriverService:
         )
 
         return self.repository.create_driver(driver)
+
+    def get_driver(self, driver_id: str) -> DriverDetailResponseSchema:
+        """Return the full detail for a single driver, or raise 404 if not found."""
+        driver = self.repository.get_by_id(driver_id)
+        if not driver:
+            raise DriverNotFoundException(driver_id)
+
+        documents = [
+            DocumentDetailSchema(
+                id=doc.id,
+                type=doc.type,
+                category=doc.category,
+                expiry_date=doc.expiry_date,
+                url=r2.generate_document_read_url(doc.url),
+                expiry_status=compute_expiry_status(doc.expiry_date),
+            )
+            for doc in self.repository.get_driver_documents(driver_id)
+        ]
+
+        guarantors = [
+            GuarantorDetailSchema(
+                id=g.id,
+                name=g.name,
+                surnames=g.surnames,
+                telephones=g.telephones,
+                address=g.address,
+                relation=g.relation,
+                documents=[
+                    DocumentDetailSchema(
+                        id=doc.id,
+                        type=doc.type,
+                        category=doc.category,
+                        expiry_date=doc.expiry_date,
+                        url=r2.generate_document_read_url(doc.url),
+                        expiry_status=compute_expiry_status(doc.expiry_date),
+                    )
+                    for doc in g.documents
+                ],
+            )
+            for g in driver.guarantors
+        ]
+
+        assigned_car = None
+        contract = self.repository.get_active_contract_for_driver(driver_id)
+        if contract and contract.car:
+            car = contract.car
+            assigned_car = AssignedCarSchema(
+                id=car.id,
+                make=car.make,
+                model=car.model,
+                plate=car.plate,
+                agency_image=car.agency_image,
+            )
+
+        return DriverDetailResponseSchema(
+            id=driver.id,
+            name=driver.name,
+            surnames=driver.surnames,
+            status=driver.status,
+            telephones=driver.telephones,
+            license_number=driver.license_number,
+            license_validity=driver.license_validity,
+            identification_number=driver.identification_number,
+            address=driver.address,
+            garage_address=driver.garage_address,
+            photo=driver.photo,
+            archived_at=driver.archived_at,
+            created_at=driver.created_at,
+            updated_at=driver.updated_at,
+            documents=documents,
+            guarantors=guarantors,
+            assigned_car=assigned_car,
+        )

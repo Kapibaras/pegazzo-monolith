@@ -1,9 +1,13 @@
+from datetime import UTC, datetime
+
 from sqlalchemy import case, func
 
 from app.enum.balance import SortOrder
 from app.enum.crm import DriverSortBy, DriverStatus
 from app.errors.database import DBOperationError
-from app.models.driver import Driver
+from app.models.contract import Contract
+from app.models.document import Document
+from app.models.driver import Driver, driver_document_table
 from app.utils.logging_config import logger
 
 from .abstract import DBRepository
@@ -43,6 +47,28 @@ class DriverRepository(DBRepository):
             logger.error("Error creating driver %s due to: %s", driver.id, ex, exc_info=True)
             raise DBOperationError("Error creating driver in the database") from ex
         return driver
+
+    def get_driver_documents(self, driver_id: str) -> list[Document]:
+        """Return all documents linked to the given driver."""
+        return (
+            self.db.query(Document)
+            .join(driver_document_table, Document.id == driver_document_table.c.document_id)
+            .filter(driver_document_table.c.driver_id == driver_id)
+            .all()
+        )
+
+    def get_active_contract_for_driver(self, driver_id: str) -> Contract | None:
+        """Return the currently active contract for the driver, or None."""
+        today = datetime.now(tz=UTC).date()
+        return (
+            self.db.query(Contract)
+            .filter(
+                Contract.driver_id == driver_id,
+                Contract.start_date <= today,
+                Contract.end_date >= today,
+            )
+            .first()
+        )
 
     def _base_query(self, status: DriverStatus | None, archived: bool):
         """Build a base query with archive and status filters applied."""
