@@ -498,10 +498,16 @@ class TestDeleteDriver:
         assert authorized_client.driver_repo.driver_documents.get("DRV-003") is None
 
     def test_delete_driver_guarantor_orphan(self, authorized_client):
+        from app.models.document import Document
+
         authorized_client.guarantor_repo.link_to_driver("DRV-003", 1)
 
+        guarantor = authorized_client.guarantor_repo.get_by_id(1)
+        doc = Document(id=99, type="PDF", url="docs/guarantor.pdf", category="ine", expiry_date=None)
+        guarantor.documents = [doc]
+
         drv = authorized_client.driver_repo.get_by_id("DRV-003")
-        drv.guarantors = [authorized_client.guarantor_repo.get_by_id(1)]
+        drv.guarantors = [guarantor]
 
         url = self.ENDPOINT.format(driver_id="DRV-003")
         response = authorized_client.delete(url)
