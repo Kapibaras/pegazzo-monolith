@@ -154,6 +154,32 @@ class DriverRepositoryMock:
         self.drivers.append(driver)
         return driver
 
+    def archive_driver(self, driver: Driver) -> Driver:
+        now = datetime.now(UTC)
+        driver.archived_at = now
+        driver.updated_at = now
+        return driver
+
+    def unarchive_driver(self, driver: Driver) -> Driver:
+        driver.archived_at = None
+        driver.updated_at = datetime.now(UTC)
+        return driver
+
+    def delete_driver(self, driver: Driver) -> None:
+        self.drivers = [d for d in self.drivers if d.id != driver.id]
+        self.driver_documents.pop(driver.id, None)
+
+    def delete_driver_documents_m2m(self, driver_id: str) -> list[Document]:
+        return self.driver_documents.pop(driver_id, [])
+
+    def delete_driver_references(self, driver_id: str) -> None:
+        pass
+
+    def clear_photo(self, driver: Driver) -> str | None:
+        old = driver.photo
+        driver.photo = None
+        return old
+
     def list_drivers(
         self,
         status: DriverStatus | None,

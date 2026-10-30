@@ -7,7 +7,7 @@ from app.enum.crm import DriverSortBy, DriverStatus
 from app.errors.database import DBOperationError
 from app.models.contract import Contract
 from app.models.document import Document
-from app.models.driver import Driver, driver_document_table
+from app.models.driver import Driver, Reference, driver_document_table, driver_reference_table
 from app.utils.logging_config import logger
 
 from .abstract import DBRepository
@@ -111,6 +111,97 @@ class DriverRepository(DBRepository):
     def count_drivers(self, status: DriverStatus | None, search: str | None, archived: bool) -> int:
         """Return the total count of drivers matching the given filters."""
         return self._apply_search(self._base_query(status, archived), search).count()
+
+    def archive_driver(self, driver: Driver) -> Driver:
+        """Set archived_at on the driver."""
+        try:
+            driver.archived_at = datetime.now(UTC)
+            self.db.commit()
+            self.db.refresh(driver)
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error archiving driver %s: %s", driver.id, ex, exc_info=True)
+            raise DBOperationError("Error archiving driver") from ex
+        return driver
+
+    def unarchive_driver(self, driver: Driver) -> Driver:
+        """Clear archived_at on the driver."""
+        try:
+            driver.archived_at = None
+            self.db.commit()
+            self.db.refresh(driver)
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error unarchiving driver %s: %s", driver.id, ex, exc_info=True)
+            raise DBOperationError("Error unarchiving driver") from ex
+        return driver
+
+    def delete_driver(self, driver: Driver) -> None:
+        """Permanently delete a driver record."""
+        try:
+            self.db.delete(driver)
+            self.db.commit()
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error deleting driver %s: %s", driver.id, ex, exc_info=True)
+            raise DBOperationError("Error deleting driver") from ex
+
+    def delete_driver_documents_m2m(self, driver_id: str) -> list[Document]:
+        """Remove all M2M links and delete the linked document records."""
+        documents = self.get_driver_documents(driver_id)
+        try:
+            self.db.execute(
+                driver_document_table.delete().where(driver_document_table.c.driver_id == driver_id),
+            )
+            for doc in documents:
+                self.db.delete(doc)
+            self.db.commit()
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error deleting documents for driver %s: %s", driver_id, ex, exc_info=True)
+            raise DBOperationError("Error deleting driver documents") from ex
+        return documents
+
+    def delete_driver_references(self, driver_id: str) -> None:
+        """Remove M2M links and delete orphaned references for the driver."""
+        try:
+            ref_ids = [
+                row.reference_id
+                for row in self.db.execute(
+                    driver_reference_table.select().where(driver_reference_table.c.driver_id == driver_id),
+                ).fetchall()
+            ]
+            self.db.execute(
+                driver_reference_table.delete().where(driver_reference_table.c.driver_id == driver_id),
+            )
+            for ref_id in ref_ids:
+                other_links = (
+                    self.db.query(func.count())
+                    .select_from(driver_reference_table)
+                    .filter(driver_reference_table.c.reference_id == ref_id)
+                    .scalar()
+                )
+                if other_links == 0:
+                    ref = self.db.query(Reference).filter(Reference.id == ref_id).first()
+                    if ref:
+                        self.db.delete(ref)
+            self.db.commit()
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error deleting references for driver %s: %s", driver_id, ex, exc_info=True)
+            raise DBOperationError("Error deleting driver references") from ex
+
+    def clear_photo(self, driver: Driver) -> str | None:
+        """Clear the driver's photo reference and return the old URL."""
+        old_photo = driver.photo
+        try:
+            driver.photo = None
+            self.db.commit()
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error clearing photo for driver %s: %s", driver.id, ex, exc_info=True)
+            raise DBOperationError("Error clearing driver photo") from ex
+        return old_photo
 
     def list_drivers(
         self,

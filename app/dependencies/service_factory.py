@@ -127,9 +127,13 @@ class ServiceFactory:
         yield ImageService(repository)
 
     @staticmethod
-    def driver_service(repository=Depends(RepositoryFactory.driver_repository)):
+    def driver_service(
+        repository=Depends(RepositoryFactory.driver_repository),
+        guarantor_repository=Depends(RepositoryFactory.guarantor_repository),
+        document_repository=Depends(RepositoryFactory.document_repository),
+    ):
         """Provide an instance of DriverService."""
-        yield DriverService(repository)
+        yield DriverService(repository, guarantor_repository, document_repository)
 
     @staticmethod
     def guarantor_service(
