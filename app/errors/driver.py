@@ -13,6 +13,26 @@ class DriverNotFoundException(PegazzoException):
         )
 
 
+class DriverHasActiveContractException(PegazzoException):
+    """Exception raised when trying to archive a driver with an active contract."""
+
+    def __init__(self, driver_id: str):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot archive driver '{driver_id}' because they have an active contract",
+        )
+
+
+class DriverNotArchivedException(PegazzoException):
+    """Exception raised when trying to delete a driver that is not archived."""
+
+    def __init__(self, driver_id: str):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Driver '{driver_id}' must be archived before deletion",
+        )
+
+
 class DriverIdAlreadyExistsException(PegazzoException):
     """Exception raised when a driver id already exists."""
 

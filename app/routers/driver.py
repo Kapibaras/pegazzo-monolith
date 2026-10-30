@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Query, status
+from fastapi import APIRouter, Body, Depends, Path, Query, status
 
 from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
@@ -12,6 +12,7 @@ from app.schemas.driver import (
     DriverListResponseSchema,
     DriverResponseSchema,
 )
+from app.schemas.user import ActionSuccess
 from app.services.driver import DriverService
 
 router = APIRouter(prefix="/management/drivers", tags=["Drivers"])
@@ -49,3 +50,46 @@ def get_driver(
 ) -> DriverDetailResponseSchema:
     """Return the full detail for a single driver."""
     return service.get_driver(driver_id)
+
+
+@router.patch(
+    "/{driver_id}/archive",
+    response_model=DriverResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+def archive_driver(
+    driver_id: str = Path(..., description="Driver id"),
+    service: DriverService = Depends(ServiceFactory.driver_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> DriverResponseSchema:
+    """Archive a driver by setting archived_at."""
+    return service.archive_driver(driver_id)
+
+
+@router.patch(
+    "/{driver_id}/unarchive",
+    response_model=DriverResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+def unarchive_driver(
+    driver_id: str = Path(..., description="Driver id"),
+    service: DriverService = Depends(ServiceFactory.driver_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> DriverResponseSchema:
+    """Restore an archived driver."""
+    return service.unarchive_driver(driver_id)
+
+
+@router.delete(
+    "/{driver_id}",
+    response_model=ActionSuccess,
+    status_code=status.HTTP_200_OK,
+)
+def delete_driver(
+    driver_id: str = Path(..., description="Driver id"),
+    service: DriverService = Depends(ServiceFactory.driver_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> ActionSuccess:
+    """Permanently delete an archived driver with cascade cleanup."""
+    service.delete_driver(driver_id)
+    return {"message": "Driver deleted successfully"}
