@@ -91,6 +91,8 @@ class _DriverBaseSchema(BaseModel):
 class DriverResponseSchema(_DriverBaseSchema):
     """Response for POST /management/drivers."""
 
+    archived_at: datetime | None = None
+
 
 class GuarantorDetailSchema(BaseModel):
     """Guarantor with their documents."""

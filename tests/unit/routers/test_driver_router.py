@@ -381,3 +381,159 @@ class TestGetDriverDetail:
     def test_get_driver_requires_auth(self, client):
         response = client.get(f"{self.ENDPOINT}/DRV-001")
         assert response.status_code == 401
+
+
+@pytest.mark.usefixtures("authorized_client", "client", "employee_authorized_client")
+class TestArchiveDriver:
+    """Tests for PATCH /management/drivers/{id}/archive."""
+
+    ENDPOINT = "/pegazzo/management/drivers/{driver_id}/archive"
+
+    def test_archive_driver_success(self, authorized_client):
+        url = self.ENDPOINT.format(driver_id="DRV-001")
+        response = authorized_client.patch(url)
+        assert response.status_code == 200
+        assert response.json()["archivedAt"] is not None
+
+    def test_archive_driver_not_found(self, authorized_client):
+        url = self.ENDPOINT.format(driver_id="NOTEXIST")
+        response = authorized_client.patch(url)
+        assert response.status_code == 404
+        assert "was not found" in response.json()["detail"]
+
+    def test_archive_driver_with_active_contract(self, authorized_client):
+        from datetime import date
+
+        from app.models.contract import Contract
+
+        contract = Contract(
+            id="CTR-001",
+            start_date=date(2020, 1, 1),
+            end_date=date(2030, 12, 31),
+            type="rent",
+            amount=1000,
+            guarantee_amount=500,
+            car_id="CAR-001",
+            driver_id="DRV-001",
+        )
+        authorized_client.driver_repo.contracts.append(contract)
+
+        url = self.ENDPOINT.format(driver_id="DRV-001")
+        response = authorized_client.patch(url)
+        assert response.status_code == 400
+        assert "active contract" in response.json()["detail"]
+
+    def test_archive_driver_requires_auth(self, client):
+        url = self.ENDPOINT.format(driver_id="DRV-001")
+        response = client.patch(url)
+        assert response.status_code == 401
+
+    def test_archive_driver_employee_forbidden(self, employee_authorized_client):
+        url = self.ENDPOINT.format(driver_id="DRV-001")
+        response = employee_authorized_client.patch(url)
+        assert response.status_code == 403
+
+
+@pytest.mark.usefixtures("authorized_client", "client", "employee_authorized_client")
+class TestUnarchiveDriver:
+    """Tests for PATCH /management/drivers/{id}/unarchive."""
+
+    ENDPOINT = "/pegazzo/management/drivers/{driver_id}/unarchive"
+
+    def test_unarchive_driver_success(self, authorized_client):
+        url = self.ENDPOINT.format(driver_id="DRV-003")
+        response = authorized_client.patch(url)
+        assert response.status_code == 200
+        assert response.json()["archivedAt"] is None
+
+    def test_unarchive_driver_not_found(self, authorized_client):
+        url = self.ENDPOINT.format(driver_id="NOTEXIST")
+        response = authorized_client.patch(url)
+        assert response.status_code == 404
+
+    def test_unarchive_driver_requires_auth(self, client):
+        url = self.ENDPOINT.format(driver_id="DRV-003")
+        response = client.patch(url)
+        assert response.status_code == 401
+
+    def test_unarchive_driver_employee_forbidden(self, employee_authorized_client):
+        url = self.ENDPOINT.format(driver_id="DRV-003")
+        response = employee_authorized_client.patch(url)
+        assert response.status_code == 403
+
+
+@pytest.mark.usefixtures("authorized_client", "client", "employee_authorized_client")
+class TestDeleteDriver:
+    """Tests for DELETE /management/drivers/{id}."""
+
+    ENDPOINT = "/pegazzo/management/drivers/{driver_id}"
+
+    def test_delete_driver_success(self, authorized_client):
+        url = self.ENDPOINT.format(driver_id="DRV-003")
+        response = authorized_client.delete(url)
+        assert response.status_code == 200
+        assert "deleted" in response.json()["message"].lower()
+        assert authorized_client.driver_repo.get_by_id("DRV-003") is None
+
+    def test_delete_driver_not_found(self, authorized_client):
+        url = self.ENDPOINT.format(driver_id="NOTEXIST")
+        response = authorized_client.delete(url)
+        assert response.status_code == 404
+
+    def test_delete_driver_not_archived(self, authorized_client):
+        url = self.ENDPOINT.format(driver_id="DRV-001")
+        response = authorized_client.delete(url)
+        assert response.status_code == 400
+        assert "must be archived" in response.json()["detail"]
+
+    def test_delete_driver_with_documents(self, authorized_client):
+        from app.models.document import Document
+
+        doc = Document(id=10, type="PDF", url="docs/ine.pdf", category="ine", expiry_date=None)
+        authorized_client.driver_repo.driver_documents["DRV-003"] = [doc]
+
+        url = self.ENDPOINT.format(driver_id="DRV-003")
+        response = authorized_client.delete(url)
+        assert response.status_code == 200
+        assert authorized_client.driver_repo.driver_documents.get("DRV-003") is None
+
+    def test_delete_driver_guarantor_orphan(self, authorized_client):
+        from app.models.document import Document
+
+        authorized_client.guarantor_repo.link_to_driver("DRV-003", 1)
+
+        guarantor = authorized_client.guarantor_repo.get_by_id(1)
+        doc = Document(id=99, type="PDF", url="docs/guarantor.pdf", category="ine", expiry_date=None)
+        guarantor.documents = [doc]
+
+        drv = authorized_client.driver_repo.get_by_id("DRV-003")
+        drv.guarantors = [guarantor]
+
+        url = self.ENDPOINT.format(driver_id="DRV-003")
+        response = authorized_client.delete(url)
+        assert response.status_code == 200
+        assert authorized_client.guarantor_repo.get_by_id(1) is None
+
+    def test_delete_driver_guarantor_shared(self, authorized_client):
+        authorized_client.guarantor_repo.link_to_driver("DRV-003", 1)
+        authorized_client.guarantor_repo.link_to_driver("DRV-001", 1)
+
+        drv = authorized_client.driver_repo.get_by_id("DRV-003")
+        drv.guarantors = [authorized_client.guarantor_repo.get_by_id(1)]
+
+        url = self.ENDPOINT.format(driver_id="DRV-003")
+        response = authorized_client.delete(url)
+        assert response.status_code == 200
+        assert authorized_client.guarantor_repo.get_by_id(1) is not None
+        assert not authorized_client.guarantor_repo.is_linked_to_driver("DRV-003", 1)
+        assert authorized_client.guarantor_repo.is_linked_to_driver("DRV-001", 1)
+
+    def test_delete_driver_requires_auth(self, client):
+        url = self.ENDPOINT.format(driver_id="DRV-003")
+        response = client.delete(url)
+        assert response.status_code == 401
+
+    def test_delete_driver_employee_forbidden(self, employee_authorized_client):
+        url = self.ENDPOINT.format(driver_id="DRV-003")
+        response = employee_authorized_client.delete(url)
+        assert response.status_code == 403
