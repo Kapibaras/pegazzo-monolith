@@ -111,6 +111,11 @@ class MyRequestSchema(BaseModel):
     date: RequestUTCDatetime | None = Field(default=None, ...)
 ```
 
+### Local Postman Collections
+
+`collections/pegazzo.postman_collection.json` is the shared collection (generated from the OpenAPI spec).
+Any collection created just to test a feature locally (manual flows, runner tests, test credentials in variables) goes in `collections/local/`, which is gitignored. Never commit those, and never put them anywhere else in the repo.
+
 ## Code Quality Standards
 
 ### Pre-commit Hooks

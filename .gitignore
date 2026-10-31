@@ -77,5 +77,8 @@ ruff_cache/
 /postman
 # This because we already have a collections for testing in any API Client
 
+# Local-only Postman collections (feature testing by hand), never committed
+/collections/local/
+
 #  ───── Claude ─────
 /.claude/*.local.*
