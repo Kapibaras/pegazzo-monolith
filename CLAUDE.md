@@ -42,6 +42,8 @@ alembic downgrade -1                              # Revert last migration
 alembic history                                   # View migration history
 alembic current                                   # Show current migration
 pipenv run seeders                                # Run database seeders
+python -m scripts.seeds.cars <clean|history|contract>   # TEST-ONLY demo cars (never in prod), see scripts/seeds/README.md
+python -m scripts.seeds.transactions <income|expense>   # TEST-ONLY demo transactions (never in prod)
 ```
 
 ## Architecture
