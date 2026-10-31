@@ -25,7 +25,7 @@ class TransactionSchema(BaseModel):
     type: Type = Field(..., description="Type of the transaction")
     description: str = Field(..., description="Description of the transaction")
     payment_method: PaymentMethod = Field(..., description="Payment method of the transaction")
-    category: str | None = Field(default=None, min_length=1, max_length=100, description="Category of the transaction")
+    category: str | None = Field(default="Otro", min_length=1, max_length=100, description="Category of the transaction")
 
 
 class TransactionPatchSchema(BaseModel):
