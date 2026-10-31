@@ -3,8 +3,17 @@ from fastapi import APIRouter, Body, Depends, status
 from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
 from app.enum.auth import Role
-from app.schemas.car import CarDetailResponseSchema, CarListQuerySchema, CarListResponseSchema, CarResponseSchema, CarSchema
+from app.schemas.car import (
+    CarDetailResponseSchema,
+    CarListQuerySchema,
+    CarListResponseSchema,
+    CarResponseSchema,
+    CarSchema,
+    CarStatusUpdateSchema,
+    CarUpdateSchema,
+)
 from app.schemas.car_folio import CarFolioRequestSchema, CarFolioResponseSchema
+from app.schemas.user import ActionSuccess
 from app.services.car import CarService
 from app.services.car_folio import CarFolioService
 
@@ -78,3 +87,81 @@ def create_car(
 ) -> CarResponseSchema:
     """Register a new car."""
     return service.create_car(data=body)
+
+
+@router.patch("/{car_id}", response_model=CarResponseSchema, status_code=status.HTTP_200_OK)
+def update_car(
+    car_id: str,
+    body: CarUpdateSchema = Body(..., description="Fields to update; omitted fields are left unchanged"),
+    service: CarService = Depends(ServiceFactory.car_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> CarResponseSchema:
+    """Update a car partially (car data, insurance/policy, associate and image URLs).
+
+    The status is changed through `PATCH /{car_id}/status`. Documents and the assigned driver are
+    managed elsewhere. Changing `vin` or `plate` re-validates uniqueness (excluding the car itself).
+
+    Returns 404 if the car does not exist; 400 if the vin/plate already exist, the policy expiration
+    date is in the past, the insurance provider or associate do not exist, or the resulting financing
+    data is incomplete; 422 if the body is empty or invalid.
+    """
+    return service.update_car(car_id, body)
+
+
+@router.patch("/{car_id}/status", response_model=CarResponseSchema, status_code=status.HTTP_200_OK)
+def update_car_status(
+    car_id: str,
+    body: CarStatusUpdateSchema = Body(..., description="New status"),
+    service: CarService = Depends(ServiceFactory.car_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> CarResponseSchema:
+    """Change the car status (ACTIVE, INACTIVE or IN_MAINTENANCE).
+
+    Returns 404 if the car does not exist and 422 if the status is not a valid value.
+    """
+    return service.update_status(car_id, body.status)
+
+
+@router.patch("/{car_id}/archive", response_model=CarResponseSchema, status_code=status.HTTP_200_OK)
+def archive_car(
+    car_id: str,
+    service: CarService = Depends(ServiceFactory.car_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> CarResponseSchema:
+    """Archive a car (sets `archived_at`).
+
+    Returns 404 if the car does not exist and 400 if it is already archived or has an active
+    assignment ("Cannot archive a car with an active assignment").
+    """
+    return service.archive_car(car_id)
+
+
+@router.patch("/{car_id}/unarchive", response_model=CarResponseSchema, status_code=status.HTTP_200_OK)
+def unarchive_car(
+    car_id: str,
+    service: CarService = Depends(ServiceFactory.car_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> CarResponseSchema:
+    """Restore an archived car (clears `archived_at`).
+
+    Returns 404 if the car does not exist and 400 if it is not archived.
+    """
+    return service.unarchive_car(car_id)
+
+
+@router.delete("/{car_id}", response_model=ActionSuccess, status_code=status.HTTP_200_OK)
+def delete_car(
+    car_id: str,
+    service: CarService = Depends(ServiceFactory.car_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> ActionSuccess:
+    """Delete an archived car.
+
+    A car without history (contracts, transactions, events, incidences) is permanently deleted along
+    with its exclusive documents, and its storage files are moved to the `deleted/` prefix. A car
+    with history is soft-deleted: its data is kept but it disappears from every endpoint. Its VIN and
+    plate stay reserved.
+
+    Returns 404 if the car does not exist and 400 if it is not archived ("Car must be archived before deletion").
+    """
+    return service.delete_car(car_id)

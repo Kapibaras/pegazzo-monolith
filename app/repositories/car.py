@@ -6,9 +6,13 @@ from sqlalchemy import Integer, case, func
 from app.enum.balance import SortOrder
 from app.enum.crm import CarSortBy, CarStatus
 from app.errors.database import DBOperationError
+from app.models.balance import Transaction
 from app.models.car import Associate, Car, Insurance, OwnerAssociate, associate_car, car_document_table
 from app.models.contract import Contract
 from app.models.document import Document
+from app.models.driver import driver_document_table, guarantor_document_table, reference_document_table
+from app.models.event import Event, event_document_table
+from app.models.incidence import Incidence, incidence_document_table
 from app.utils.logging_config import logger
 
 from .abstract import DBRepository
@@ -32,13 +36,19 @@ class CarRepository(DBRepository):
         """Retrieve a car by id."""
         return self.db.query(Car).filter(Car.id == car_id).first()
 
-    def get_by_vin(self, vin: str) -> Car | None:
-        """Retrieve a car by VIN."""
-        return self.db.query(Car).filter(Car.vin == vin).first()
+    def get_by_vin(self, vin: str, exclude_id: str | None = None) -> Car | None:
+        """Retrieve a car by VIN, optionally ignoring the car with `exclude_id`."""
+        query = self.db.query(Car).filter(Car.vin == vin)
+        if exclude_id:
+            query = query.filter(Car.id != exclude_id)
+        return query.first()
 
-    def get_by_plate(self, plate: str) -> Car | None:
-        """Retrieve a car by plate."""
-        return self.db.query(Car).filter(Car.plate == plate).first()
+    def get_by_plate(self, plate: str, exclude_id: str | None = None) -> Car | None:
+        """Retrieve a car by plate, optionally ignoring the car with `exclude_id`."""
+        query = self.db.query(Car).filter(Car.plate == plate)
+        if exclude_id:
+            query = query.filter(Car.id != exclude_id)
+        return query.first()
 
     def get_insurance_by_id(self, insurance_id: int) -> Insurance | None:
         """Retrieve an insurance provider by id."""
@@ -63,9 +73,84 @@ class CarRepository(DBRepository):
 
         return car
 
+    def update_car(self, car: Car) -> Car:
+        """Persist the pending changes of an already loaded car."""
+        try:
+            self.db.commit()
+            self.db.refresh(car)
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error updating car %s due to: %s", car.id, ex, exc_info=True)
+            raise DBOperationError("Error updating car in the database") from ex
+
+        return car
+
+    def set_archived(self, car: Car, archived_at: datetime | None) -> Car:
+        """Set (archive) or clear (unarchive) the archived_at marker of a car."""
+        car.archived_at = archived_at
+        return self.update_car(car)
+
+    def has_history(self, car_id: str) -> bool:
+        """Return True if the car is referenced by any contract, transaction, event or incidence."""
+        return any(
+            self.db.query(model.car_id).filter(model.car_id == car_id).first() is not None
+            for model in (Contract, Transaction, Event, Incidence)
+        )
+
+    def soft_delete_car(self, car: Car) -> Car:
+        """Mark the car as deleted while keeping its data (used when the car has history)."""
+        car.deleted_at = datetime.now(tz=UTC)
+        return self.update_car(car)
+
+    def _document_is_shared(self, document_id: int) -> bool:
+        """Return True if the document is linked to an entity other than a car."""
+        return any(
+            self.db.query(table.c.document_id).filter(table.c.document_id == document_id).first() is not None
+            for table in (
+                driver_document_table,
+                guarantor_document_table,
+                reference_document_table,
+                event_document_table,
+                incidence_document_table,
+            )
+        )
+
+    def hard_delete_car(self, car: Car) -> list[str]:
+        """Permanently delete the car with its links and exclusive documents.
+
+        Returns the storage keys of the deleted documents so the caller can clean up storage.
+        """
+        try:
+            document_keys: list[str] = []
+            for document in self.get_car_documents(car.id):
+                self.db.execute(
+                    car_document_table.delete().where(
+                        car_document_table.c.car_id == car.id,
+                        car_document_table.c.document_id == document.id,
+                    ),
+                )
+                if not self._document_is_shared(document.id) and not self._document_has_other_cars(document.id):
+                    document_keys.append(document.url)
+                    self.db.delete(document)
+            self.db.execute(associate_car.delete().where(associate_car.c.car_id == car.id))
+            self.db.delete(car)
+            self.db.commit()
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error deleting car %s due to: %s", car.id, ex, exc_info=True)
+            raise DBOperationError("Error deleting car from the database") from ex
+
+        return document_keys
+
+    def _document_has_other_cars(self, document_id: int) -> bool:
+        """Return True if the document is still linked to some car."""
+        return (
+            self.db.query(car_document_table.c.car_id).filter(car_document_table.c.document_id == document_id).first()
+        ) is not None
+
     def _base_query(self, status: CarStatus | None, archived: bool):
-        """Build a base query with archive and status filters applied."""
-        query = self.db.query(Car)
+        """Build a base query with archive and status filters applied (soft-deleted cars are always hidden)."""
+        query = self.db.query(Car).filter(Car.deleted_at.is_(None))
         query = query.filter(Car.archived_at.isnot(None)) if archived else query.filter(Car.archived_at.is_(None))
         if status:
             query = query.filter(Car.status == status)
@@ -149,19 +234,11 @@ class CarRepository(DBRepository):
 
     def is_us_owner(self, associate_id: int) -> bool:
         """Return True if the associate is registered in the owner_associate table."""
-        return (
-            self.db.query(OwnerAssociate)
-            .filter(OwnerAssociate.associate_id == associate_id)
-            .first()
-        ) is not None
+        return (self.db.query(OwnerAssociate).filter(OwnerAssociate.associate_id == associate_id).first()) is not None
 
     def count_cars_for_associate(self, associate_id: int) -> int:
         """Return the number of cars linked to the given associate."""
-        return (
-            self.db.query(associate_car)
-            .filter(associate_car.c.associate_id == associate_id)
-            .count()
-        )
+        return self.db.query(associate_car).filter(associate_car.c.associate_id == associate_id).count()
 
     def get_active_contract_for_car(self, car_id: str) -> Contract | None:
         """Return the currently active contract for the car, or None."""

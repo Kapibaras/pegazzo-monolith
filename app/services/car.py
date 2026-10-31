@@ -1,9 +1,15 @@
 import math
 from datetime import UTC, datetime, timedelta
 
+from app.enum.crm import CarStatus
 from app.errors.car import (
     AssociateNotFoundException,
+    CarAlreadyArchivedException,
+    CarFinancingDataRequiredException,
+    CarHasActiveAssignmentException,
     CarIdAlreadyExistsException,
+    CarMustBeArchivedException,
+    CarNotArchivedException,
     CarNotFoundException,
     CarPlateAlreadyExistsException,
     CarVinAlreadyExistsException,
@@ -19,13 +25,23 @@ from app.schemas.car import (
     CarListQuerySchema,
     CarListResponseSchema,
     CarSchema,
+    CarUpdateSchema,
     DocumentDetailSchema,
     InsuranceDetailSchema,
     PaginationSchema,
 )
+from app.schemas.user import ActionSuccess
 from app.storage import r2
+from app.utils.logging_config import logger
 
 _EXPIRING_SOON_DAYS = 30
+_FINANCING_FIELDS = (
+    "is_financed_liquidated",
+    "financing_agency",
+    "financing_purchase_date",
+    "financing_term_months",
+    "financing_remaining_amount",
+)
 
 
 def _compute_expiry_status(expiry_date) -> str | None:
@@ -47,11 +63,16 @@ class CarService:
         """Initialize the car service with a repository."""
         self.repository = repository
 
+    def _get_active_car(self, car_id: str) -> Car:
+        """Return the car or raise 404 if it does not exist or was soft-deleted."""
+        car = self.repository.get_by_id(car_id)
+        if not car or car.deleted_at is not None:
+            raise CarNotFoundException(car_id)
+        return car
+
     def get_car(self, car_id: str) -> CarDetailResponseSchema:
         """Return the full detail for a single car, or raise 404 if not found."""
-        car = self.repository.get_by_id(car_id)
-        if not car:
-            raise CarNotFoundException(car_id)
+        car = self._get_active_car(car_id)
 
         documents = [
             DocumentDetailSchema(
@@ -142,7 +163,10 @@ class CarService:
         """Return a paginated, filtered and sorted list of cars."""
         offset = (params.page - 1) * params.limit
         total = self.repository.count_cars(
-            status=params.status, search=params.search, year=params.year, archived=params.archived,
+            status=params.status,
+            search=params.search,
+            year=params.year,
+            archived=params.archived,
         )
         cars = self.repository.list_cars(
             status=params.status,
@@ -229,3 +253,96 @@ class CarService:
         )
 
         return self.repository.create_car(car, associate)
+
+    def update_car(self, car_id: str, data: CarUpdateSchema) -> Car:
+        """Update a car partially (status excluded), re-validating uniqueness, dates and foreign keys."""
+        car = self._get_active_car(car_id)
+
+        if data.vin is not None and self.repository.get_by_vin(data.vin, exclude_id=car.id):
+            raise CarVinAlreadyExistsException(data.vin)
+
+        if data.plate is not None and self.repository.get_by_plate(data.plate, exclude_id=car.id):
+            raise CarPlateAlreadyExistsException(data.plate)
+
+        if data.policy_expiration_date is not None and data.policy_expiration_date <= datetime.now(UTC):
+            raise PolicyExpirationDateInPastException
+
+        if data.insurance_provider_id is not None and not self.repository.get_insurance_by_id(data.insurance_provider_id):
+            raise InsuranceProviderNotFoundException(data.insurance_provider_id)
+
+        associate = None
+        if data.associate_id is not None:
+            associate = self.repository.get_associate_by_id(data.associate_id)
+            if not associate:
+                raise AssociateNotFoundException(data.associate_id)
+
+        changes = data.model_dump(exclude_none=True, exclude={"associate_id"})
+
+        # Validate the financing fields against the resulting state, not only the ones sent.
+        resulting = {f: changes.get(f, getattr(car, f)) for f in _FINANCING_FIELDS}
+        if resulting["is_financed_liquidated"] is False:
+            missing = [f for f in _FINANCING_FIELDS[1:] if resulting[f] is None]
+            if missing:
+                raise CarFinancingDataRequiredException(missing)
+
+        for field, value in changes.items():
+            setattr(car, field, value)
+        if associate is not None:
+            car.associate = [associate]
+
+        return self.repository.update_car(car)
+
+    def update_status(self, car_id: str, new_status: CarStatus) -> Car:
+        """Change the operational status of a car."""
+        car = self._get_active_car(car_id)
+        car.status = new_status
+        return self.repository.update_car(car)
+
+    def archive_car(self, car_id: str) -> Car:
+        """Archive a car unless it is already archived or has an active contract."""
+        car = self._get_active_car(car_id)
+        if car.archived_at is not None:
+            raise CarAlreadyArchivedException(car_id)
+        if self.repository.get_active_contract_for_car(car_id):
+            raise CarHasActiveAssignmentException
+        return self.repository.set_archived(car, datetime.now(UTC))
+
+    def unarchive_car(self, car_id: str) -> Car:
+        """Restore an archived car."""
+        car = self._get_active_car(car_id)
+        if car.archived_at is None:
+            raise CarNotArchivedException(car_id)
+        return self.repository.set_archived(car, None)
+
+    def delete_car(self, car_id: str) -> ActionSuccess:
+        """Delete an archived car.
+
+        Cars with history (contracts, transactions, events or incidences) are soft-deleted and keep
+        all their data. Cars without history are permanently deleted together with their exclusive
+        documents; their storage objects are moved to the `deleted/` prefix (best effort).
+        """
+        car = self._get_active_car(car_id)
+        if car.archived_at is None:
+            raise CarMustBeArchivedException
+
+        if self.repository.has_history(car_id):
+            self.repository.soft_delete_car(car)
+            return ActionSuccess(message=f"Car '{car_id}' was deleted (history preserved)")
+
+        image_urls = [u for u in [car.agency_image, *(car.photos or [])] if u]
+        document_keys = self.repository.hard_delete_car(car)
+
+        for key in document_keys:
+            self._safe_storage_call(r2.soft_delete_document, key)
+        for url in image_urls:
+            self._safe_storage_call(r2.soft_delete_image, url)
+
+        return ActionSuccess(message=f"Car '{car_id}' was deleted")
+
+    @staticmethod
+    def _safe_storage_call(func, arg: str) -> None:
+        """Run a storage cleanup call, logging instead of failing the request."""
+        try:
+            func(arg)
+        except Exception as ex:
+            logger.error("Storage cleanup failed for '%s': %s", arg, ex, exc_info=True)
