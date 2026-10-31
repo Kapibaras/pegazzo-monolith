@@ -71,3 +71,28 @@ def upload_image(key: str, data: bytes, content_type: str) -> str:
         ContentType=content_type,
     )
     return get_image_public_url(key)
+
+
+def soft_delete_object(bucket: str, key: str) -> None:
+    """Move an object to the `deleted/` prefix of its bucket instead of removing it."""
+    client = _get_client()
+    client.copy_object(
+        Bucket=bucket,
+        Key=f"deleted/{key}",
+        CopySource={"Bucket": bucket, "Key": key},
+    )
+    client.delete_object(Bucket=bucket, Key=key)
+
+
+def soft_delete_document(key: str) -> None:
+    """Move a private document (stored under `private/<key>`) to the `deleted/` prefix."""
+    soft_delete_object(R2.DOCUMENTS_BUCKET, f"private/{key}")
+
+
+def soft_delete_image(url: str) -> bool:
+    """Move a public image to the `deleted/` prefix. Return False if the URL is not from our bucket."""
+    prefix = f"{R2.PUBLIC_URL.rstrip('/')}/"
+    if not url.startswith(prefix):
+        return False
+    soft_delete_object(R2.IMAGES_BUCKET, url[len(prefix) :])
+    return True
