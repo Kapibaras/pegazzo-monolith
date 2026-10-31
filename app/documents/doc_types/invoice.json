@@ -1,0 +1,49 @@
+{
+  "name": "invoice",
+  "label_es": "Factura vehicular",
+  "allowed_entity_types": ["car"],
+  "has_expiry": false,
+  "ai_analyzable": true,
+  "fields": {
+    "document_type": "type of document",
+    "invoice_number": "invoice number (Factura N°)",
+    "folio_fiscal": "folio fiscal (UUID) of the CFDI",
+    "issue_date": "issue date (emisión / expedición)",
+    "issuer_name": "name of the dealership that issues the invoice",
+    "issuer_rfc": "RFC of the issuer",
+    "customer_name": "name of the customer (buyer)",
+    "customer_rfc": "RFC of the customer",
+    "brand": "vehicle make (marca)",
+    "version": "line / type / version of the vehicle",
+    "model_year": "model year (modelo)",
+    "vin": "serial number / VIN (número de serie)",
+    "engine_number": "engine number (motor)",
+    "vehicle_key": "clave vehicular",
+    "color": "exterior color",
+    "subtotal": "subtotal amount",
+    "iva": "IVA amount",
+    "total": "total amount"
+  },
+  "expected_fields": [
+    "document_type", "invoice_number", "folio_fiscal", "issue_date",
+    "issuer_name", "customer_name", "brand", "model_year", "vin",
+    "engine_number", "total"
+  ],
+  "optional_fields": [
+    "issuer_rfc", "customer_rfc", "version", "vehicle_key", "color",
+    "subtotal", "iva"
+  ],
+  "validators": {
+    "vin": { "regex": "[A-HJ-NPR-Z0-9]{17}", "description": "17 caracteres alfanuméricos, sin I, O ni Q" },
+    "folio_fiscal": { "regex": "[0-9A-F]{32}", "description": "UUID de 32 caracteres hexadecimales" },
+    "customer_rfc": { "regex": "[A-ZÑ&]{3,4}\\d{6}[A-Z0-9]{3}", "description": "RFC de 12 o 13 caracteres" },
+    "issuer_rfc": { "regex": "[A-ZÑ&]{3,4}\\d{6}[A-Z0-9]{3}", "description": "RFC de 12 o 13 caracteres" },
+    "model_year": { "regex": "(19|20)\\d{2}", "description": "año de 4 dígitos" }
+  },
+  "acceptance": {
+    "min_expected_filled": 1.0,
+    "min_accuracy": 0.9,
+    "max_validation_failures": 0
+  },
+  "extra_instructions": "The scan is a printed CFDI. Use the alphanumeric VIN, not the spelled-out one."
+}

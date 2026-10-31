@@ -12,6 +12,7 @@ from tests.mocks.car_repository_mock import CarRepositoryMock
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_associate(associate_id: int, name: str, surnames: str) -> Associate:
     return Associate(id=associate_id, name=name, surnames=surnames, telephones=[])
 
@@ -44,6 +45,7 @@ def _request(
 # Unit tests — _owner_prefix
 # ---------------------------------------------------------------------------
 
+
 class TestOwnerPrefix:
     """Tests for the _owner_prefix helper function."""
 
@@ -63,6 +65,7 @@ class TestOwnerPrefix:
 # ---------------------------------------------------------------------------
 # Unit tests — _associate_initials
 # ---------------------------------------------------------------------------
+
 
 class TestAssociateInitials:
     """Tests for the _associate_initials helper function."""
@@ -86,6 +89,7 @@ class TestAssociateInitials:
 # ---------------------------------------------------------------------------
 # Unit tests — CarFolioService.compute_folio
 # ---------------------------------------------------------------------------
+
 
 class TestCarFolioService:
     """Integration tests for CarFolioService.compute_folio."""
@@ -152,20 +156,39 @@ class TestCarFolioService:
         associate = self._add_associate()
         self._add_car_model()
         from app.models.car import Car
+
         for i in range(2):
             car = Car(
                 id=f"CAR-00{i}",
-                make="Mazda", model="2", year="2022", color="White",
-                status="ACTIVE", vin=f"VIN{i:017d}", plate=f"PLT-00{i}",
-                body_type="Sedan", engine_type="Gasoline", transmission="TA",
-                engine_serial_number="ENG", odometer=0, doors_number=4,
-                passengers_number=5, tire_specification="195/65R15",
-                unit_value=200000, unit_billing_value=190000,
-                bill_number="B1", public_vehicle_registry="R1",
-                battery_model="BX", battery_serial_number="BS1",
-                legal_owner_name="Juan", legal_owner_surnames="Perez",
-                is_financed_liquidated=True, features={}, details={},
-                insurance_provider_id=1, policy_number="POL", policy_type="FULL",
+                make="Mazda",
+                model="2",
+                year="2022",
+                color="White",
+                status="ACTIVE",
+                vin=f"VIN{i:017d}",
+                plate=f"PLT-00{i}",
+                body_type="Sedan",
+                engine_type="Gasoline",
+                transmission="TA",
+                engine_serial_number="ENG",
+                odometer=0,
+                doors_number=4,
+                passengers_number=5,
+                tire_specification="195/65R15",
+                unit_value=200000,
+                unit_billing_value=190000,
+                bill_number="B1",
+                public_vehicle_registry="R1",
+                battery_model="BX",
+                battery_serial_number="BS1",
+                legal_owner_name="Juan",
+                legal_owner_surnames="Perez",
+                is_financed_liquidated=True,
+                features={},
+                details={},
+                insurance_provider_id=1,
+                policy_number="POL",
+                policy_type="FULL",
             )
             car.associate = [associate]
             self.car_repo.cars.append(car)

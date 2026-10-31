@@ -112,7 +112,8 @@ class TestDocumentRouter:
         data = response.json()
         assert data["type"] == "contract"
         assert data["url"] == PRESIGNED_GET_URL
-        assert data["category"] == "pending"
+        assert data["category"] == "UNCLASSIFIED"
+        assert data["status"] == "not_analyzed"
         assert data["id"] is not None
 
     def test_create_document_driver(self, authorized_client):
@@ -121,14 +122,14 @@ class TestDocumentRouter:
                 "/pegazzo/management/documents",
                 json={
                     "key": "driver/DRV001/some-uuid.pdf",
-                    "type": "license",
+                    "type": "driver_license",
                     "entity_type": "driver",
                     "entity_id": "DRV001",
                 },
             )
         assert response.status_code == 201
         data = response.json()
-        assert data["type"] == "license"
+        assert data["type"] == "driver_license"
 
     def test_create_document_guarantor(self, authorized_client):
         with patch("app.services.document.r2.generate_document_read_url", return_value=PRESIGNED_GET_URL):
@@ -136,7 +137,7 @@ class TestDocumentRouter:
                 "/pegazzo/management/documents",
                 json={
                     "key": "guarantor/1/some-uuid.jpg",
-                    "type": "id",
+                    "type": "ine",
                     "entity_type": "guarantor",
                     "entity_id": "1",
                 },
@@ -175,7 +176,7 @@ class TestDocumentRouter:
                 "/pegazzo/management/documents",
                 json={
                     "key": "car/ABC123DEF456789/uuid.pdf",
-                    "type": "insurance",
+                    "type": "insurance_policy",
                     "entity_type": "car",
                     "entity_id": "ABC123DEF456789",
                     "expiry_date": "2027-01-01T00:00:00Z",
@@ -183,6 +184,31 @@ class TestDocumentRouter:
             )
         assert response.status_code == 201
         assert response.json()["expiry_date"] is not None
+
+    def test_create_document_invalid_type(self, authorized_client):
+        response = authorized_client.post(
+            "/pegazzo/management/documents",
+            json={
+                "key": "car/ABC123DEF456789/uuid.pdf",
+                "type": "nonexistent_type",
+                "entity_type": "car",
+                "entity_id": "ABC123DEF456789",
+            },
+        )
+        assert response.status_code == 422
+
+    def test_create_document_incompatible_entity_type(self, authorized_client):
+        """INE is only allowed for driver/guarantor, not car."""
+        response = authorized_client.post(
+            "/pegazzo/management/documents",
+            json={
+                "key": "car/ABC123DEF456789/uuid.pdf",
+                "type": "ine",
+                "entity_type": "car",
+                "entity_id": "ABC123DEF456789",
+            },
+        )
+        assert response.status_code == 422
 
     # -------------------------------------------------------------------------
     # GET /management/documents/{id}
@@ -196,6 +222,12 @@ class TestDocumentRouter:
         assert data["id"] == 1
         assert data["url"] == PRESIGNED_GET_URL
         assert data["type"] == "contract"
+        assert data["status"] == "not_analyzed"
+        assert data["category"] == "UNCLASSIFIED"
+        # Detail fields should be present
+        assert data["detected_type"] is None
+        assert data["attempts"] == 0
+        assert data["verified_by"] is None
 
     def test_get_document_not_found(self, authorized_client):
         response = authorized_client.get("/pegazzo/management/documents/9999")
@@ -234,8 +266,12 @@ class TestDocumentRouter:
     @pytest.mark.parametrize(
         ("method", "endpoint", "body"),
         [
-            ("post", "/pegazzo/management/documents/upload-url", {"filename": "f.pdf", "content_type": "application/pdf", "entity_type": "car", "entity_id": "X"}),
-            ("post", "/pegazzo/management/documents", {"key": "k", "type": "t", "entity_type": "car", "entity_id": "X"}),
+            (
+                "post",
+                "/pegazzo/management/documents/upload-url",
+                {"filename": "f.pdf", "content_type": "application/pdf", "entity_type": "car", "entity_id": "X"},
+            ),
+            ("post", "/pegazzo/management/documents", {"key": "k", "type": "contract", "entity_type": "car", "entity_id": "X"}),
             ("get", "/pegazzo/management/documents/1", None),
             ("delete", "/pegazzo/management/documents/1", None),
         ],

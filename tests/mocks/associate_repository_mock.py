@@ -25,10 +25,7 @@ class AssociateRepositoryMock:
 
     def list_all(self, search: str | None = None) -> list[Associate]:
         if search:
-            return [
-                a for a in self.associates
-                if search.lower() in a.name.lower() or search.lower() in a.surnames.lower()
-            ]
+            return [a for a in self.associates if search.lower() in a.name.lower() or search.lower() in a.surnames.lower()]
         return list(self.associates)
 
     def has_linked_cars(self, associate_id: int) -> bool:

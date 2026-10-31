@@ -36,7 +36,8 @@ def compute_balance_breakdown(
             percentages[method] = Decimal("0.00")
         else:
             percentages[method] = (abs(value) * Decimal(100) / total_abs).quantize(
-                DEC_2, rounding=ROUND_HALF_UP,
+                DEC_2,
+                rounding=ROUND_HALF_UP,
             )
 
     return {

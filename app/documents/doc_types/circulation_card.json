@@ -1,0 +1,52 @@
+{
+  "name": "circulation_card",
+  "label_es": "Tarjeta de circulación",
+  "allowed_entity_types": ["car"],
+  "has_expiry": true,
+  "ai_analyzable": true,
+  "fields": {
+    "document_type": "type of document",
+    "owner_name": "full name of the owner (nombre del propietario) exactly as printed",
+    "rfc": "owner RFC, empty if blank",
+    "plate": "license plate (placas)",
+    "vin": "vehicle identification number (NIV)",
+    "engine_number": "engine number (número de motor)",
+    "brand": "make (marca)",
+    "model_line": "vehicle line / model name (vehículo)",
+    "year": "model year (modelo)",
+    "vehicle_class_type": "class and type (clase y tipo)",
+    "fuel": "fuel type (combustible)",
+    "use": "use (uso), e.g. Particular",
+    "origin": "vehicle origin (nacional / importado)",
+    "cylinders": "cylinder count (C.C. cilindrada)",
+    "passengers": "number of persons (personas)",
+    "issue_date": "issue date (fecha de expedición)",
+    "validity": "validity (vigencia) exactly as printed; may be a word like CONDICIONADA or a date",
+    "registration_number": "10-digit número de registro de la entidad (Nuevo León-style cards only)",
+    "card_number": "No. Tarjeta (Ciudad de México-style cards)",
+    "issuing_office": "issuing office (oficina expedidora)",
+    "state": "issuing state"
+  },
+  "expected_fields": [
+    "document_type", "owner_name", "plate", "vin", "engine_number",
+    "brand", "model_line", "year", "fuel", "use", "issue_date",
+    "issuing_office", "state"
+  ],
+  "optional_fields": [
+    "rfc", "vehicle_class_type", "origin", "cylinders", "passengers",
+    "validity", "registration_number", "card_number"
+  ],
+  "validators": {
+    "registration_number": { "regex": "\\d{10}", "description": "10 dígitos" },
+    "vin": { "regex": "[A-HJ-NPR-Z0-9]{17}", "description": "17 caracteres alfanuméricos, sin I, O ni Q" },
+    "plate": { "regex": "[A-Z0-9]{5,8}", "description": "5 a 8 caracteres alfanuméricos" },
+    "year": { "regex": "(19|20)\\d{2}", "description": "año de 4 dígitos" },
+    "card_number": { "regex": "\\d{10,11}", "description": "10 u 11 dígitos" }
+  },
+  "acceptance": {
+    "min_expected_filled": 1.0,
+    "min_accuracy": 0.9,
+    "max_validation_failures": 0
+  },
+  "extra_instructions": "The card may be rotated 90 degrees: read every digit carefully, character by character, and do not drop or merge digits."
+}

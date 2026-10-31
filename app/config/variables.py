@@ -18,11 +18,7 @@ def _require_env(key: str, fallback: str | None = None) -> str:
 
 
 DATABASE_URL = _require_env("DATABASE_URL", "sqlite:///./dev.db")
-CORS_ORIGINS: list[str] = [
-    o.strip()
-    for o in os.getenv("CORS_ORIGINS", "").split(",")
-    if o.strip()
-]
+CORS_ORIGINS: list[str] = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
 
 
 DOCS_USER: str = os.getenv("DOCS_USER", "")

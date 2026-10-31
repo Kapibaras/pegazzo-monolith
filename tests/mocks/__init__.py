@@ -7,4 +7,13 @@ from .image_repository_mock import ImageRepositoryMock
 from .insurance_repository_mock import InsuranceRepositoryMock
 from .user_repository_mock import UserRepositoryMock
 
-__all__ = ["AssociateRepositoryMock", "BalanceRepositoryMock", "CarModelRepositoryMock", "CarRepositoryMock", "DocumentRepositoryMock", "ImageRepositoryMock", "InsuranceRepositoryMock", "UserRepositoryMock"]
+__all__ = [
+    "AssociateRepositoryMock",
+    "BalanceRepositoryMock",
+    "CarModelRepositoryMock",
+    "CarRepositoryMock",
+    "DocumentRepositoryMock",
+    "ImageRepositoryMock",
+    "InsuranceRepositoryMock",
+    "UserRepositoryMock",
+]

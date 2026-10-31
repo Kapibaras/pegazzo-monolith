@@ -1,0 +1,16 @@
+{
+  "name": "promissory_note",
+  "label_es": "Pagaré",
+  "allowed_entity_types": ["driver", "guarantor"],
+  "has_expiry": false,
+  "ai_analyzable": false,
+  "fields": {},
+  "expected_fields": [],
+  "optional_fields": [],
+  "validators": {},
+  "acceptance": {
+    "min_expected_filled": 1.0,
+    "min_accuracy": 0.9,
+    "max_validation_failures": 0
+  }
+}

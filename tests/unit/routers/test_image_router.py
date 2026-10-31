@@ -226,7 +226,11 @@ class TestImageRouter:
     @pytest.mark.parametrize(
         ("method", "endpoint", "body"),
         [
-            ("post", "/pegazzo/management/images/upload-url", {"filename": "f.jpg", "content_type": "image/jpeg", "entity_type": "car_photo", "entity_id": "X"}),
+            (
+                "post",
+                "/pegazzo/management/images/upload-url",
+                {"filename": "f.jpg", "content_type": "image/jpeg", "entity_type": "car_photo", "entity_id": "X"},
+            ),
             ("patch", f"/pegazzo/management/images/cars/{CAR_ID}/agency-image", {"url": "u"}),
             ("post", f"/pegazzo/management/images/cars/{CAR_ID}/photos", {"url": "u"}),
             ("DELETE", f"/pegazzo/management/images/cars/{CAR_ID}/photos", {"url": "u"}),

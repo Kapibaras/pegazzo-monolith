@@ -22,5 +22,3 @@ def test_connection():
     except Exception as e:
         message = f"❌ Error when connecting to the database: {e}"
         raise RuntimeError(message) from e
-
-

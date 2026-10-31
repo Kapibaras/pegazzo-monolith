@@ -284,16 +284,19 @@ class TestCarRouter:
 
         self._create_car(authorized_client)
         now = datetime.now(UTC)
-        doc_valid = Document(id=1, type="PDF", url="key/doc1.pdf", category="license",
-                             expiry_date=now + timedelta(days=60))
-        doc_expiring = Document(id=2, type="PDF", url="key/doc2.pdf", category="insurance",
-                                expiry_date=now + timedelta(days=10))
-        doc_expired = Document(id=3, type="PDF", url="key/doc3.pdf", category="registration",
-                               expiry_date=now - timedelta(days=1))
-        doc_no_expiry = Document(id=4, type="PDF", url="key/doc4.pdf", category="other",
-                                 expiry_date=None)
+        doc_valid = Document(id=1, type="PDF", url="key/doc1.pdf", category="license", expiry_date=now + timedelta(days=60))
+        doc_expiring = Document(
+            id=2, type="PDF", url="key/doc2.pdf", category="insurance", expiry_date=now + timedelta(days=10),
+        )
+        doc_expired = Document(
+            id=3, type="PDF", url="key/doc3.pdf", category="registration", expiry_date=now - timedelta(days=1),
+        )
+        doc_no_expiry = Document(id=4, type="PDF", url="key/doc4.pdf", category="other", expiry_date=None)
         authorized_client.car_repo.car_documents["CAR-001"] = [
-            doc_valid, doc_expiring, doc_expired, doc_no_expiry,
+            doc_valid,
+            doc_expiring,
+            doc_expired,
+            doc_no_expiry,
         ]
 
         with patch("app.services.car.r2.generate_document_read_url", return_value="https://r2.example/doc"):
@@ -313,11 +316,18 @@ class TestCarRouter:
         from app.models.driver import Driver
 
         self._create_car(authorized_client)
-        driver = Driver(id="DRV-001", name="Luis", surnames="Gomez Ramirez",
-                        status="ACTIVE", telephones=["+521234567890"],
-                        license_number="LIC001", license_validity=datetime.now(UTC),
-                        identification_number="ID001", address="Calle 1",
-                        garage_address=["Calle 2"])
+        driver = Driver(
+            id="DRV-001",
+            name="Luis",
+            surnames="Gomez Ramirez",
+            status="ACTIVE",
+            telephones=["+521234567890"],
+            license_number="LIC001",
+            license_validity=datetime.now(UTC),
+            identification_number="ID001",
+            address="Calle 1",
+            garage_address=["Calle 2"],
+        )
         contract = Contract(
             id="CNT-001",
             car_id="CAR-001",
