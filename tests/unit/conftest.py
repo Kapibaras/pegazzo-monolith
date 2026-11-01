@@ -65,6 +65,7 @@ def reset_state():
     car_model_repo_mock.reset()
     document_repo_mock.reset()
     driver_repo_mock.reset()
+    guarantor_repo_mock.reset()
     image_repo_mock.reset()
 
 
