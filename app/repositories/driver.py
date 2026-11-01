@@ -39,9 +39,9 @@ class DriverRepository(DBRepository):
             self.db.add(driver)
             self.db.commit()
             self.db.refresh(driver)
-        except IntegrityError as ex:
+        except IntegrityError:
             self.db.rollback()
-            raise ex
+            raise
         except Exception as ex:
             self.db.rollback()
             logger.error("Error creating driver %s due to: %s", driver.id, ex, exc_info=True)
