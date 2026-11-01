@@ -367,5 +367,5 @@ class CarService:
         """Run a storage cleanup call, logging instead of failing the request."""
         try:
             func(arg)
-        except Exception as ex:
+        except Exception as ex:  # noqa: BLE001, RUF100 - best-effort cleanup must never fail the request
             logger.error("Storage cleanup failed for '%s': %s", arg, ex, exc_info=True)
