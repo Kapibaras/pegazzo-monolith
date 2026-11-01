@@ -276,7 +276,8 @@ class CarService:
             if not associate:
                 raise AssociateNotFoundException(data.associate_id)
 
-        changes = data.model_dump(exclude_none=True, exclude={"associate_id"})
+        # exclude_unset keeps explicit nulls, which clear the nullable fields (the schema rejects the rest).
+        changes = data.model_dump(exclude_unset=True, exclude={"associate_id"})
 
         # Validate the financing fields against the resulting state, not only the ones sent.
         resulting = {f: changes.get(f, getattr(car, f)) for f in _FINANCING_FIELDS}

@@ -94,6 +94,19 @@ class CarSchema(BaseModel):
     associate_id: int | None = Field(default=None, description="FK to associate table")
 
 
+# Nullable car columns: sending an explicit null in a PATCH clears them. Any other field cannot be null.
+CLEARABLE_CAR_FIELDS = frozenset(
+    {
+        "financing_agency",
+        "financing_purchase_date",
+        "financing_term_months",
+        "financing_remaining_amount",
+        "agency_image",
+        "photos",
+    },
+)
+
+
 class CarUpdateSchema(BaseModel):
     """Schema for partially updating a car. Every field is optional; status has its own endpoint."""
 
@@ -158,10 +171,13 @@ class CarUpdateSchema(BaseModel):
     photos: list[str] | None = Field(default=None)
 
     @model_validator(mode="after")
-    def check_at_least_one_field(self) -> "CarUpdateSchema":
-        """Reject an empty update body."""
-        if not self.model_fields_set or all(getattr(self, f) is None for f in self.model_fields_set):
+    def check_update_body(self) -> "CarUpdateSchema":
+        """Reject an empty body and explicit nulls on fields that cannot be cleared."""
+        if not self.model_fields_set:
             raise ValueError("At least one field must be provided")
+        not_clearable = sorted(f for f in self.model_fields_set if getattr(self, f) is None and f not in CLEARABLE_CAR_FIELDS)
+        if not_clearable:
+            raise ValueError(f"These fields cannot be null: {', '.join(not_clearable)}")
         return self
 
 

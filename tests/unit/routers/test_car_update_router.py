@@ -158,6 +158,59 @@ class TestUpdateCar:
 
         assert response.status_code == 422
 
+    def test_update_null_clears_agency_image_and_photos(self, authorized_client, created_car):
+        authorized_client.patch(
+            f"{ENDPOINT}/{created_car}",
+            json={"agencyImage": "https://img.example/a.png", "photos": ["https://img.example/1.png"]},
+        )
+
+        response = authorized_client.patch(f"{ENDPOINT}/{created_car}", json={"agencyImage": None, "photos": None})
+
+        assert response.status_code == 200
+        assert response.json()["agencyImage"] is None
+        assert response.json()["photos"] is None
+
+    def test_update_null_clears_financing_data_when_liquidated(self, authorized_client, created_car):
+        authorized_client.patch(
+            f"{ENDPOINT}/{created_car}",
+            json={
+                "isFinancedLiquidated": False,
+                "financingAgency": "Bank",
+                "financingPurchaseDate": "2024-01-10",
+                "financingTermMonths": 24,
+                "financingRemainingAmount": 100000,
+            },
+        )
+
+        response = authorized_client.patch(
+            f"{ENDPOINT}/{created_car}",
+            json={
+                "isFinancedLiquidated": True,
+                "financingAgency": None,
+                "financingPurchaseDate": None,
+                "financingTermMonths": None,
+                "financingRemainingAmount": None,
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["isFinancedLiquidated"] is True
+        assert data["financingAgency"] is None
+        assert data["financingTermMonths"] is None
+
+    def test_update_null_on_required_field_is_rejected(self, authorized_client, created_car):
+        response = authorized_client.patch(f"{ENDPOINT}/{created_car}", json={"vin": None})
+
+        assert response.status_code == 422
+        assert "vin" in str(response.json())
+
+    def test_update_null_on_required_field_next_to_valid_one_is_not_ignored(self, authorized_client, created_car):
+        response = authorized_client.patch(f"{ENDPOINT}/{created_car}", json={"color": "Blue", "make": None})
+
+        assert response.status_code == 422
+        assert authorized_client.car_repo.get_by_id(created_car).color != "Blue"
+
     def test_update_invalid_value_is_rejected(self, authorized_client, created_car):
         response = authorized_client.patch(f"{ENDPOINT}/{created_car}", json={"odometer": -1})
 
