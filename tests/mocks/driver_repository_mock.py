@@ -91,6 +91,7 @@ class DriverRepositoryMock:
             updated_at=d.updated_at,
         )
         driver.guarantors = list(d.guarantors)
+        driver.documents = list(d.documents)
         return driver
 
     def _filter(self, status: DriverStatus | None, search: str | None, archived: bool) -> list[Driver]:
@@ -130,9 +131,6 @@ class DriverRepositoryMock:
 
     def get_by_license_number(self, license_number: str) -> Driver | None:
         return next((d for d in self.drivers if d.license_number == license_number), None)
-
-    def get_driver_documents(self, driver_id: str) -> list[Document]:
-        return self.driver_documents.get(driver_id, [])
 
     def get_active_contract_for_driver(self, driver_id: str) -> Contract | None:
         today = datetime.now(tz=UTC).date()

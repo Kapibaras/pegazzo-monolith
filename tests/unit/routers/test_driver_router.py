@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 
 _VALID_DRIVER_BODY = {
@@ -312,7 +314,8 @@ class TestGetDriverDetail:
         from app.models.document import Document
 
         doc = Document(id=1, type="PDF", url="docs/ine.pdf", category="ine", expiry_date=None)
-        authorized_client.driver_repo.driver_documents["DRV-001"] = [doc]
+        drv = authorized_client.driver_repo.get_by_id("DRV-001")
+        drv.documents = [doc]
 
         with patch("app.services.driver.r2.generate_document_read_url", return_value="https://presigned.url/ine.pdf"):
             response = authorized_client.get(f"{self.ENDPOINT}/DRV-001")
@@ -330,6 +333,49 @@ class TestGetDriverDetail:
     def test_get_driver_with_no_guarantors(self, authorized_client):
         response = authorized_client.get(f"{self.ENDPOINT}/DRV-001")
         assert response.json()["guarantors"] == []
+
+    def test_get_driver_with_guarantors_and_documents(self, authorized_client):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        from app.models.document import Document
+
+        gdoc = Document(id=50, type="PDF", url="docs/g_ine.pdf", category="ine", expiry_date=None)
+        guarantor = SimpleNamespace(
+            id=1, name="Carlos", surnames="López", telephones=["+521111111111"],
+            address="Calle X", relation="padre", documents=[gdoc],
+        )
+
+        drv = authorized_client.driver_repo.get_by_id("DRV-001")
+        drv.guarantors = [guarantor]
+
+        with patch("app.services.driver.r2.generate_document_read_url", return_value="https://presigned.url/g_ine.pdf"):
+            response = authorized_client.get(f"{self.ENDPOINT}/DRV-001")
+
+        gs = response.json()["guarantors"]
+        assert len(gs) == 1
+        assert gs[0]["name"] == "Carlos"
+        assert gs[0]["relation"] == "padre"
+        assert len(gs[0]["documents"]) == 1
+        assert gs[0]["documents"][0]["url"] == "https://presigned.url/g_ine.pdf"
+
+    def test_get_driver_document_expiry_status(self, authorized_client):
+        from unittest.mock import patch
+
+        from app.models.document import Document
+
+        expired_doc = Document(
+            id=60, type="PDF", url="docs/expired.pdf", category="ine",
+            expiry_date=datetime(2020, 1, 1, tzinfo=UTC),
+        )
+        drv = authorized_client.driver_repo.get_by_id("DRV-001")
+        drv.documents = [expired_doc]
+
+        with patch("app.services.driver.r2.generate_document_read_url", return_value="https://url"):
+            response = authorized_client.get(f"{self.ENDPOINT}/DRV-001")
+
+        docs = response.json()["documents"]
+        assert docs[0]["expiryStatus"].upper() == "EXPIRED"
 
     # -----------------------------------------------------------------
     # Assigned car
