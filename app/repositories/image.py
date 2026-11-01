@@ -10,8 +10,8 @@ class ImageRepository(DBRepository):
     """Image repository class — manages image URL fields on Car and Driver."""
 
     def get_car_by_id(self, car_id: str) -> Car | None:
-        """Return a car by its primary key."""
-        return self.db.query(Car).filter_by(id=car_id).first()
+        """Return a non-deleted car by its primary key."""
+        return self.db.query(Car).filter(Car.id == car_id, Car.deleted_at.is_(None)).first()
 
     def get_driver_by_id(self, driver_id: str) -> Driver | None:
         """Return a driver by its primary key."""

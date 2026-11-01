@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
@@ -195,6 +196,39 @@ class TestImageRouter:
         response = authorized_client.request(
             "DELETE",
             "/pegazzo/management/images/cars/NOPE/photos",
+            json={"url": "some/url.jpg"},
+        )
+        assert response.status_code == 404
+
+    # -------------------------------------------------------------------------
+    # Soft-deleted cars are not reachable through the image endpoints
+    # -------------------------------------------------------------------------
+
+    @staticmethod
+    def _soft_delete_car(authorized_client):
+        authorized_client.image_repo.cars[0].deleted_at = datetime.now(UTC)
+
+    def test_set_car_agency_image_soft_deleted_car(self, authorized_client):
+        self._soft_delete_car(authorized_client)
+        response = authorized_client.patch(
+            f"/pegazzo/management/images/cars/{CAR_ID}/agency-image",
+            json={"url": "some/url.jpg"},
+        )
+        assert response.status_code == 404
+
+    def test_add_car_photo_soft_deleted_car(self, authorized_client):
+        self._soft_delete_car(authorized_client)
+        response = authorized_client.post(
+            f"/pegazzo/management/images/cars/{CAR_ID}/photos",
+            json={"url": "some/url.jpg"},
+        )
+        assert response.status_code == 404
+
+    def test_remove_car_photo_soft_deleted_car(self, authorized_client):
+        self._soft_delete_car(authorized_client)
+        response = authorized_client.request(
+            "DELETE",
+            f"/pegazzo/management/images/cars/{CAR_ID}/photos",
             json={"url": "some/url.jpg"},
         )
         assert response.status_code == 404
