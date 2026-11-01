@@ -86,3 +86,63 @@ class CarModelNotFoundException(PegazzoException):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Make/model combination '{make} {model}' is not registered in the catalog. Register it first before computing a folio.",
         )
+
+
+class CarHasActiveAssignmentException(PegazzoException):
+    """Exception raised when archiving a car that has an active or upcoming contract."""
+
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot archive a car with an active or upcoming assignment",
+        )
+
+
+class CarArchivedException(PegazzoException):
+    """Exception raised when changing the status of an archived car."""
+
+    def __init__(self, car_id: str):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot change the status of archived car '{car_id}'",
+        )
+
+
+class CarAlreadyArchivedException(PegazzoException):
+    """Exception raised when archiving a car that is already archived."""
+
+    def __init__(self, car_id: str):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Car with id '{car_id}' is already archived",
+        )
+
+
+class CarNotArchivedException(PegazzoException):
+    """Exception raised when unarchiving a car that is not archived."""
+
+    def __init__(self, car_id: str):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Car with id '{car_id}' is not archived",
+        )
+
+
+class CarMustBeArchivedException(PegazzoException):
+    """Exception raised when deleting a car that has not been archived first."""
+
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Car must be archived before deletion",
+        )
+
+
+class CarFinancingDataRequiredException(PegazzoException):
+    """Exception raised when a car ends up not liquidated without its financing details."""
+
+    def __init__(self, missing: list[str]):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Required when isFinancedLiquidated is false: {', '.join(missing)}",
+        )

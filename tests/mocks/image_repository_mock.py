@@ -72,8 +72,8 @@ class ImageRepositoryMock:
         self.__init__()
 
     def get_car_by_id(self, car_id: str) -> Car | None:
-        """Return the car with the given ID, or None."""
-        return next((c for c in self.cars if c.id == car_id), None)
+        """Return the non-deleted car with the given ID, or None."""
+        return next((c for c in self.cars if c.id == car_id and c.deleted_at is None), None)
 
     def get_driver_by_id(self, driver_id: str) -> Driver | None:
         """Return the driver with the given ID, or None."""

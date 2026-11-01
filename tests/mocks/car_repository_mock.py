@@ -24,6 +24,8 @@ class CarRepositoryMock:
         self.us_associate_ids: set[int] = set()
         self.car_documents: dict[str, list[Document]] = {}
         self.contracts: list[Contract] = []
+        self.history_car_ids: set[str] = set()
+        self.hard_deleted_ids: list[str] = []
 
     def reset(self):
         """Reset the mock state to its initial values."""
@@ -33,18 +35,44 @@ class CarRepositoryMock:
         self.us_associate_ids = set()
         self.car_documents = {}
         self.contracts = []
+        self.history_car_ids = set()
+        self.hard_deleted_ids = []
 
     def get_by_id(self, car_id: str) -> Car | None:
         """Return the car with the given ID, or None."""
         return next((c for c in self.cars if c.id == car_id), None)
 
-    def get_by_vin(self, vin: str) -> Car | None:
+    def get_by_vin(self, vin: str, exclude_id: str | None = None) -> Car | None:
         """Return the car with the given VIN, or None."""
-        return next((c for c in self.cars if c.vin == vin), None)
+        return next((c for c in self.cars if c.vin == vin and c.id != exclude_id), None)
 
-    def get_by_plate(self, plate: str) -> Car | None:
+    def get_by_plate(self, plate: str, exclude_id: str | None = None) -> Car | None:
         """Return the car with the given plate, or None."""
-        return next((c for c in self.cars if c.plate == plate), None)
+        return next((c for c in self.cars if c.plate == plate and c.id != exclude_id), None)
+
+    def update_car(self, car: Car) -> Car:
+        """Return the car; the in-memory object is already updated."""
+        return car
+
+    def set_archived(self, car: Car, archived_at: datetime | None) -> Car:
+        """Set or clear the archived_at marker."""
+        car.archived_at = archived_at
+        return car
+
+    def has_history(self, car_id: str) -> bool:
+        """Return True if the car was flagged as having history."""
+        return car_id in self.history_car_ids
+
+    def soft_delete_car(self, car: Car) -> Car:
+        """Mark the car as soft-deleted and record the call."""
+        car.deleted_at = datetime.now(tz=UTC)
+        return car
+
+    def hard_delete_car(self, car: Car) -> list[str]:
+        """Remove the car and return the keys of its documents."""
+        self.cars = [c for c in self.cars if c.id != car.id]
+        self.hard_deleted_ids.append(car.id)
+        return [d.url for d in self.car_documents.pop(car.id, [])]
 
     def get_insurance_by_id(self, insurance_id: int) -> Insurance | None:
         """Return the insurance provider with the given ID, or None."""
@@ -64,7 +92,8 @@ class CarRepositoryMock:
         result = [
             c
             for c in self.cars
-            if not (archived and c.archived_at is None)
+            if c.deleted_at is None
+            and not (archived and c.archived_at is None)
             and not (not archived and c.archived_at is not None)
             and (not status or c.status == status)
         ]
@@ -112,6 +141,11 @@ class CarRepositoryMock:
     def count_cars_for_associate(self, associate_id: int) -> int:
         """Return the number of cars whose associate list contains the given associate_id."""
         return sum(1 for c in self.cars if any(a.id == associate_id for a in (c.associate or [])))
+
+    def get_open_contract_for_car(self, car_id: str) -> Contract | None:
+        """Return a contract active today or starting in the future, or None."""
+        today = datetime.now(tz=UTC).date()
+        return next((c for c in self.contracts if c.car_id == car_id and c.end_date >= today), None)
 
     def get_active_contract_for_car(self, car_id: str) -> Contract | None:
         """Return the active contract for the car, or None."""

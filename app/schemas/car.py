@@ -94,6 +94,101 @@ class CarSchema(BaseModel):
     associate_id: int | None = Field(default=None, description="FK to associate table")
 
 
+# Nullable car columns: sending an explicit null in a PATCH clears them. Any other field cannot be null.
+CLEARABLE_CAR_FIELDS = frozenset(
+    {
+        "financing_agency",
+        "financing_purchase_date",
+        "financing_term_months",
+        "financing_remaining_amount",
+        "agency_image",
+        "photos",
+    },
+)
+
+
+class CarUpdateSchema(BaseModel):
+    """Schema for partially updating a car. Every field is optional; status has its own endpoint."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    # Identity
+    make: str | None = Field(default=None, min_length=1, max_length=50)
+    model: str | None = Field(default=None, min_length=1, max_length=50)
+    year: str | None = Field(default=None, min_length=4, max_length=4)
+    color: str | None = Field(default=None, min_length=1, max_length=30)
+
+    # Technical
+    vin: str | None = Field(default=None, min_length=1, max_length=17, description="Vehicle Identification Number (unique)")
+    plate: str | None = Field(default=None, min_length=1, max_length=10, description="License plate (unique)")
+    body_type: str | None = Field(default=None, min_length=1, max_length=30)
+    engine_type: str | None = Field(default=None, min_length=1, max_length=30)
+    transmission: str | None = Field(default=None, min_length=1, max_length=20)
+    engine_serial_number: str | None = Field(default=None, min_length=1, max_length=30)
+    odometer: int | None = Field(default=None, ge=0)
+    doors_number: int | None = Field(default=None, ge=1)
+    passengers_number: int | None = Field(default=None, ge=1)
+    tire_specification: str | None = Field(default=None, min_length=1, max_length=20)
+
+    # Registry / values
+    unit_value: float | None = Field(default=None, ge=0)
+    unit_billing_value: float | None = Field(default=None, ge=0)
+    bill_number: str | None = Field(default=None, min_length=1, max_length=30)
+    public_vehicle_registry: str | None = Field(default=None, min_length=1, max_length=30)
+    alta_public_vehicle_registry: RequestUTCDatetime | None = Field(default=None)
+
+    # Battery
+    battery_model: str | None = Field(default=None, min_length=1, max_length=20)
+    battery_serial_number: str | None = Field(default=None, min_length=1, max_length=30)
+    battery_date: RequestUTCDatetime | None = Field(default=None)
+
+    # Owner
+    legal_owner_name: str | None = Field(default=None, min_length=1, max_length=50)
+    legal_owner_surnames: str | None = Field(default=None, min_length=1, max_length=100)
+
+    # Financing (validated against the resulting car state in the service)
+    is_financed_liquidated: bool | None = Field(default=None)
+    financing_agency: str | None = Field(default=None, min_length=1, max_length=100)
+    financing_purchase_date: datetime.date | None = Field(default=None)
+    financing_term_months: int | None = Field(default=None, ge=1)
+    financing_remaining_amount: Decimal | None = Field(default=None, ge=0)
+
+    # Optional
+    features: Any | None = Field(default=None)
+    details: Any | None = Field(default=None)
+
+    # Insurance / policy
+    insurance_provider_id: int | None = Field(default=None, description="FK to insurance table")
+    policy_number: str | None = Field(default=None, min_length=1, max_length=30)
+    policy_expiration_date: RequestUTCDatetime | None = Field(default=None)
+    policy_type: str | None = Field(default=None, min_length=1, max_length=20)
+
+    # Associate
+    associate_id: int | None = Field(default=None, description="FK to associate table")
+
+    # Images (URLs only; the files are managed by the image upload service)
+    agency_image: str | None = Field(default=None, min_length=1, max_length=512)
+    photos: list[str] | None = Field(default=None)
+
+    @model_validator(mode="after")
+    def check_update_body(self) -> "CarUpdateSchema":
+        """Reject an empty body and explicit nulls on fields that cannot be cleared."""
+        if not self.model_fields_set:
+            raise ValueError("At least one field must be provided")
+        not_clearable = sorted(f for f in self.model_fields_set if getattr(self, f) is None and f not in CLEARABLE_CAR_FIELDS)
+        if not_clearable:
+            raise ValueError(f"These fields cannot be null: {', '.join(not_clearable)}")
+        return self
+
+
+class CarStatusUpdateSchema(BaseModel):
+    """Schema for PATCH /management/cars/{car_id}/status."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    status: CarStatus = Field(..., description="New car status: ACTIVE, INACTIVE or IN_MAINTENANCE")
+
+
 class CarListQuerySchema(BaseModel):
     """Query parameters for GET /management/cars."""
 
@@ -203,6 +298,7 @@ class CarResponseSchema(BaseModel):
     policy_type: str
     agency_image: str | None = None
     photos: Any | None = None
+    archived_at: Any | None = None
     created_at: Any
     updated_at: Any
 

@@ -42,6 +42,8 @@ alembic downgrade -1                              # Revert last migration
 alembic history                                   # View migration history
 alembic current                                   # Show current migration
 pipenv run seeders                                # Run database seeders
+python -m scripts.seeds.cars <clean|history|contract>   # TEST-ONLY demo cars (never in prod), see scripts/seeds/README.md
+python -m scripts.seeds.transactions <income|expense>   # TEST-ONLY demo transactions (never in prod)
 ```
 
 ## Architecture
@@ -110,6 +112,11 @@ from app.schemas.types import RequestUTCDatetime
 class MyRequestSchema(BaseModel):
     date: RequestUTCDatetime | None = Field(default=None, ...)
 ```
+
+### Local Postman Collections
+
+`collections/pegazzo.postman_collection.json` is the shared collection (generated from the OpenAPI spec).
+Any collection created just to test a feature locally (manual flows, runner tests, test credentials in variables) goes in `collections/local/`, which is gitignored. Never commit those, and never put them anywhere else in the repo.
 
 ## Code Quality Standards
 
