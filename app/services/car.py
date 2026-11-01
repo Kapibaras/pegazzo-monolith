@@ -1,7 +1,7 @@
 import math
 from datetime import UTC, datetime, timedelta
 
-from app.enum.crm import CarStatus
+from app.enum.crm import CarStatus, ImageEntityType
 from app.errors.car import (
     AssociateNotFoundException,
     CarAlreadyArchivedException,
@@ -333,7 +333,7 @@ class CarService:
             self.repository.soft_delete_car(car)
             return ActionSuccess(message=f"Car '{car_id}' was deleted (history preserved)")
 
-        image_urls = [u for u in [car.agency_image, *(car.photos or [])] if u]
+        image_urls = self._own_image_urls(car)
         document_keys = self.repository.hard_delete_car(car)
 
         for key in document_keys:
@@ -342,6 +342,25 @@ class CarService:
             self._safe_storage_call(r2.soft_delete_image, url)
 
         return ActionSuccess(message=f"Car '{car_id}' was deleted")
+
+    @staticmethod
+    def _own_image_urls(car: Car) -> list[str]:
+        """Return the car's image URLs that live under its own storage folders.
+
+        `agency_image` and `photos` can be set from the client via PATCH, so a URL may point to another
+        entity's file. Only files uploaded for this car (`car_photo/<id>/` or `car_agency_image/<id>/`)
+        are safe to move; anything else is skipped and logged.
+        """
+        prefixes = tuple(
+            r2.get_image_public_url(f"{entity_type}/{car.id}/")
+            for entity_type in (ImageEntityType.CAR_AGENCY_IMAGE, ImageEntityType.CAR_PHOTO)
+        )
+        urls = [u for u in [car.agency_image, *(car.photos or [])] if u]
+        own = [u for u in urls if u.startswith(prefixes)]
+        for url in urls:
+            if url not in own:
+                logger.warning("Skipping image '%s' of car '%s': it is not stored under the car's own folder", url, car.id)
+        return own
 
     @staticmethod
     def _safe_storage_call(func, arg: str) -> None:

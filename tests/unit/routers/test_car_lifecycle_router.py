@@ -27,6 +27,10 @@ def archived_car(authorized_client, created_car):
     return created_car
 
 
+def _public_url(key: str) -> str:
+    return f"https://img.example/{key}"
+
+
 def _contract(car_id: str, start_offset: int, end_offset: int) -> Contract:
     today = datetime.now(UTC).date()
     return Contract(
@@ -149,6 +153,7 @@ class TestDeleteCar:
         with (
             patch("app.services.car.r2.soft_delete_document") as soft_document,
             patch("app.services.car.r2.soft_delete_image") as soft_image,
+            patch("app.services.car.r2.get_image_public_url", side_effect=_public_url),
         ):
             response = authorized_client.delete(f"{ENDPOINT}/{created_car}")
 
@@ -158,6 +163,26 @@ class TestDeleteCar:
             "https://img.example/car_agency_image/CAR-001/a.png",
             "https://img.example/car_photo/CAR-001/1.png",
         ]
+
+    def test_hard_delete_skips_images_that_belong_to_another_car(self, authorized_client, created_car):
+        repo = authorized_client.car_repo
+        car = repo.get_by_id(created_car)
+        car.agency_image = "https://img.example/car_agency_image/CAR-002/other.png"
+        car.photos = [
+            "https://img.example/car_photo/CAR-001/mine.png",
+            "https://img.example/car_photo/CAR-002/other.png",
+            "https://elsewhere.example/car_photo/CAR-001/foreign-host.png",
+        ]
+        authorized_client.patch(f"{ENDPOINT}/{created_car}/archive")
+
+        with (
+            patch("app.services.car.r2.soft_delete_image") as soft_image,
+            patch("app.services.car.r2.get_image_public_url", side_effect=_public_url),
+        ):
+            response = authorized_client.delete(f"{ENDPOINT}/{created_car}")
+
+        assert response.status_code == 200
+        assert [c.args[0] for c in soft_image.call_args_list] == ["https://img.example/car_photo/CAR-001/mine.png"]
 
     def test_hard_delete_succeeds_even_if_storage_fails(self, authorized_client, created_car):
         repo = authorized_client.car_repo
