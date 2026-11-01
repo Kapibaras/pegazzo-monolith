@@ -48,6 +48,9 @@ class DriverService:
 
     def create_driver(self, data: DriverCreateSchema) -> Driver:
         """Create a new driver with validations."""
+        if data.license_validity.date() < datetime.now(UTC).date():
+            raise LicenseValidityInPastException
+
         if self.repository.get_by_id(data.id):
             raise DriverIdAlreadyExistsException(data.id)
 
@@ -56,9 +59,6 @@ class DriverService:
 
         if self.repository.get_by_license_number(data.license_number):
             raise LicenseNumberAlreadyExistsException(data.license_number)
-
-        if data.license_validity <= datetime.now(UTC):
-            raise LicenseValidityInPastException
 
         driver = Driver(
             id=data.id,

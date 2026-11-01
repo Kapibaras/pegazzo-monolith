@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -58,12 +59,12 @@ class DriverCreateSchema(BaseModel):
     name: str = Field(..., max_length=50)
     surnames: str = Field(..., max_length=100)
     status: DriverStatus
-    telephones: list[str] = Field(..., min_length=1)
+    telephones: list[Annotated[str, Field(min_length=1, max_length=20)]] = Field(..., min_length=1)
     license_number: str = Field(..., max_length=20)
     license_validity: RequestUTCDatetime
     identification_number: str = Field(..., max_length=20)
     address: str = Field(..., max_length=255)
-    garage_address: list[str] = Field(..., min_length=1)
+    garage_address: list[Annotated[str, Field(min_length=1, max_length=255)]] = Field(..., min_length=1)
 
 
 class DriverResponseSchema(BaseModel):

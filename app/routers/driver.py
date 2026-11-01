@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Body, Depends, status
+from typing import Annotated
+
+from fastapi import APIRouter, Body, Depends, Query, status
 
 from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
@@ -11,7 +13,7 @@ router = APIRouter(prefix="/management/drivers", tags=["Drivers"])
 
 @router.get("", response_model=DriverListResponseSchema, status_code=status.HTTP_200_OK)
 def list_drivers(
-    params: DriverListQuerySchema = Depends(DriverListQuerySchema),
+    params: Annotated[DriverListQuerySchema, Query()],
     service: DriverService = Depends(ServiceFactory.driver_service),
     _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN, Role.EMPLOYEE])),
 ) -> DriverListResponseSchema:

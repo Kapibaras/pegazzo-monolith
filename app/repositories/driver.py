@@ -80,7 +80,7 @@ class DriverRepository(DBRepository):
 
         max_priority = query.with_entities(func.max(priority)).scalar_subquery()
 
-        return query.filter(priority == max_priority)
+        return query.filter(priority > 0, priority == max_priority)
 
     def count_drivers(self, status: DriverStatus | None, search: str | None, archived: bool) -> int:
         """Return the total count of drivers matching the given filters."""
@@ -101,7 +101,7 @@ class DriverRepository(DBRepository):
         order = column.desc() if sort_order == SortOrder.DESC else column.asc()
         return (
             self._apply_search(self._base_query(status, archived), search)
-            .order_by(order)
+            .order_by(order, Driver.id)
             .offset(offset)
             .limit(limit)
             .all()

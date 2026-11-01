@@ -86,6 +86,8 @@ class DriverRepositoryMock:
         )
 
     def _filter(self, status: DriverStatus | None, search: str | None, archived: bool) -> list[Driver]:
+        # NOTE: This mock uses substring matching for search. The real repository
+        # uses PostgreSQL word_similarity (fuzzy). Behavior may diverge on edge cases.
         result = [
             d
             for d in self.drivers
@@ -144,7 +146,10 @@ class DriverRepositoryMock:
         reverse = sort_order == SortOrder.DESC
 
         def _sort_key(d):
-            return getattr(d, sort_by, "") or ""
+            val = getattr(d, sort_by, None)
+            if val is None:
+                return ("", d.id)
+            return (val, d.id)
 
         drivers.sort(key=_sort_key, reverse=reverse)
         return drivers[offset : offset + limit]
