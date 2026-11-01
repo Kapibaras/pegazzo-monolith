@@ -142,6 +142,11 @@ class CarRepositoryMock:
         """Return the number of cars whose associate list contains the given associate_id."""
         return sum(1 for c in self.cars if any(a.id == associate_id for a in (c.associate or [])))
 
+    def get_open_contract_for_car(self, car_id: str) -> Contract | None:
+        """Return a contract active today or starting in the future, or None."""
+        today = datetime.now(tz=UTC).date()
+        return next((c for c in self.contracts if c.car_id == car_id and c.end_date >= today), None)
+
     def get_active_contract_for_car(self, car_id: str) -> Contract | None:
         """Return the active contract for the car, or None."""
         today = datetime.now(tz=UTC).date()

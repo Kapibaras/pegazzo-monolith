@@ -5,6 +5,7 @@ from app.enum.crm import CarStatus
 from app.errors.car import (
     AssociateNotFoundException,
     CarAlreadyArchivedException,
+    CarArchivedException,
     CarFinancingDataRequiredException,
     CarHasActiveAssignmentException,
     CarIdAlreadyExistsException,
@@ -296,15 +297,17 @@ class CarService:
     def update_status(self, car_id: str, new_status: CarStatus) -> Car:
         """Change the operational status of a car."""
         car = self._get_active_car(car_id)
+        if car.archived_at is not None:
+            raise CarArchivedException(car_id)
         car.status = new_status
         return self.repository.update_car(car)
 
     def archive_car(self, car_id: str) -> Car:
-        """Archive a car unless it is already archived or has an active contract."""
+        """Archive a car unless it is already archived or has an active or upcoming contract."""
         car = self._get_active_car(car_id)
         if car.archived_at is not None:
             raise CarAlreadyArchivedException(car_id)
-        if self.repository.get_active_contract_for_car(car_id):
+        if self.repository.get_open_contract_for_car(car_id):
             raise CarHasActiveAssignmentException
         return self.repository.set_archived(car, datetime.now(UTC))
 

@@ -117,7 +117,8 @@ def update_car_status(
 ) -> CarResponseSchema:
     """Change the car status (ACTIVE, INACTIVE or IN_MAINTENANCE).
 
-    Returns 404 if the car does not exist and 422 if the status is not a valid value.
+    Returns 404 if the car does not exist, 400 if the car is archived and 422 if the status is not a
+    valid value.
     """
     return service.update_status(car_id, body.status)
 
@@ -130,8 +131,8 @@ def archive_car(
 ) -> CarResponseSchema:
     """Archive a car (sets `archived_at`).
 
-    Returns 404 if the car does not exist and 400 if it is already archived or has an active
-    assignment ("Cannot archive a car with an active assignment").
+    Returns 404 if the car does not exist and 400 if it is already archived or has an active or
+    upcoming assignment ("Cannot archive a car with an active or upcoming assignment").
     """
     return service.archive_car(car_id)
 

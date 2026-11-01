@@ -264,6 +264,15 @@ class TestUpdateCarStatus:
         assert response.status_code == 200
         assert response.json()["status"] == new_status
 
+    def test_update_status_of_archived_car_is_rejected(self, authorized_client, created_car):
+        assert authorized_client.patch(f"{ENDPOINT}/{created_car}/archive").status_code == 200
+
+        response = authorized_client.patch(f"{ENDPOINT}/{created_car}/status", json={"status": "INACTIVE"})
+
+        assert response.status_code == 400
+        assert "archived" in response.json()["detail"]
+        assert authorized_client.car_repo.get_by_id(created_car).status == "ACTIVE"
+
     def test_update_status_invalid_value(self, authorized_client, created_car):
         response = authorized_client.patch(f"{ENDPOINT}/{created_car}/status", json={"status": "BROKEN"})
 

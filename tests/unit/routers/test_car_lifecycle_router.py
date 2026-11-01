@@ -63,7 +63,16 @@ class TestArchiveCar:
         response = authorized_client.patch(f"{ENDPOINT}/{created_car}/archive")
 
         assert response.status_code == 400
-        assert response.json()["detail"] == "Cannot archive a car with an active assignment"
+        assert response.json()["detail"] == "Cannot archive a car with an active or upcoming assignment"
+        assert authorized_client.car_repo.get_by_id(created_car).archived_at is None
+
+    def test_archive_blocked_by_upcoming_contract(self, authorized_client, created_car):
+        authorized_client.car_repo.contracts.append(_contract(created_car, 7, 37))
+
+        response = authorized_client.patch(f"{ENDPOINT}/{created_car}/archive")
+
+        assert response.status_code == 400
+        assert "upcoming assignment" in response.json()["detail"]
         assert authorized_client.car_repo.get_by_id(created_car).archived_at is None
 
     def test_archive_not_blocked_by_expired_contract(self, authorized_client, created_car):

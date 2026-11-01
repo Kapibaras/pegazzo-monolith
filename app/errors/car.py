@@ -89,12 +89,22 @@ class CarModelNotFoundException(PegazzoException):
 
 
 class CarHasActiveAssignmentException(PegazzoException):
-    """Exception raised when archiving a car that has an active contract."""
+    """Exception raised when archiving a car that has an active or upcoming contract."""
 
     def __init__(self):
         super().__init__(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot archive a car with an active assignment",
+            detail="Cannot archive a car with an active or upcoming assignment",
+        )
+
+
+class CarArchivedException(PegazzoException):
+    """Exception raised when changing the status of an archived car."""
+
+    def __init__(self, car_id: str):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot change the status of archived car '{car_id}'",
         )
 
 

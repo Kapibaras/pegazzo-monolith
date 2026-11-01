@@ -240,6 +240,11 @@ class CarRepository(DBRepository):
         """Return the number of cars linked to the given associate."""
         return self.db.query(associate_car).filter(associate_car.c.associate_id == associate_id).count()
 
+    def get_open_contract_for_car(self, car_id: str) -> Contract | None:
+        """Return a contract that is active today or starts in the future, or None."""
+        today = datetime.now(tz=UTC).date()
+        return self.db.query(Contract).filter(Contract.car_id == car_id, Contract.end_date >= today).first()
+
     def get_active_contract_for_car(self, car_id: str) -> Contract | None:
         """Return the currently active contract for the car, or None."""
         today = datetime.now(tz=UTC).date()
