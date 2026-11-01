@@ -12,9 +12,7 @@ from app.errors.driver import (
     LicenseValidityInPastException,
 )
 from app.models.driver import Driver
-from app.repositories.document import DocumentRepository
 from app.repositories.driver import DriverRepository
-from app.repositories.guarantor import GuarantorRepository
 from app.schemas.car import DocumentDetailSchema, PaginationSchema
 from app.schemas.driver import (
     AssignedCarSchema,
@@ -32,15 +30,8 @@ from app.utils.dates import compute_expiry_status
 class DriverService:
     """Business logic for driver operations."""
 
-    def __init__(
-        self,
-        repository: DriverRepository,
-        guarantor_repository: GuarantorRepository,
-        document_repository: DocumentRepository,
-    ):
+    def __init__(self, repository: DriverRepository):
         self.repository = repository
-        self.guarantor_repository = guarantor_repository
-        self.document_repository = document_repository
 
     def list_drivers(self, params: DriverListQuerySchema) -> DriverListResponseSchema:
         """Return a paginated, filtered and sorted list of drivers."""
@@ -160,6 +151,9 @@ class DriverService:
         if not driver:
             raise DriverNotFoundException(driver_id)
 
+        if driver.archived_at is not None:
+            return driver
+
         if self.repository.get_active_contract_for_driver(driver_id):
             raise DriverHasActiveContractException(driver_id)
 
@@ -182,14 +176,4 @@ class DriverService:
         if driver.archived_at is None:
             raise DriverNotArchivedException(driver_id)
 
-        for guarantor in list(driver.guarantors):
-            self.guarantor_repository.unlink_from_driver(driver_id, guarantor.id)
-            if self.guarantor_repository.count_linked_drivers(guarantor.id) == 0:
-                for doc in list(guarantor.documents):
-                    self.document_repository.delete(doc)
-                self.guarantor_repository.delete(guarantor)
-
-        self.repository.delete_driver_documents_m2m(driver_id)
-        self.repository.clear_photo(driver)
-        self.repository.delete_driver_references(driver_id)
-        self.repository.delete_driver(driver)
+        self.repository.cascade_delete_driver(driver)

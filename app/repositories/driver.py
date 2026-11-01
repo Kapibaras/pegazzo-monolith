@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import case, func
+from sqlalchemy import case, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -9,7 +9,16 @@ from app.enum.crm import DriverSortBy, DriverStatus
 from app.errors.database import DBOperationError
 from app.models.contract import Contract
 from app.models.document import Document
-from app.models.driver import Driver, Guarantor, Reference, driver_document_table, driver_reference_table
+from app.models.driver import (
+    Driver,
+    Guarantor,
+    Reference,
+    driver_document_table,
+    driver_guarantor_table,
+    driver_reference_table,
+    guarantor_document_table,
+    reference_document_table,
+)
 from app.utils.logging_config import logger
 
 from .abstract import DBRepository
@@ -142,40 +151,71 @@ class DriverRepository(DBRepository):
             raise DBOperationError("Error unarchiving driver") from ex
         return driver
 
-    def delete_driver(self, driver: Driver) -> None:
-        """Permanently delete a driver record."""
-        try:
-            self.db.delete(driver)
-            self.db.commit()
-        except Exception as ex:
-            self.db.rollback()
-            logger.error("Error deleting driver %s: %s", driver.id, ex, exc_info=True)
-            raise DBOperationError("Error deleting driver") from ex
+    def cascade_delete_driver(self, driver: Driver) -> None:
+        """Delete a driver and all dependent data in a single transaction.
 
-    def delete_driver_documents_m2m(self, driver_id: str) -> list[Document]:
-        """Remove all M2M links and delete the linked document records."""
-        documents = (
-            self.db.query(Document)
-            .join(driver_document_table, Document.id == driver_document_table.c.document_id)
-            .filter(driver_document_table.c.driver_id == driver_id)
-            .all()
-        )
+        Cascade order:
+        1. Unlink guarantors → delete guarantor docs → delete orphan guarantors
+        2. Unlink driver documents → delete document records
+        3. Unlink references → delete ref docs → delete orphan references
+        4. Nullify contract FK references
+        5. Delete driver record
+        """
+        driver_id = driver.id
         try:
+            # 1. Guarantors: unlink, clean docs, delete orphans
+            guarantor_ids = [
+                row.guarantor_id
+                for row in self.db.execute(
+                    driver_guarantor_table.select().where(driver_guarantor_table.c.driver_id == driver_id),
+                ).fetchall()
+            ]
+            self.db.execute(
+                driver_guarantor_table.delete().where(driver_guarantor_table.c.driver_id == driver_id),
+            )
+            if guarantor_ids:
+                still_linked = select(driver_guarantor_table.c.guarantor_id).where(
+                    driver_guarantor_table.c.guarantor_id.in_(guarantor_ids),
+                )
+                from app.models.driver import Guarantor
+
+                orphan_guarantors = (
+                    self.db.query(Guarantor)
+                    .filter(Guarantor.id.in_(guarantor_ids), Guarantor.id.not_in(still_linked))
+                    .all()
+                )
+                for g in orphan_guarantors:
+                    g_doc_ids = [
+                        row.document_id
+                        for row in self.db.execute(
+                            guarantor_document_table.select().where(
+                                guarantor_document_table.c.guarantor_id == g.id,
+                            ),
+                        ).fetchall()
+                    ]
+                    self.db.execute(
+                        guarantor_document_table.delete().where(
+                            guarantor_document_table.c.guarantor_id == g.id,
+                        ),
+                    )
+                    if g_doc_ids:
+                        self.db.query(Document).filter(Document.id.in_(g_doc_ids)).delete(synchronize_session=False)
+                    self.db.delete(g)
+
+            # 2. Driver documents: unlink M2M, delete records
+            doc_ids = [
+                row.document_id
+                for row in self.db.execute(
+                    driver_document_table.select().where(driver_document_table.c.driver_id == driver_id),
+                ).fetchall()
+            ]
             self.db.execute(
                 driver_document_table.delete().where(driver_document_table.c.driver_id == driver_id),
             )
-            for doc in documents:
-                self.db.delete(doc)
-            self.db.commit()
-        except Exception as ex:
-            self.db.rollback()
-            logger.error("Error deleting documents for driver %s: %s", driver_id, ex, exc_info=True)
-            raise DBOperationError("Error deleting driver documents") from ex
-        return documents
+            if doc_ids:
+                self.db.query(Document).filter(Document.id.in_(doc_ids)).delete(synchronize_session=False)
 
-    def delete_driver_references(self, driver_id: str) -> None:
-        """Remove M2M links and delete orphaned references for the driver."""
-        try:
+            # 3. References: unlink M2M, clean ref docs, delete orphans
             ref_ids = [
                 row.reference_id
                 for row in self.db.execute(
@@ -185,34 +225,46 @@ class DriverRepository(DBRepository):
             self.db.execute(
                 driver_reference_table.delete().where(driver_reference_table.c.driver_id == driver_id),
             )
-            for ref_id in ref_ids:
-                other_links = (
-                    self.db.query(func.count())
-                    .select_from(driver_reference_table)
-                    .filter(driver_reference_table.c.reference_id == ref_id)
-                    .scalar()
+            if ref_ids:
+                still_linked_refs = select(driver_reference_table.c.reference_id).where(
+                    driver_reference_table.c.reference_id.in_(ref_ids),
                 )
-                if other_links == 0:
-                    ref = self.db.query(Reference).filter(Reference.id == ref_id).first()
-                    if ref:
-                        self.db.delete(ref)
-            self.db.commit()
-        except Exception as ex:
-            self.db.rollback()
-            logger.error("Error deleting references for driver %s: %s", driver_id, ex, exc_info=True)
-            raise DBOperationError("Error deleting driver references") from ex
+                orphan_refs = (
+                    self.db.query(Reference)
+                    .filter(Reference.id.in_(ref_ids), Reference.id.not_in(still_linked_refs))
+                    .all()
+                )
+                for ref in orphan_refs:
+                    ref_doc_ids = [
+                        row.document_id
+                        for row in self.db.execute(
+                            reference_document_table.select().where(
+                                reference_document_table.c.reference_id == ref.id,
+                            ),
+                        ).fetchall()
+                    ]
+                    self.db.execute(
+                        reference_document_table.delete().where(
+                            reference_document_table.c.reference_id == ref.id,
+                        ),
+                    )
+                    if ref_doc_ids:
+                        self.db.query(Document).filter(Document.id.in_(ref_doc_ids)).delete(synchronize_session=False)
+                    self.db.delete(ref)
 
-    def clear_photo(self, driver: Driver) -> str | None:
-        """Clear the driver's photo reference and return the old URL."""
-        old_photo = driver.photo
-        try:
-            driver.photo = None
+            # 4. Nullify contract FK so delete doesn't hit FK constraint
+            self.db.query(Contract).filter(Contract.driver_id == driver_id).update(
+                {Contract.driver_id: None},
+                synchronize_session=False,
+            )
+
+            # 5. Delete driver
+            self.db.delete(driver)
             self.db.commit()
         except Exception as ex:
             self.db.rollback()
-            logger.error("Error clearing photo for driver %s: %s", driver.id, ex, exc_info=True)
-            raise DBOperationError("Error clearing driver photo") from ex
-        return old_photo
+            logger.error("Error cascade-deleting driver %s: %s", driver_id, ex, exc_info=True)
+            raise DBOperationError("Error deleting driver") from ex
 
     def list_drivers(
         self,

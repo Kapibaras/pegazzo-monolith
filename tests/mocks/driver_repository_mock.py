@@ -65,6 +65,7 @@ class DriverRepositoryMock:
         self.drivers: list[Driver] = []
         self.driver_documents: dict[str, list[Document]] = {}
         self.contracts: list[Contract] = []
+        self.guarantor_repo = None
         self.reset()
 
     def reset(self):
@@ -163,20 +164,16 @@ class DriverRepositoryMock:
         driver.updated_at = datetime.now(UTC)
         return driver
 
-    def delete_driver(self, driver: Driver) -> None:
-        self.drivers = [d for d in self.drivers if d.id != driver.id]
-        self.driver_documents.pop(driver.id, None)
-
-    def delete_driver_documents_m2m(self, driver_id: str) -> list[Document]:
-        return self.driver_documents.pop(driver_id, [])
-
-    def delete_driver_references(self, driver_id: str) -> None:
-        pass
-
-    def clear_photo(self, driver: Driver) -> str | None:
-        old = driver.photo
-        driver.photo = None
-        return old
+    def cascade_delete_driver(self, driver: Driver) -> None:
+        driver_id = driver.id
+        if self.guarantor_repo:
+            for g in list(driver.guarantors):
+                self.guarantor_repo.unlink_from_driver(driver_id, g.id)
+                if self.guarantor_repo.count_linked_drivers(g.id) == 0:
+                    self.guarantor_repo.delete(g)
+        self.drivers = [d for d in self.drivers if d.id != driver_id]
+        self.driver_documents.pop(driver_id, None)
+        self.contracts = [c for c in self.contracts if c.driver_id != driver_id]
 
     def list_drivers(
         self,
