@@ -144,6 +144,10 @@ class DriverRepositoryMock:
             None,
         )
 
+    def has_pending_contracts(self, driver_id: str) -> bool:
+        today = datetime.now(tz=UTC).date()
+        return any(c.driver_id == driver_id and c.end_date >= today for c in self.contracts)
+
     def create_driver(self, driver: Driver) -> Driver:
         now = datetime.now(UTC)
         if driver.created_at is None:

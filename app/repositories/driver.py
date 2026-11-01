@@ -85,6 +85,18 @@ class DriverRepository(DBRepository):
             .first()
         )
 
+    def has_pending_contracts(self, driver_id: str) -> bool:
+        """Check if the driver has any active or future contract."""
+        today = datetime.now(tz=UTC).date()
+        return (
+            self.db.query(Contract)
+            .filter(
+                Contract.driver_id == driver_id,
+                Contract.end_date >= today,
+            )
+            .first()
+        ) is not None
+
     def _base_query(self, status: DriverStatus | None, archived: bool):
         """Build a base query with archive and status filters applied."""
         query = self.db.query(Driver)

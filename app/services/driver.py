@@ -154,7 +154,7 @@ class DriverService:
         if driver.archived_at is not None:
             return driver
 
-        if self.repository.get_active_contract_for_driver(driver_id):
+        if self.repository.has_pending_contracts(driver_id):
             raise DriverHasActiveContractException(driver_id)
 
         return self.repository.archive_driver(driver)
