@@ -1,4 +1,5 @@
 from sqlalchemy import case, func
+from sqlalchemy.exc import IntegrityError
 
 from app.enum.balance import SortOrder
 from app.enum.crm import DriverSortBy, DriverStatus
@@ -38,6 +39,9 @@ class DriverRepository(DBRepository):
             self.db.add(driver)
             self.db.commit()
             self.db.refresh(driver)
+        except IntegrityError as ex:
+            self.db.rollback()
+            raise ex
         except Exception as ex:
             self.db.rollback()
             logger.error("Error creating driver %s due to: %s", driver.id, ex, exc_info=True)

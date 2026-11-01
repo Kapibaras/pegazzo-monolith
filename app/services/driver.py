@@ -1,6 +1,8 @@
 import math
 from datetime import UTC, datetime
 
+from sqlalchemy.exc import IntegrityError
+
 from app.errors.driver import (
     DriverIdAlreadyExistsException,
     IdentificationNumberAlreadyExistsException,
@@ -73,4 +75,13 @@ class DriverService:
             garage_address=data.garage_address,
         )
 
-        return self.repository.create_driver(driver)
+        try:
+            return self.repository.create_driver(driver)
+        except IntegrityError as ex:
+            constraint = getattr(ex.orig, "diag", None)
+            detail = constraint.message_detail if constraint else str(ex)
+            if "license_number" in detail:
+                raise LicenseNumberAlreadyExistsException(data.license_number) from ex
+            if "identification_number" in detail:
+                raise IdentificationNumberAlreadyExistsException(data.identification_number) from ex
+            raise DriverIdAlreadyExistsException(data.id) from ex
