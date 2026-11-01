@@ -1,4 +1,4 @@
-from app.config.constants import MAX_GUARANTORS_PER_DRIVER
+from app.config.constants import GuarantorConfig
 from app.errors.driver import DriverNotFoundException
 from app.errors.guarantor import GuarantorLimitReachedException, GuarantorNotFoundException, GuarantorNotLinkedToDriverException
 from app.models.driver import Guarantor
@@ -19,8 +19,8 @@ class GuarantorService:
         if not self.driver_repository.get_by_id(driver_id):
             raise DriverNotFoundException(driver_id)
 
-        if self.repository.count_guarantors_for_driver(driver_id) >= MAX_GUARANTORS_PER_DRIVER:
-            raise GuarantorLimitReachedException(driver_id, MAX_GUARANTORS_PER_DRIVER)
+        if self.repository.count_guarantors_for_driver(driver_id, lock=True) >= GuarantorConfig.MAX_PER_DRIVER:
+            raise GuarantorLimitReachedException(driver_id, GuarantorConfig.MAX_PER_DRIVER)
 
         guarantor = Guarantor(
             name=data.name,
@@ -29,15 +29,19 @@ class GuarantorService:
             address=data.address,
             relation=data.relation,
         )
-        guarantor = self.repository.create(guarantor)
-        self.repository.link_to_driver(driver_id, guarantor.id)
-        return guarantor
+        return self.repository.create_and_link(guarantor, driver_id)
 
-    def update_guarantor(self, guarantor_id: int, data: GuarantorPatchSchema) -> Guarantor:
-        """Update a guarantor partially."""
+    def update_guarantor(self, driver_id: str, guarantor_id: int, data: GuarantorPatchSchema) -> Guarantor:
+        """Update a guarantor scoped to a driver."""
+        if not self.driver_repository.get_by_id(driver_id):
+            raise DriverNotFoundException(driver_id)
+
         guarantor = self.repository.get_by_id(guarantor_id)
         if not guarantor:
             raise GuarantorNotFoundException(guarantor_id)
+
+        if not self.repository.is_linked_to_driver(driver_id, guarantor_id):
+            raise GuarantorNotLinkedToDriverException(guarantor_id, driver_id)
 
         if data.name is not None:
             guarantor.name = data.name

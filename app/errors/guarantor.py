@@ -28,6 +28,6 @@ class GuarantorNotLinkedToDriverException(PegazzoException):
 
     def __init__(self, guarantor_id: int, driver_id: str):
         super().__init__(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Guarantor '{guarantor_id}' is not linked to driver '{driver_id}'",
         )

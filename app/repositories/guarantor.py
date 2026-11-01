@@ -1,7 +1,8 @@
 from sqlalchemy import func
 
 from app.errors.database import DBOperationError
-from app.models.driver import Guarantor, driver_guarantor_table
+from app.models.document import Document
+from app.models.driver import Guarantor, driver_guarantor_table, guarantor_document_table
 from app.utils.logging_config import logger
 
 from .abstract import DBRepository
@@ -14,15 +15,19 @@ class GuarantorRepository(DBRepository):
         """Retrieve a guarantor by id."""
         return self.db.query(Guarantor).filter(Guarantor.id == guarantor_id).first()
 
-    def create(self, guarantor: Guarantor) -> Guarantor:
-        """Persist a new guarantor to the database."""
+    def create_and_link(self, guarantor: Guarantor, driver_id: str) -> Guarantor:
+        """Create a guarantor and link it to a driver in one transaction."""
         try:
             self.db.add(guarantor)
+            self.db.flush()
+            self.db.execute(
+                driver_guarantor_table.insert().values(driver_id=driver_id, guarantor_id=guarantor.id),
+            )
             self.db.commit()
             self.db.refresh(guarantor)
         except Exception as ex:
             self.db.rollback()
-            logger.error("Error creating guarantor due to: %s", ex, exc_info=True)
+            logger.error("Error creating guarantor for driver %s: %s", driver_id, ex, exc_info=True)
             raise DBOperationError("Error creating guarantor in the database") from ex
         return guarantor
 
@@ -38,8 +43,19 @@ class GuarantorRepository(DBRepository):
         return guarantor
 
     def delete(self, guarantor: Guarantor) -> None:
-        """Delete a guarantor."""
+        """Delete a guarantor and its linked documents."""
         try:
+            documents = (
+                self.db.query(Document)
+                .join(guarantor_document_table, Document.id == guarantor_document_table.c.document_id)
+                .filter(guarantor_document_table.c.guarantor_id == guarantor.id)
+                .all()
+            )
+            self.db.execute(
+                guarantor_document_table.delete().where(guarantor_document_table.c.guarantor_id == guarantor.id),
+            )
+            for doc in documents:
+                self.db.delete(doc)
             self.db.delete(guarantor)
             self.db.commit()
         except Exception as ex:
@@ -48,17 +64,7 @@ class GuarantorRepository(DBRepository):
             raise DBOperationError("Error deleting guarantor in the database") from ex
 
     def link_to_driver(self, driver_id: str, guarantor_id: int) -> None:
-        """Insert a row into the driver_guarantor M2M table.
-
-        A guarantor is scoped to a single driver. Although the M2M table
-        technically allows many-to-many, business rules restrict each
-        guarantor to exactly one driver. This guard prevents accidental
-        sharing if a future endpoint attempts to reuse an existing guarantor.
-        """
-        if self.count_linked_drivers(guarantor_id) > 0:
-            msg = f"Guarantor {guarantor_id} is already linked to a driver"
-            raise DBOperationError(msg)
-
+        """Insert a row into the driver_guarantor M2M table."""
         try:
             self.db.execute(
                 driver_guarantor_table.insert().values(driver_id=driver_id, guarantor_id=guarantor_id),
@@ -94,14 +100,19 @@ class GuarantorRepository(DBRepository):
         ).first()
         return result is not None
 
-    def count_guarantors_for_driver(self, driver_id: str) -> int:
-        """Return how many guarantors are linked to this driver."""
-        return (
+    def count_guarantors_for_driver(self, driver_id: str, *, lock: bool = False) -> int:
+        """Return how many guarantors are linked to this driver.
+
+        Pass lock=True to acquire a FOR UPDATE lock for concurrency safety.
+        """
+        query = (
             self.db.query(func.count())
             .select_from(driver_guarantor_table)
             .filter(driver_guarantor_table.c.driver_id == driver_id)
-            .scalar()
         )
+        if lock:
+            query = query.with_for_update()
+        return query.scalar()
 
     def count_linked_drivers(self, guarantor_id: int) -> int:
         """Return how many drivers are linked to this guarantor."""

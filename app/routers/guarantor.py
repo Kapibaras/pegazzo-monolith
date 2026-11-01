@@ -26,18 +26,19 @@ def create_guarantor(
 
 
 @router.patch(
-    "/guarantors/{guarantor_id}",
+    "/drivers/{driver_id}/guarantors/{guarantor_id}",
     response_model=GuarantorResponseSchema,
     status_code=status.HTTP_200_OK,
 )
 def update_guarantor(
+    driver_id: str = Path(..., description="Driver id"),
     guarantor_id: int = Path(..., description="Guarantor id"),
     body: GuarantorPatchSchema = Body(..., description="Fields to update"),
     service: GuarantorService = Depends(ServiceFactory.guarantor_service),
     _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
 ) -> GuarantorResponseSchema:
-    """Update a guarantor."""
-    return service.update_guarantor(guarantor_id=guarantor_id, data=body)
+    """Update a guarantor scoped to a driver."""
+    return service.update_guarantor(driver_id=driver_id, guarantor_id=guarantor_id, data=body)
 
 
 @router.delete(

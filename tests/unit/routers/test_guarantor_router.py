@@ -96,29 +96,37 @@ class TestCreateGuarantor:
 
 @pytest.mark.usefixtures("authorized_client", "client")
 class TestUpdateGuarantor:
-    """Tests for PATCH /management/guarantors/{guarantor_id}."""
+    """Tests for PATCH /management/drivers/{driver_id}/guarantors/{guarantor_id}."""
 
-    ENDPOINT = "/pegazzo/management/guarantors/{guarantor_id}"
+    ENDPOINT = "/pegazzo/management/drivers/{driver_id}/guarantors/{guarantor_id}"
+
+    def _create_linked_guarantor(self, authorized_client, driver_id="DRV-001"):
+        create_url = f"/pegazzo/management/drivers/{driver_id}/guarantors"
+        resp = authorized_client.post(create_url, json=_VALID_GUARANTOR_BODY)
+        return resp.json()["id"]
 
     # -----------------------------------------------------------------
     # Success
     # -----------------------------------------------------------------
 
     def test_update_guarantor_partial(self, authorized_client):
-        url = self.ENDPOINT.format(guarantor_id=1)
+        gid = self._create_linked_guarantor(authorized_client)
+        url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=gid)
         response = authorized_client.patch(url, json={"name": "Roberto"})
         assert response.status_code == 200
         assert response.json()["name"] == "Roberto"
-        assert response.json()["surnames"] == "García López"
+        assert response.json()["surnames"] == "Ramírez Vega"
 
     def test_update_guarantor_address(self, authorized_client):
-        url = self.ENDPOINT.format(guarantor_id=1)
+        gid = self._create_linked_guarantor(authorized_client)
+        url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=gid)
         response = authorized_client.patch(url, json={"address": "Av. Nueva #99"})
         assert response.status_code == 200
         assert response.json()["address"] == "Av. Nueva #99"
 
     def test_update_guarantor_multiple_fields(self, authorized_client):
-        url = self.ENDPOINT.format(guarantor_id=1)
+        gid = self._create_linked_guarantor(authorized_client)
+        url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=gid)
         response = authorized_client.patch(url, json={"name": "Pedro", "relation": "uncle"})
         assert response.status_code == 200
         data = response.json()
@@ -130,17 +138,29 @@ class TestUpdateGuarantor:
     # -----------------------------------------------------------------
 
     def test_update_guarantor_not_found(self, authorized_client):
-        url = self.ENDPOINT.format(guarantor_id=999)
+        url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=999)
         response = authorized_client.patch(url, json={"name": "Test"})
         assert response.status_code == 404
         assert "was not found" in response.json()["detail"]
+
+    def test_update_guarantor_driver_not_found(self, authorized_client):
+        url = self.ENDPOINT.format(driver_id="NO-EXISTE", guarantor_id=1)
+        response = authorized_client.patch(url, json={"name": "Test"})
+        assert response.status_code == 404
+        assert "was not found" in response.json()["detail"]
+
+    def test_update_guarantor_not_linked(self, authorized_client):
+        url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=1)
+        response = authorized_client.patch(url, json={"name": "Test"})
+        assert response.status_code == 404
+        assert "not linked" in response.json()["detail"]
 
     # -----------------------------------------------------------------
     # RBAC
     # -----------------------------------------------------------------
 
     def test_update_guarantor_requires_auth(self, client):
-        url = self.ENDPOINT.format(guarantor_id=1)
+        url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=1)
         response = client.patch(url, json={"name": "Test"})
         assert response.status_code == 401
 
@@ -208,7 +228,7 @@ class TestDeleteGuarantor:
     def test_delete_guarantor_not_linked(self, authorized_client):
         url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=1)
         response = authorized_client.delete(url)
-        assert response.status_code == 400
+        assert response.status_code == 404
         assert "not linked" in response.json()["detail"]
 
     # -----------------------------------------------------------------

@@ -56,7 +56,7 @@ class GuarantorRepositoryMock:
     def get_by_id(self, guarantor_id: int) -> Guarantor | None:
         return next((g for g in self.guarantors if g.id == guarantor_id), None)
 
-    def create(self, guarantor: Guarantor) -> Guarantor:
+    def create_and_link(self, guarantor: Guarantor, driver_id: str) -> Guarantor:
         now = datetime.now(UTC)
         guarantor.id = self._next_id
         self._next_id += 1
@@ -65,6 +65,7 @@ class GuarantorRepositoryMock:
         if guarantor.updated_at is None:
             guarantor.updated_at = now
         self.guarantors.append(guarantor)
+        self.driver_links.setdefault(driver_id, set()).add(guarantor.id)
         return guarantor
 
     def update(self, guarantor: Guarantor) -> Guarantor:
@@ -84,7 +85,7 @@ class GuarantorRepositoryMock:
     def is_linked_to_driver(self, driver_id: str, guarantor_id: int) -> bool:
         return guarantor_id in self.driver_links.get(driver_id, set())
 
-    def count_guarantors_for_driver(self, driver_id: str) -> int:
+    def count_guarantors_for_driver(self, driver_id: str, *, lock: bool = False) -> int:  # noqa: ARG002
         return len(self.driver_links.get(driver_id, set()))
 
     def count_linked_drivers(self, guarantor_id: int) -> int:
