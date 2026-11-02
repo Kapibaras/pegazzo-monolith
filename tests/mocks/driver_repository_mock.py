@@ -172,9 +172,7 @@ class DriverRepositoryMock:
         driver_id = driver.id
         if self.guarantor_repo:
             for g in list(driver.guarantors):
-                self.guarantor_repo.unlink_from_driver(driver_id, g.id)
-                if self.guarantor_repo.count_linked_drivers(g.id) == 0:
-                    self.guarantor_repo.delete(g)
+                self.guarantor_repo.unlink_and_delete_if_orphan(driver_id, g)
         self.drivers = [d for d in self.drivers if d.id != driver_id]
         self.driver_documents.pop(driver_id, None)
         self.contracts = [c for c in self.contracts if c.driver_id != driver_id]
