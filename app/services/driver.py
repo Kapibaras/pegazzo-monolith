@@ -78,8 +78,8 @@ class DriverService:
         try:
             return self.repository.create_driver(driver)
         except IntegrityError as ex:
-            constraint = getattr(ex.orig, "diag", None)
-            detail = constraint.message_detail if constraint else str(ex)
+            diag = getattr(ex.orig, "diag", None)
+            detail = getattr(diag, "message_detail", None) or str(ex)
             if "license_number" in detail:
                 raise LicenseNumberAlreadyExistsException(data.license_number) from ex
             if "identification_number" in detail:
