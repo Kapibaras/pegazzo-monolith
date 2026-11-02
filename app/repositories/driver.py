@@ -8,7 +8,7 @@ from app.enum.balance import SortOrder
 from app.enum.crm import DriverSortBy, DriverStatus
 from app.errors.database import DBOperationError
 from app.models.contract import Contract
-from app.models.driver import Driver
+from app.models.driver import Driver, Guarantor
 from app.utils.logging_config import logger
 
 from .abstract import DBRepository
@@ -31,7 +31,7 @@ class DriverRepository(DBRepository):
             self.db.query(Driver)
             .options(
                 selectinload(Driver.documents),
-                selectinload(Driver.guarantors).selectinload("documents"),
+                selectinload(Driver.guarantors).selectinload(Guarantor.documents),
             )
             .filter(Driver.id == driver_id)
             .first()

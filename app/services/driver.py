@@ -140,4 +140,5 @@ class DriverService:
             documents=documents,
             guarantors=guarantors,
             assigned_car=assigned_car,
+            archived_at=driver.archived_at,
         )

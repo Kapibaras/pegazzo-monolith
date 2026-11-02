@@ -294,6 +294,12 @@ class TestGetDriverDetail:
         assert data["garageAddress"] == ["Calle 2 #200"]
         assert "createdAt" in data
         assert "updatedAt" in data
+        assert data["archivedAt"] is None
+
+    def test_get_driver_archived_returns_archived_at(self, authorized_client):
+        response = authorized_client.get(f"{self.ENDPOINT}/DRV-003")
+        assert response.status_code == 200
+        assert response.json()["archivedAt"].startswith("2026-06-01")
 
     def test_get_driver_not_found(self, authorized_client):
         response = authorized_client.get(f"{self.ENDPOINT}/NOTEXIST")
@@ -342,8 +348,13 @@ class TestGetDriverDetail:
 
         gdoc = Document(id=50, type="PDF", url="docs/g_ine.pdf", category="ine", expiry_date=None)
         guarantor = SimpleNamespace(
-            id=1, name="Carlos", surnames="López", telephones=["+521111111111"],
-            address="Calle X", relation="padre", documents=[gdoc],
+            id=1,
+            name="Carlos",
+            surnames="López",
+            telephones=["+521111111111"],
+            address="Calle X",
+            relation="padre",
+            documents=[gdoc],
         )
 
         drv = authorized_client.driver_repo.get_by_id("DRV-001")
@@ -365,7 +376,10 @@ class TestGetDriverDetail:
         from app.models.document import Document
 
         expired_doc = Document(
-            id=60, type="PDF", url="docs/expired.pdf", category="ine",
+            id=60,
+            type="PDF",
+            url="docs/expired.pdf",
+            category="ine",
             expiry_date=datetime(2020, 1, 1, tzinfo=UTC),
         )
         drv = authorized_client.driver_repo.get_by_id("DRV-001")
