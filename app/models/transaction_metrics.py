@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import Column, Index, Integer, Numeric, String, UniqueConstraint
+from sqlalchemy import Column, Index, Integer, Numeric, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
 from sqlalchemy.types import DateTime
@@ -29,7 +29,7 @@ class TransactionMetrics(Base):
     payment_method_breakdown = Column(
         JSONB,
         nullable=False,
-        server_default=func.cast("{}", JSONB),
+        server_default=text("'{}'::jsonb"),
     )
 
     weekly_average_income = Column(Numeric(12, 2), nullable=False, server_default="0")
