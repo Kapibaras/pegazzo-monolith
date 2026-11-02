@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 _VALID_GUARANTOR_BODY = {
@@ -189,6 +191,28 @@ class TestDeleteGuarantor:
         # Guarantor should be deleted (orphan)
         assert authorized_client.guarantor_repo.get_by_id(gid) is None
 
+    def test_delete_guarantor_orphan_moves_documents_to_deleted(self, authorized_client):
+        resp = authorized_client.post("/pegazzo/management/drivers/DRV-001/guarantors", json=_VALID_GUARANTOR_BODY)
+        gid = resp.json()["id"]
+        authorized_client.guarantor_repo.document_keys[gid] = ["guarantor/ine.pdf", "guarantor/address.pdf"]
+
+        with patch("app.storage.r2.soft_delete_document") as mock_soft_delete:
+            response = authorized_client.delete(self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=gid))
+
+        assert response.status_code == 200
+        assert [c.args[0] for c in mock_soft_delete.call_args_list] == ["guarantor/ine.pdf", "guarantor/address.pdf"]
+
+    def test_delete_guarantor_storage_failure_does_not_fail_request(self, authorized_client):
+        resp = authorized_client.post("/pegazzo/management/drivers/DRV-001/guarantors", json=_VALID_GUARANTOR_BODY)
+        gid = resp.json()["id"]
+        authorized_client.guarantor_repo.document_keys[gid] = ["guarantor/ine.pdf"]
+
+        with patch("app.storage.r2.soft_delete_document", side_effect=RuntimeError("R2 down")):
+            response = authorized_client.delete(self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=gid))
+
+        assert response.status_code == 200
+        assert authorized_client.guarantor_repo.get_by_id(gid) is None
+
     # -----------------------------------------------------------------
     # Success — shared (only unlink)
     # -----------------------------------------------------------------
@@ -203,10 +227,12 @@ class TestDeleteGuarantor:
         authorized_client.guarantor_repo.link_to_driver("DRV-002", gid)
 
         url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=gid)
-        response = authorized_client.delete(url)
+        with patch("app.storage.r2.soft_delete_document") as mock_soft_delete:
+            response = authorized_client.delete(url)
         assert response.status_code == 200
 
         # Guarantor should still exist (linked to DRV-002)
+        assert mock_soft_delete.call_count == 0
         assert authorized_client.guarantor_repo.get_by_id(gid) is not None
         assert not authorized_client.guarantor_repo.is_linked_to_driver("DRV-001", gid)
         assert authorized_client.guarantor_repo.is_linked_to_driver("DRV-002", gid)

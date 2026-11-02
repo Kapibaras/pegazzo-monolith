@@ -5,6 +5,7 @@ from app.models.driver import Guarantor
 from app.repositories.driver import DriverRepository
 from app.repositories.guarantor import GuarantorRepository
 from app.schemas.guarantor import GuarantorCreateSchema, GuarantorPatchSchema
+from app.storage import r2
 
 
 class GuarantorService:
@@ -57,7 +58,11 @@ class GuarantorService:
         return self.repository.update(guarantor)
 
     def delete_guarantor(self, driver_id: str, guarantor_id: int) -> None:
-        """Unlink a guarantor from a driver; delete the guarantor if it becomes an orphan."""
+        """Unlink a guarantor from a driver; delete the guarantor if it becomes an orphan.
+
+        The unlink and the orphan delete share one transaction. Files of deleted documents are
+        moved to the `deleted/` storage prefix afterwards (best effort).
+        """
         if not self.driver_repository.get_by_id(driver_id):
             raise DriverNotFoundException(driver_id)
 
@@ -68,7 +73,5 @@ class GuarantorService:
         if not self.repository.is_linked_to_driver(driver_id, guarantor_id):
             raise GuarantorNotLinkedToDriverException(guarantor_id, driver_id)
 
-        self.repository.unlink_from_driver(driver_id, guarantor_id)
-
-        if self.repository.count_linked_drivers(guarantor_id) == 0:
-            self.repository.delete(guarantor)
+        document_keys = self.repository.unlink_and_delete_if_orphan(driver_id, guarantor)
+        r2.soft_delete_documents_best_effort(document_keys)

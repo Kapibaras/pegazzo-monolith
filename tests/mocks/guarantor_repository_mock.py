@@ -33,12 +33,14 @@ class GuarantorRepositoryMock:
         self.guarantors: list[Guarantor] = []
         self._next_id = 3
         self.driver_links: dict[str, set[int]] = {}
+        self.document_keys: dict[int, list[str]] = {}
         self.reset()
 
     def reset(self):
         self.guarantors = [self._copy(g) for g in _SEED_GUARANTORS]
         self._next_id = 3
         self.driver_links = {}
+        self.document_keys = {}
 
     @staticmethod
     def _copy(g: Guarantor) -> Guarantor:
@@ -72,8 +74,12 @@ class GuarantorRepositoryMock:
         guarantor.updated_at = datetime.now(UTC)
         return guarantor
 
-    def delete(self, guarantor: Guarantor) -> None:
+    def unlink_and_delete_if_orphan(self, driver_id: str, guarantor: Guarantor) -> list[str]:
+        self.unlink_from_driver(driver_id, guarantor.id)
+        if self.count_linked_drivers(guarantor.id):
+            return []
         self.guarantors = [g for g in self.guarantors if g.id != guarantor.id]
+        return self.document_keys.pop(guarantor.id, [])
 
     def link_to_driver(self, driver_id: str, guarantor_id: int) -> None:
         self.driver_links.setdefault(driver_id, set()).add(guarantor_id)
