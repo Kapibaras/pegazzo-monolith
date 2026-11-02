@@ -1,13 +1,15 @@
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 from app.enum.balance import SortOrder
 from app.enum.crm import DriverSortBy, DriverStatus
 from app.schemas.car import DocumentDetailSchema, PaginationSchema
 from app.schemas.types import RequestUTCDatetime
+
+CLEARABLE_DRIVER_FIELDS = frozenset({"photo"})
 
 _CAMEL = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
 
@@ -76,13 +78,25 @@ class DriverPatchSchema(BaseModel):
 
     name: str | None = Field(default=None, min_length=1, max_length=50)
     surnames: str | None = Field(default=None, min_length=1, max_length=100)
-    telephones: list[Annotated[str, Field(min_length=1, max_length=20)]] | None = None
+    telephones: list[Annotated[str, Field(min_length=1, max_length=20)]] | None = Field(default=None, min_length=1)
     license_number: str | None = Field(default=None, min_length=1, max_length=20)
     license_validity: RequestUTCDatetime | None = None
     identification_number: str | None = Field(default=None, min_length=1, max_length=20)
     address: str | None = Field(default=None, min_length=1, max_length=255)
-    garage_address: list[Annotated[str, Field(min_length=1, max_length=255)]] | None = None
+    garage_address: list[Annotated[str, Field(min_length=1, max_length=255)]] | None = Field(default=None, min_length=1)
     photo: str | None = Field(default=None, min_length=1, max_length=512)
+
+    @model_validator(mode="after")
+    def check_update_body(self) -> "DriverPatchSchema":
+        """Reject an empty body and explicit nulls on fields that cannot be cleared."""
+        if not self.model_fields_set:
+            raise ValueError("At least one field must be provided")
+        not_clearable = sorted(
+            f for f in self.model_fields_set if getattr(self, f) is None and f not in CLEARABLE_DRIVER_FIELDS
+        )
+        if not_clearable:
+            raise ValueError(f"These fields cannot be null: {', '.join(not_clearable)}")
+        return self
 
 
 class DriverStatusSchema(BaseModel):
