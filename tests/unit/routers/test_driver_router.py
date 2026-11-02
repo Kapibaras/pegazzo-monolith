@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from unittest.mock import patch
 
 import pytest
 
@@ -553,14 +554,17 @@ class TestDeleteDriver:
         authorized_client.driver_repo.driver_documents["DRV-003"] = [doc]
 
         url = self.ENDPOINT.format(driver_id="DRV-003")
-        response = authorized_client.delete(url)
+        with patch("app.storage.r2.soft_delete_document") as mock_soft_delete:
+            response = authorized_client.delete(url)
         assert response.status_code == 200
         assert authorized_client.driver_repo.driver_documents.get("DRV-003") is None
+        mock_soft_delete.assert_called_once_with("docs/ine.pdf")
 
     def test_delete_driver_guarantor_orphan(self, authorized_client):
         from app.models.document import Document
 
         authorized_client.guarantor_repo.link_to_driver("DRV-003", 1)
+        authorized_client.guarantor_repo.document_keys[1] = ["docs/guarantor.pdf"]
 
         guarantor = authorized_client.guarantor_repo.get_by_id(1)
         doc = Document(id=99, type="PDF", url="docs/guarantor.pdf", category="ine", expiry_date=None)
@@ -570,9 +574,23 @@ class TestDeleteDriver:
         drv.guarantors = [guarantor]
 
         url = self.ENDPOINT.format(driver_id="DRV-003")
-        response = authorized_client.delete(url)
+        with patch("app.storage.r2.soft_delete_document") as mock_soft_delete:
+            response = authorized_client.delete(url)
         assert response.status_code == 200
         assert authorized_client.guarantor_repo.get_by_id(1) is None
+        mock_soft_delete.assert_called_once_with("docs/guarantor.pdf")
+
+    def test_delete_driver_storage_failure_does_not_fail_request(self, authorized_client):
+        from app.models.document import Document
+
+        doc = Document(id=10, type="PDF", url="docs/ine.pdf", category="ine", expiry_date=None)
+        authorized_client.driver_repo.driver_documents["DRV-003"] = [doc]
+
+        url = self.ENDPOINT.format(driver_id="DRV-003")
+        with patch("app.storage.r2.soft_delete_document", side_effect=RuntimeError("R2 down")):
+            response = authorized_client.delete(url)
+        assert response.status_code == 200
+        assert authorized_client.driver_repo.get_by_id("DRV-003") is None
 
     def test_delete_driver_guarantor_shared(self, authorized_client):
         authorized_client.guarantor_repo.link_to_driver("DRV-003", 1)

@@ -167,7 +167,11 @@ class DriverService:
         return self.repository.unarchive_driver(driver)
 
     def delete_driver(self, driver_id: str) -> None:
-        """Permanently delete a driver with cascade cleanup."""
+        """Permanently delete a driver with cascade cleanup.
+
+        Files of the deleted documents are moved to the `deleted/` storage prefix after the
+        commit (best effort).
+        """
         driver = self.repository.get_by_id(driver_id)
         if not driver:
             raise DriverNotFoundException(driver_id)
@@ -175,4 +179,5 @@ class DriverService:
         if driver.archived_at is None:
             raise DriverNotArchivedException(driver_id)
 
-        self.repository.cascade_delete_driver(driver)
+        document_keys = self.repository.cascade_delete_driver(driver)
+        r2.soft_delete_documents_best_effort(document_keys)

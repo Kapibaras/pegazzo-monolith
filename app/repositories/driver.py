@@ -163,7 +163,15 @@ class DriverRepository(DBRepository):
             raise DBOperationError("Error unarchiving driver") from ex
         return driver
 
-    def cascade_delete_driver(self, driver: Driver) -> None:
+    def _delete_documents(self, document_ids: list[int]) -> list[str]:
+        """Delete the given documents and return their storage keys."""
+        if not document_ids:
+            return []
+        keys = [url for (url,) in self.db.query(Document.url).filter(Document.id.in_(document_ids)).all()]
+        self.db.query(Document).filter(Document.id.in_(document_ids)).delete(synchronize_session=False)
+        return keys
+
+    def cascade_delete_driver(self, driver: Driver) -> list[str]:
         """Delete a driver and all dependent data in a single transaction.
 
         Cascade order:
@@ -172,10 +180,15 @@ class DriverRepository(DBRepository):
         3. Unlink references → delete ref docs → delete orphan references
         4. Nullify contract FK references
         5. Delete driver record
+
+        Objects are expired before `db.delete` so the ORM does not try to remove link rows that the
+        Core DELETEs above already removed (StaleDataError when the collections were eager loaded).
+
+        Returns the storage keys of the deleted documents so the caller can clean up storage.
         """
         driver_id = driver.id
+        document_keys: list[str] = []
         try:
-            # 1. Guarantors: unlink, clean docs, delete orphans
             guarantor_ids = [
                 row.guarantor_id
                 for row in self.db.execute(
@@ -189,12 +202,8 @@ class DriverRepository(DBRepository):
                 still_linked = select(driver_guarantor_table.c.guarantor_id).where(
                     driver_guarantor_table.c.guarantor_id.in_(guarantor_ids),
                 )
-                from app.models.driver import Guarantor
-
                 orphan_guarantors = (
-                    self.db.query(Guarantor)
-                    .filter(Guarantor.id.in_(guarantor_ids), Guarantor.id.not_in(still_linked))
-                    .all()
+                    self.db.query(Guarantor).filter(Guarantor.id.in_(guarantor_ids), Guarantor.id.not_in(still_linked)).all()
                 )
                 for g in orphan_guarantors:
                     g_doc_ids = [
@@ -210,11 +219,10 @@ class DriverRepository(DBRepository):
                             guarantor_document_table.c.guarantor_id == g.id,
                         ),
                     )
-                    if g_doc_ids:
-                        self.db.query(Document).filter(Document.id.in_(g_doc_ids)).delete(synchronize_session=False)
+                    document_keys.extend(self._delete_documents(g_doc_ids))
+                    self.db.expire(g)
                     self.db.delete(g)
 
-            # 2. Driver documents: unlink M2M, delete records
             doc_ids = [
                 row.document_id
                 for row in self.db.execute(
@@ -224,10 +232,8 @@ class DriverRepository(DBRepository):
             self.db.execute(
                 driver_document_table.delete().where(driver_document_table.c.driver_id == driver_id),
             )
-            if doc_ids:
-                self.db.query(Document).filter(Document.id.in_(doc_ids)).delete(synchronize_session=False)
+            document_keys.extend(self._delete_documents(doc_ids))
 
-            # 3. References: unlink M2M, clean ref docs, delete orphans
             ref_ids = [
                 row.reference_id
                 for row in self.db.execute(
@@ -242,9 +248,7 @@ class DriverRepository(DBRepository):
                     driver_reference_table.c.reference_id.in_(ref_ids),
                 )
                 orphan_refs = (
-                    self.db.query(Reference)
-                    .filter(Reference.id.in_(ref_ids), Reference.id.not_in(still_linked_refs))
-                    .all()
+                    self.db.query(Reference).filter(Reference.id.in_(ref_ids), Reference.id.not_in(still_linked_refs)).all()
                 )
                 for ref in orphan_refs:
                     ref_doc_ids = [
@@ -260,23 +264,23 @@ class DriverRepository(DBRepository):
                             reference_document_table.c.reference_id == ref.id,
                         ),
                     )
-                    if ref_doc_ids:
-                        self.db.query(Document).filter(Document.id.in_(ref_doc_ids)).delete(synchronize_session=False)
+                    document_keys.extend(self._delete_documents(ref_doc_ids))
+                    self.db.expire(ref)
                     self.db.delete(ref)
 
-            # 4. Nullify contract FK so delete doesn't hit FK constraint
             self.db.query(Contract).filter(Contract.driver_id == driver_id).update(
                 {Contract.driver_id: None},
                 synchronize_session=False,
             )
 
-            # 5. Delete driver
+            self.db.expire(driver)
             self.db.delete(driver)
             self.db.commit()
         except Exception as ex:
             self.db.rollback()
             logger.error("Error cascade-deleting driver %s: %s", driver_id, ex, exc_info=True)
             raise DBOperationError("Error deleting driver") from ex
+        return document_keys
 
     def list_drivers(
         self,

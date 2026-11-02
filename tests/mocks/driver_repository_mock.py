@@ -101,7 +101,9 @@ class DriverRepositoryMock:
         result = [
             d
             for d in self.drivers
-            if not (archived and d.archived_at is None) and not (not archived and d.archived_at is not None) and (not status or d.status == status)
+            if not (archived and d.archived_at is None)
+            and not (not archived and d.archived_at is not None)
+            and (not status or d.status == status)
         ]
 
         if not search:
@@ -136,11 +138,7 @@ class DriverRepositoryMock:
     def get_active_contract_for_driver(self, driver_id: str) -> Contract | None:
         today = datetime.now(tz=UTC).date()
         return next(
-            (
-                c
-                for c in self.contracts
-                if c.driver_id == driver_id and c.start_date <= today and c.end_date >= today
-            ),
+            (c for c in self.contracts if c.driver_id == driver_id and c.start_date <= today and c.end_date >= today),
             None,
         )
 
@@ -168,14 +166,16 @@ class DriverRepositoryMock:
         driver.updated_at = datetime.now(UTC)
         return driver
 
-    def cascade_delete_driver(self, driver: Driver) -> None:
+    def cascade_delete_driver(self, driver: Driver) -> list[str]:
         driver_id = driver.id
+        document_keys: list[str] = []
         if self.guarantor_repo:
             for g in list(driver.guarantors):
-                self.guarantor_repo.unlink_and_delete_if_orphan(driver_id, g)
+                document_keys.extend(self.guarantor_repo.unlink_and_delete_if_orphan(driver_id, g))
         self.drivers = [d for d in self.drivers if d.id != driver_id]
-        self.driver_documents.pop(driver_id, None)
+        document_keys.extend(doc.url for doc in self.driver_documents.pop(driver_id, []))
         self.contracts = [c for c in self.contracts if c.driver_id != driver_id]
+        return document_keys
 
     def list_drivers(
         self,
