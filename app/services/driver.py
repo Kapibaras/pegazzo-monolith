@@ -18,7 +18,9 @@ from app.schemas.driver import (
     DriverDetailResponseSchema,
     DriverListQuerySchema,
     DriverListResponseSchema,
+    DriverPatchSchema,
     DriverResponseSchema,
+    DriverStatusSchema,
     GuarantorDetailSchema,
 )
 from app.storage import r2
@@ -142,3 +144,68 @@ class DriverService:
             assigned_car=assigned_car,
             archived_at=driver.archived_at,
         )
+
+    def update_driver(self, driver_id: str, data: DriverPatchSchema) -> Driver:
+        """Update a driver's fields partially (excludes status)."""
+        if data.license_validity is not None and data.license_validity.date() < datetime.now(UTC).date():
+            raise LicenseValidityInPastException
+
+        driver = self.repository.get_by_id(driver_id)
+        if not driver:
+            raise DriverNotFoundException(driver_id)
+
+        if (
+            data.identification_number is not None
+            and data.identification_number != driver.identification_number
+            and self.repository.get_by_identification_number(data.identification_number)
+        ):
+            raise IdentificationNumberAlreadyExistsException(data.identification_number)
+
+        if (
+            data.license_number is not None
+            and data.license_number != driver.license_number
+            and self.repository.get_by_license_number(data.license_number)
+        ):
+            raise LicenseNumberAlreadyExistsException(data.license_number)
+
+        if data.name is not None:
+            driver.name = data.name
+        if data.surnames is not None:
+            driver.surnames = data.surnames
+        if data.telephones is not None:
+            driver.telephones = data.telephones
+        if data.license_number is not None:
+            driver.license_number = data.license_number
+        if data.license_validity is not None:
+            driver.license_validity = data.license_validity
+        if data.identification_number is not None:
+            driver.identification_number = data.identification_number
+        if data.address is not None:
+            driver.address = data.address
+        if data.garage_address is not None:
+            driver.garage_address = data.garage_address
+        if data.photo is not None:
+            driver.photo = data.photo
+
+        try:
+            return self.repository.update(driver)
+        except IntegrityError as ex:
+            constraint = getattr(ex.orig, "diag", None)
+            detail = constraint.message_detail if constraint else str(ex)
+            if "license_number" in detail:
+                raise LicenseNumberAlreadyExistsException(data.license_number) from ex
+            if "identification_number" in detail:
+                raise IdentificationNumberAlreadyExistsException(data.identification_number) from ex
+            raise
+
+    def change_driver_status(self, driver_id: str, data: DriverStatusSchema) -> Driver:
+        """Change a driver's operational status."""
+        driver = self.repository.get_by_id(driver_id)
+        if not driver:
+            raise DriverNotFoundException(driver_id)
+
+        if driver.status == data.status:
+            return driver
+
+        driver.status = data.status
+        return self.repository.update(driver)

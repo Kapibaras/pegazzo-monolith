@@ -69,6 +69,30 @@ class DriverCreateSchema(BaseModel):
     garage_address: list[Annotated[str, Field(min_length=1, max_length=255)]] = Field(..., min_length=1)
 
 
+class DriverPatchSchema(BaseModel):
+    """Request body for PATCH /management/drivers/{id}."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    name: str | None = Field(default=None, min_length=1, max_length=50)
+    surnames: str | None = Field(default=None, min_length=1, max_length=100)
+    telephones: list[Annotated[str, Field(min_length=1, max_length=20)]] | None = None
+    license_number: str | None = Field(default=None, min_length=1, max_length=20)
+    license_validity: RequestUTCDatetime | None = None
+    identification_number: str | None = Field(default=None, min_length=1, max_length=20)
+    address: str | None = Field(default=None, min_length=1, max_length=255)
+    garage_address: list[Annotated[str, Field(min_length=1, max_length=255)]] | None = None
+    photo: str | None = Field(default=None, min_length=1, max_length=512)
+
+
+class DriverStatusSchema(BaseModel):
+    """Request body for PATCH /management/drivers/{id}/status."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    status: DriverStatus
+
+
 class _DriverBaseSchema(BaseModel):
     """Shared driver fields for response schemas."""
 

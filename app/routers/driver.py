@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Query, status
+from fastapi import APIRouter, Body, Depends, Path, Query, status
 
 from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
@@ -10,7 +10,9 @@ from app.schemas.driver import (
     DriverDetailResponseSchema,
     DriverListQuerySchema,
     DriverListResponseSchema,
+    DriverPatchSchema,
     DriverResponseSchema,
+    DriverStatusSchema,
 )
 from app.services.driver import DriverService
 
@@ -49,3 +51,33 @@ def get_driver(
 ) -> DriverDetailResponseSchema:
     """Return the full detail for a single driver."""
     return service.get_driver(driver_id)
+
+
+@router.patch(
+    "/{driver_id}/status",
+    response_model=DriverResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+def change_driver_status(
+    driver_id: str = Path(..., description="Driver id"),
+    body: DriverStatusSchema = Body(..., description="New driver status"),
+    service: DriverService = Depends(ServiceFactory.driver_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> DriverResponseSchema:
+    """Change a driver's operational status."""
+    return service.change_driver_status(driver_id, body)
+
+
+@router.patch(
+    "/{driver_id}",
+    response_model=DriverResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+def update_driver(
+    driver_id: str = Path(..., description="Driver id"),
+    body: DriverPatchSchema = Body(..., description="Fields to update"),
+    service: DriverService = Depends(ServiceFactory.driver_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> DriverResponseSchema:
+    """Update a driver's fields partially (excluding status)."""
+    return service.update_driver(driver_id, body)

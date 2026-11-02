@@ -143,6 +143,10 @@ class DriverRepositoryMock:
             None,
         )
 
+    def update(self, driver: Driver) -> Driver:
+        driver.updated_at = datetime.now(UTC)
+        return driver
+
     def create_driver(self, driver: Driver) -> Driver:
         now = datetime.now(UTC)
         if driver.created_at is None:
