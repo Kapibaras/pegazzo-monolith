@@ -1,7 +1,7 @@
 """add unique constraints and index to driver
 
 Revision ID: 1ecf6523511c
-Revises: 7191b37efe63
+Revises: 69576cc44fe6
 Create Date: 2026-11-01 13:05:02.098137
 
 """
@@ -11,7 +11,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '1ecf6523511c'
-down_revision: Union[str, Sequence[str], None] = '7191b37efe63'
+down_revision: Union[str, Sequence[str], None] = '69576cc44fe6'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
