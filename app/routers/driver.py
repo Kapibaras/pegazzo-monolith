@@ -10,7 +10,9 @@ from app.schemas.driver import (
     DriverDetailResponseSchema,
     DriverListQuerySchema,
     DriverListResponseSchema,
+    DriverPatchSchema,
     DriverResponseSchema,
+    DriverStatusSchema,
 )
 from app.schemas.user import ActionSuccess
 from app.services.driver import DriverService
@@ -53,6 +55,21 @@ def get_driver(
 
 
 @router.patch(
+    "/{driver_id}/status",
+    response_model=DriverResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+def change_driver_status(
+    driver_id: str = Path(..., description="Driver id"),
+    body: DriverStatusSchema = Body(..., description="New driver status"),
+    service: DriverService = Depends(ServiceFactory.driver_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> DriverResponseSchema:
+    """Change a driver's operational status."""
+    return service.change_driver_status(driver_id, body)
+
+
+@router.patch(
     "/{driver_id}/archive",
     response_model=DriverResponseSchema,
     status_code=status.HTTP_200_OK,
@@ -78,6 +95,21 @@ def unarchive_driver(
 ) -> DriverResponseSchema:
     """Restore an archived driver."""
     return service.unarchive_driver(driver_id)
+
+
+@router.patch(
+    "/{driver_id}",
+    response_model=DriverResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+def update_driver(
+    driver_id: str = Path(..., description="Driver id"),
+    body: DriverPatchSchema = Body(..., description="Fields to update"),
+    service: DriverService = Depends(ServiceFactory.driver_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> DriverResponseSchema:
+    """Update a driver's fields partially (excluding status)."""
+    return service.update_driver(driver_id, body)
 
 
 @router.delete(

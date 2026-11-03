@@ -77,6 +77,20 @@ class DriverRepository(DBRepository):
             raise DBOperationError("Error creating driver in the database") from ex
         return driver
 
+    def update(self, driver: Driver) -> Driver:
+        """Update an existing driver."""
+        try:
+            self.db.commit()
+            self.db.refresh(driver)
+        except IntegrityError:
+            self.db.rollback()
+            raise
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error updating driver %s due to: %s", driver.id, ex, exc_info=True)
+            raise DBOperationError("Error updating driver in the database") from ex
+        return driver
+
     def get_active_contract_for_driver(self, driver_id: str) -> Contract | None:
         """Return the currently active contract for the driver, or None."""
         today = datetime.now(tz=UTC).date()

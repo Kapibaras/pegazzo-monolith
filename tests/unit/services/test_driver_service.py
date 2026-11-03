@@ -6,13 +6,15 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from app.enum.crm import DriverStatus
+from app.errors.database import DBOperationError
 from app.errors.driver import (
     DriverIdAlreadyExistsException,
     IdentificationNumberAlreadyExistsException,
     LicenseNumberAlreadyExistsException,
 )
+from app.models.driver import Driver
 from app.repositories.driver import DriverRepository
-from app.schemas.driver import DriverCreateSchema
+from app.schemas.driver import DriverCreateSchema, DriverPatchSchema
 from app.services.driver import DriverService
 
 
@@ -86,3 +88,42 @@ class TestCreateDriverIntegrityError:
         )
         with pytest.raises(DriverIdAlreadyExistsException):
             self.service.create_driver(self.data)
+
+
+@pytest.mark.usefixtures("driver_service_test_setup")
+class TestUpdateDriverIntegrityError:
+    """Race-condition fallback when the unique constraint fires on an update commit."""
+
+    def _given_existing_driver(self):
+        self.mock_repo.get_by_id.return_value = Driver(
+            id="DRV-001",
+            license_number="LIC001",
+            identification_number="ID001",
+            license_validity=datetime.now(UTC) + timedelta(days=365),
+        )
+
+    def test_message_detail_none_falls_back_to_error_text(self):
+        self._given_existing_driver()
+        self.mock_repo.update.side_effect = _integrity_error(
+            'duplicate key value violates unique constraint "ix_driver_license_number"',
+            diag=SimpleNamespace(message_detail=None),
+        )
+        with pytest.raises(LicenseNumberAlreadyExistsException):
+            self.service.update_driver("DRV-001", DriverPatchSchema(license_number="LIC999"))
+
+    def test_without_diag_identifies_identification_number(self):
+        self._given_existing_driver()
+        self.mock_repo.update.side_effect = _integrity_error(
+            "UNIQUE constraint failed: driver.identification_number",
+        )
+        with pytest.raises(IdentificationNumberAlreadyExistsException):
+            self.service.update_driver("DRV-001", DriverPatchSchema(identification_number="ID999"))
+
+    def test_unknown_constraint_raises_db_operation_error(self):
+        self._given_existing_driver()
+        self.mock_repo.update.side_effect = _integrity_error(
+            'violates check constraint "ck_driver_something"',
+            diag=SimpleNamespace(message_detail=None),
+        )
+        with pytest.raises(DBOperationError):
+            self.service.update_driver("DRV-001", DriverPatchSchema(name="Pedro"))
