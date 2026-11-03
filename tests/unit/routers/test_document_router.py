@@ -156,6 +156,32 @@ class TestDocumentRouter:
         )
         assert response.status_code == 404
 
+    def test_request_upload_url_soft_deleted_driver(self, authorized_client):
+        authorized_client.document_repo.deleted_drivers.add("DRV001")
+        response = authorized_client.post(
+            "/pegazzo/management/documents/upload-url",
+            json={
+                "filename": "licencia.jpg",
+                "content_type": "image/jpeg",
+                "entity_type": "driver",
+                "entity_id": "DRV001",
+            },
+        )
+        assert response.status_code == 404
+
+    def test_create_document_soft_deleted_driver(self, authorized_client):
+        authorized_client.document_repo.deleted_drivers.add("DRV001")
+        response = authorized_client.post(
+            "/pegazzo/management/documents",
+            json={
+                "key": "driver/DRV001/some-uuid.pdf",
+                "type": "driver_license",
+                "entity_type": "driver",
+                "entity_id": "DRV001",
+            },
+        )
+        assert response.status_code == 404
+
     def test_create_document_links_car(self, authorized_client):
         with patch("app.services.document.r2.generate_document_read_url", return_value=PRESIGNED_GET_URL):
             authorized_client.post(

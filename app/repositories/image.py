@@ -14,8 +14,8 @@ class ImageRepository(DBRepository):
         return self.db.query(Car).filter(Car.id == car_id, Car.deleted_at.is_(None)).first()
 
     def get_driver_by_id(self, driver_id: str) -> Driver | None:
-        """Return a driver by its primary key."""
-        return self.db.query(Driver).filter_by(id=driver_id).first()
+        """Return a non-deleted driver by its primary key."""
+        return self.db.query(Driver).filter(Driver.id == driver_id, Driver.deleted_at.is_(None)).first()
 
     def set_car_agency_image(self, car: Car, url: str) -> Car:
         """Set or replace the car agency image URL."""

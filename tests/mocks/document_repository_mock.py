@@ -36,6 +36,7 @@ class DocumentRepositoryMock:
         self._next_id = 2
         self.existing_cars: set[str] = {"ABC123DEF456789"}
         self.existing_drivers: set[str] = {"DRV001"}
+        self.deleted_drivers: set[str] = set()
         self.existing_guarantors: set[int] = {1}
         self.links: list[dict] = []
         self.raise_on_create = False
@@ -53,8 +54,8 @@ class DocumentRepositoryMock:
         return car_id in self.existing_cars
 
     def driver_exists(self, driver_id: str) -> bool:
-        """Return True if driver_id is in the set of known drivers."""
-        return driver_id in self.existing_drivers
+        """Return True if driver_id is a known, non-deleted driver."""
+        return driver_id in self.existing_drivers and driver_id not in self.deleted_drivers
 
     def guarantor_exists(self, guarantor_id: int) -> bool:
         """Return True if guarantor_id is in the set of known guarantors."""
