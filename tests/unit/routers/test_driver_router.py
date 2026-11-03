@@ -441,3 +441,268 @@ class TestGetDriverDetail:
     def test_get_driver_requires_auth(self, client):
         response = client.get(f"{self.ENDPOINT}/DRV-001")
         assert response.status_code == 401
+
+
+@pytest.mark.usefixtures("authorized_client", "client", "admin_authorized_client", "employee_authorized_client")
+class TestUpdateDriver:
+    """Tests for PATCH /management/drivers/{id}."""
+
+    ENDPOINT = "/pegazzo/management/drivers"
+
+    # -----------------------------------------------------------------
+    # Successful updates
+    # -----------------------------------------------------------------
+
+    def test_update_driver_name_success(self, authorized_client):
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"name": "Pedro"})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "Pedro"
+        assert data["surnames"] == "García López"
+
+    def test_update_driver_multiple_fields(self, authorized_client):
+        body = {"name": "Juan", "surnames": "López Ruiz", "address": "Av. Nueva #5"}
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json=body)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "Juan"
+        assert data["surnames"] == "López Ruiz"
+        assert data["address"] == "Av. Nueva #5"
+
+    def test_update_driver_telephones(self, authorized_client):
+        body = {"telephones": ["+525559999999", "+525558888888"]}
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json=body)
+        assert response.status_code == 200
+        assert response.json()["telephones"] == ["+525559999999", "+525558888888"]
+
+    def test_update_driver_garage_address(self, authorized_client):
+        body = {"garageAddress": ["Nueva Garage #1", "Nueva Garage #2"]}
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json=body)
+        assert response.status_code == 200
+        assert response.json()["garageAddress"] == ["Nueva Garage #1", "Nueva Garage #2"]
+
+    def test_update_driver_photo(self, authorized_client):
+        body = {"photo": "https://images.example.com/new-photo.jpg"}
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json=body)
+        assert response.status_code == 200
+        assert response.json()["photo"] == "https://images.example.com/new-photo.jpg"
+
+    def test_update_driver_license_validity_future(self, authorized_client):
+        from datetime import timedelta
+
+        future = (datetime.now(UTC) + timedelta(days=365)).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"licenseValidity": future})
+        assert response.status_code == 200
+
+    def test_update_driver_clear_photo_with_null(self, authorized_client):
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"photo": None})
+        assert response.status_code == 200
+        assert response.json()["photo"] is None
+
+    def test_update_driver_omitted_photo_is_kept(self, authorized_client):
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"name": "Pedro"})
+        assert response.status_code == 200
+        assert response.json()["photo"] == "https://images.example.com/drv001.jpg"
+
+    def test_update_driver_unchanged_expired_license_validity(self, authorized_client):
+        authorized_client.driver_repo.get_by_id("DRV-001").license_validity = datetime(2025, 1, 1, tzinfo=UTC)
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-001",
+            json={"name": "Pedro", "licenseValidity": "2025-01-01T00:00:00+00:00"},
+        )
+        assert response.status_code == 200
+        assert response.json()["name"] == "Pedro"
+
+    def test_update_driver_returns_timestamps(self, authorized_client):
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"name": "Nuevo"})
+        data = response.json()
+        assert "createdAt" in data
+        assert "updatedAt" in data
+
+    # -----------------------------------------------------------------
+    # Uniqueness re-validation
+    # -----------------------------------------------------------------
+
+    def test_update_driver_duplicate_identification_number(self, authorized_client):
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-001",
+            json={"identificationNumber": "ID002"},
+        )
+        assert response.status_code == 400
+        assert "Identification number" in response.json()["detail"]
+
+    def test_update_driver_same_identification_number(self, authorized_client):
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-001",
+            json={"identificationNumber": "ID001"},
+        )
+        assert response.status_code == 200
+
+    def test_update_driver_duplicate_license_number(self, authorized_client):
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-001",
+            json={"licenseNumber": "LIC002"},
+        )
+        assert response.status_code == 400
+        assert "License number" in response.json()["detail"]
+
+    def test_update_driver_same_license_number(self, authorized_client):
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-001",
+            json={"licenseNumber": "LIC001"},
+        )
+        assert response.status_code == 200
+
+    # -----------------------------------------------------------------
+    # Validation errors
+    # -----------------------------------------------------------------
+
+    def test_update_driver_license_validity_in_past(self, authorized_client):
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-001",
+            json={"licenseValidity": "2020-01-01T00:00:00+00:00"},
+        )
+        assert response.status_code == 400
+
+    def test_update_driver_not_found(self, authorized_client):
+        response = authorized_client.patch(f"{self.ENDPOINT}/NOTEXIST", json={"name": "X"})
+        assert response.status_code == 404
+        assert "was not found" in response.json()["detail"]
+
+    def test_update_driver_not_found_takes_precedence_over_past_license(self, authorized_client):
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/NOTEXIST",
+            json={"licenseValidity": "2020-01-01T00:00:00+00:00"},
+        )
+        assert response.status_code == 404
+
+    def test_update_driver_empty_body(self, authorized_client):
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={})
+        assert response.status_code == 422
+
+    def test_update_driver_null_on_required_field(self, authorized_client):
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"name": None})
+        assert response.status_code == 422
+
+    def test_update_driver_empty_telephones_list(self, authorized_client):
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"telephones": []})
+        assert response.status_code == 422
+
+    def test_update_driver_name_too_long(self, authorized_client):
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"name": "A" * 51})
+        assert response.status_code == 422
+
+    def test_update_driver_telephones_item_too_long(self, authorized_client):
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-001",
+            json={"telephones": ["+" + "1" * 25]},
+        )
+        assert response.status_code == 422
+
+    def test_update_driver_garage_address_item_empty(self, authorized_client):
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-001",
+            json={"garageAddress": [""]},
+        )
+        assert response.status_code == 422
+
+    # -----------------------------------------------------------------
+    # RBAC
+    # -----------------------------------------------------------------
+
+    def test_update_driver_requires_auth(self, client):
+        response = client.patch(f"{self.ENDPOINT}/DRV-001", json={"name": "X"})
+        assert response.status_code == 401
+
+    def test_update_driver_employee_forbidden(self, employee_authorized_client):
+        response = employee_authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"name": "X"})
+        assert response.status_code == 403
+
+    def test_update_driver_admin_allowed(self, admin_authorized_client):
+        response = admin_authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"name": "Admin"})
+        assert response.status_code == 200
+        assert response.json()["name"] == "Admin"
+
+
+@pytest.mark.usefixtures("authorized_client", "client", "admin_authorized_client", "employee_authorized_client")
+class TestChangeDriverStatus:
+    """Tests for PATCH /management/drivers/{id}/status."""
+
+    ENDPOINT = "/pegazzo/management/drivers"
+
+    # -----------------------------------------------------------------
+    # Successful status changes
+    # -----------------------------------------------------------------
+
+    def test_change_status_to_inactive(self, authorized_client):
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-001/status",
+            json={"status": "INACTIVE"},
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "INACTIVE"
+
+    def test_change_status_to_suspended(self, authorized_client):
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-001/status",
+            json={"status": "SUSPENDED"},
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "SUSPENDED"
+
+    def test_change_status_to_active(self, authorized_client):
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-002/status",
+            json={"status": "ACTIVE"},
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "ACTIVE"
+
+    def test_change_status_idempotent(self, authorized_client):
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-001/status",
+            json={"status": "ACTIVE"},
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "ACTIVE"
+
+    # -----------------------------------------------------------------
+    # Errors
+    # -----------------------------------------------------------------
+
+    def test_change_status_not_found(self, authorized_client):
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/NOTEXIST/status",
+            json={"status": "ACTIVE"},
+        )
+        assert response.status_code == 404
+
+    def test_change_status_invalid_value(self, authorized_client):
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-001/status",
+            json={"status": "INVALID"},
+        )
+        assert response.status_code == 422
+
+    # -----------------------------------------------------------------
+    # RBAC
+    # -----------------------------------------------------------------
+
+    def test_change_status_requires_auth(self, client):
+        response = client.patch(f"{self.ENDPOINT}/DRV-001/status", json={"status": "INACTIVE"})
+        assert response.status_code == 401
+
+    def test_change_status_employee_forbidden(self, employee_authorized_client):
+        response = employee_authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-001/status",
+            json={"status": "INACTIVE"},
+        )
+        assert response.status_code == 403
+
+    def test_change_status_admin_allowed(self, admin_authorized_client):
+        response = admin_authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-001/status",
+            json={"status": "INACTIVE"},
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "INACTIVE"

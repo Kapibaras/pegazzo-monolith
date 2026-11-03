@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
 
+from app.errors.database import DBOperationError
 from app.errors.driver import (
     DriverIdAlreadyExistsException,
     DriverNotFoundException,
@@ -18,7 +19,9 @@ from app.schemas.driver import (
     DriverDetailResponseSchema,
     DriverListQuerySchema,
     DriverListResponseSchema,
+    DriverPatchSchema,
     DriverResponseSchema,
+    DriverStatusSchema,
     GuarantorDetailSchema,
 )
 from app.storage import r2
@@ -142,3 +145,56 @@ class DriverService:
             assigned_car=assigned_car,
             archived_at=driver.archived_at,
         )
+
+    def update_driver(self, driver_id: str, data: DriverPatchSchema) -> Driver:
+        """Update a driver's fields partially (excludes status)."""
+        driver = self.repository.get_by_id(driver_id)
+        if not driver:
+            raise DriverNotFoundException(driver_id)
+
+        if (
+            data.license_validity is not None
+            and data.license_validity != driver.license_validity
+            and data.license_validity.date() < datetime.now(UTC).date()
+        ):
+            raise LicenseValidityInPastException
+
+        if (
+            data.identification_number is not None
+            and data.identification_number != driver.identification_number
+            and self.repository.get_by_identification_number(data.identification_number)
+        ):
+            raise IdentificationNumberAlreadyExistsException(data.identification_number)
+
+        if (
+            data.license_number is not None
+            and data.license_number != driver.license_number
+            and self.repository.get_by_license_number(data.license_number)
+        ):
+            raise LicenseNumberAlreadyExistsException(data.license_number)
+
+        for field, value in data.model_dump(exclude_unset=True).items():
+            setattr(driver, field, value)
+
+        try:
+            return self.repository.update(driver)
+        except IntegrityError as ex:
+            diag = getattr(ex.orig, "diag", None)
+            detail = getattr(diag, "message_detail", None) or str(ex)
+            if "license_number" in detail:
+                raise LicenseNumberAlreadyExistsException(data.license_number) from ex
+            if "identification_number" in detail:
+                raise IdentificationNumberAlreadyExistsException(data.identification_number) from ex
+            raise DBOperationError("Error updating driver in the database") from ex
+
+    def change_driver_status(self, driver_id: str, data: DriverStatusSchema) -> Driver:
+        """Change a driver's operational status."""
+        driver = self.repository.get_by_id(driver_id)
+        if not driver:
+            raise DriverNotFoundException(driver_id)
+
+        if driver.status == data.status:
+            return driver
+
+        driver.status = data.status
+        return self.repository.update(driver)
