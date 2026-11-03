@@ -4,6 +4,12 @@ class DocumentConfig:
     EXPIRING_SOON_DAYS = 30
 
 
+class GuarantorConfig:
+    """Guarantor-related configuration constants."""
+
+    MAX_PER_DRIVER = 5
+
+
 class AppConfig:
     """Application configuration constants."""
 

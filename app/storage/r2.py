@@ -2,6 +2,7 @@ import boto3
 from botocore.config import Config
 
 from app.config.variables import R2
+from app.utils.logging_config import logger
 
 
 def _get_client():
@@ -87,6 +88,15 @@ def soft_delete_object(bucket: str, key: str) -> None:
 def soft_delete_document(key: str) -> None:
     """Move a private document (stored under `private/<key>`) to the `deleted/` prefix."""
     soft_delete_object(R2.DOCUMENTS_BUCKET, f"private/{key}")
+
+
+def soft_delete_documents_best_effort(keys: list[str]) -> None:
+    """Move each document to the `deleted/` prefix, logging failures instead of raising."""
+    for key in keys:
+        try:
+            soft_delete_document(key)
+        except Exception as ex:  # noqa: BLE001 - storage cleanup runs after the commit and must not fail the request
+            logger.error("Storage cleanup failed for '%s': %s", key, ex, exc_info=True)
 
 
 def soft_delete_image(url: str) -> bool:
