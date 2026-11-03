@@ -1,10 +1,14 @@
+from datetime import UTC, datetime
+
 from sqlalchemy import case, func
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.enum.balance import SortOrder
 from app.enum.crm import DriverSortBy, DriverStatus
 from app.errors.database import DBOperationError
-from app.models.driver import Driver
+from app.models.contract import Contract
+from app.models.driver import Driver, Guarantor
 from app.utils.logging_config import logger
 
 from .abstract import DBRepository
@@ -22,8 +26,16 @@ class DriverRepository(DBRepository):
     """Data-access layer for the Driver entity."""
 
     def get_by_id(self, driver_id: str) -> Driver | None:
-        """Retrieve a driver by id."""
-        return self.db.query(Driver).filter(Driver.id == driver_id).first()
+        """Retrieve a driver by id with eager-loaded relationships."""
+        return (
+            self.db.query(Driver)
+            .options(
+                selectinload(Driver.documents),
+                selectinload(Driver.guarantors).selectinload(Guarantor.documents),
+            )
+            .filter(Driver.id == driver_id)
+            .first()
+        )
 
     def get_by_identification_number(self, identification_number: str) -> Driver | None:
         """Retrieve a driver by identification number."""
@@ -47,6 +59,21 @@ class DriverRepository(DBRepository):
             logger.error("Error creating driver %s due to: %s", driver.id, ex, exc_info=True)
             raise DBOperationError("Error creating driver in the database") from ex
         return driver
+
+    def get_active_contract_for_driver(self, driver_id: str) -> Contract | None:
+        """Return the currently active contract for the driver, or None."""
+        today = datetime.now(tz=UTC).date()
+        return (
+            self.db.query(Contract)
+            .options(joinedload(Contract.car))
+            .filter(
+                Contract.driver_id == driver_id,
+                Contract.start_date <= today,
+                Contract.end_date >= today,
+            )
+            .order_by(Contract.start_date.desc())
+            .first()
+        )
 
     def _base_query(self, status: DriverStatus | None, archived: bool):
         """Build a base query with archive and status filters applied."""

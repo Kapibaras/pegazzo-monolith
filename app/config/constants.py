@@ -1,3 +1,9 @@
+class DocumentConfig:
+    """Document-related configuration constants."""
+
+    EXPIRING_SOON_DAYS = 30
+
+
 class AppConfig:
     """Application configuration constants."""
 

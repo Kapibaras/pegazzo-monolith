@@ -1,18 +1,28 @@
-import math
 from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
 
 from app.errors.driver import (
     DriverIdAlreadyExistsException,
+    DriverNotFoundException,
     IdentificationNumberAlreadyExistsException,
     LicenseNumberAlreadyExistsException,
     LicenseValidityInPastException,
 )
 from app.models.driver import Driver
 from app.repositories.driver import DriverRepository
-from app.schemas.car import PaginationSchema
-from app.schemas.driver import DriverCreateSchema, DriverListQuerySchema, DriverListResponseSchema
+from app.schemas.car import DocumentDetailSchema, PaginationSchema
+from app.schemas.driver import (
+    AssignedCarSchema,
+    DriverCreateSchema,
+    DriverDetailResponseSchema,
+    DriverListQuerySchema,
+    DriverListResponseSchema,
+    DriverResponseSchema,
+    GuarantorDetailSchema,
+)
+from app.storage import r2
+from app.utils.dates import compute_expiry_status
 
 
 class DriverService:
@@ -40,12 +50,7 @@ class DriverService:
         )
         return DriverListResponseSchema(
             drivers=drivers,
-            pagination=PaginationSchema(
-                page=params.page,
-                limit=params.limit,
-                total=total,
-                total_pages=0 if total == 0 else math.ceil(total / params.limit),
-            ),
+            pagination=PaginationSchema.build(params.page, params.limit, total),
         )
 
     def create_driver(self, data: DriverCreateSchema) -> Driver:
@@ -85,3 +90,55 @@ class DriverService:
             if "identification_number" in detail:
                 raise IdentificationNumberAlreadyExistsException(data.identification_number) from ex
             raise DriverIdAlreadyExistsException(data.id) from ex
+
+    @staticmethod
+    def _to_document_detail(doc) -> DocumentDetailSchema:
+        return DocumentDetailSchema(
+            id=doc.id,
+            type=doc.type,
+            category=doc.category,
+            expiry_date=doc.expiry_date,
+            url=r2.generate_document_read_url(doc.url),
+            expiry_status=compute_expiry_status(doc.expiry_date),
+        )
+
+    def get_driver(self, driver_id: str) -> DriverDetailResponseSchema:
+        """Return the full detail for a single driver, or raise 404 if not found."""
+        driver = self.repository.get_by_id(driver_id)
+        if not driver:
+            raise DriverNotFoundException(driver_id)
+
+        documents = [self._to_document_detail(doc) for doc in driver.documents]
+
+        guarantors = [
+            GuarantorDetailSchema(
+                id=g.id,
+                name=g.name,
+                surnames=g.surnames,
+                telephones=g.telephones,
+                address=g.address,
+                relation=g.relation,
+                documents=[self._to_document_detail(doc) for doc in g.documents],
+            )
+            for g in driver.guarantors
+        ]
+
+        assigned_car = None
+        contract = self.repository.get_active_contract_for_driver(driver_id)
+        if contract and contract.car:
+            car = contract.car
+            assigned_car = AssignedCarSchema(
+                id=car.id,
+                make=car.make,
+                model=car.model,
+                plate=car.plate,
+                agency_image=car.agency_image,
+            )
+
+        return DriverDetailResponseSchema(
+            **DriverResponseSchema.model_validate(driver).model_dump(),
+            documents=documents,
+            guarantors=guarantors,
+            assigned_car=assigned_car,
+            archived_at=driver.archived_at,
+        )

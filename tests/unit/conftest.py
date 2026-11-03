@@ -53,6 +53,16 @@ def reset_state():
     document_repo_mock.reset()
     driver_repo_mock.reset()
     image_repo_mock.reset()
+    yield
+    user_repo_mock.users = [_initial_user]
+    balance_repo_mock.reset()
+    insurance_repo_mock.reset()
+    associate_repo_mock.reset()
+    car_repo_mock.reset()
+    car_model_repo_mock.reset()
+    document_repo_mock.reset()
+    driver_repo_mock.reset()
+    image_repo_mock.reset()
 
 
 def _dependency_overrides():
