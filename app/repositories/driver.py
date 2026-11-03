@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import case, func
+from sqlalchemy import case, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -8,7 +8,19 @@ from app.enum.balance import SortOrder
 from app.enum.crm import DriverSortBy, DriverStatus
 from app.errors.database import DBOperationError
 from app.models.contract import Contract
-from app.models.driver import Driver, Guarantor
+from app.models.document import Document
+from app.models.driver import (
+    Driver,
+    Guarantor,
+    Reference,
+    driver_document_table,
+    driver_guarantor_table,
+    driver_reference_table,
+    guarantor_document_table,
+    reference_document_table,
+)
+from app.models.event import Event
+from app.models.incidence import Incidence
 from app.utils.logging_config import logger
 
 from .abstract import DBRepository
@@ -25,17 +37,22 @@ _DRIVER_SORT_COLUMNS = {
 class DriverRepository(DBRepository):
     """Data-access layer for the Driver entity."""
 
-    def get_by_id(self, driver_id: str) -> Driver | None:
-        """Retrieve a driver by id with eager-loaded relationships."""
-        return (
+    def get_by_id(self, driver_id: str, *, include_deleted: bool = False) -> Driver | None:
+        """Retrieve a driver by id with eager-loaded relationships.
+
+        Soft-deleted drivers are excluded unless include_deleted is True.
+        """
+        query = (
             self.db.query(Driver)
             .options(
                 selectinload(Driver.documents),
                 selectinload(Driver.guarantors).selectinload(Guarantor.documents),
             )
             .filter(Driver.id == driver_id)
-            .first()
         )
+        if not include_deleted:
+            query = query.filter(Driver.deleted_at.is_(None))
+        return query.first()
 
     def get_by_identification_number(self, identification_number: str) -> Driver | None:
         """Retrieve a driver by identification number."""
@@ -89,9 +106,40 @@ class DriverRepository(DBRepository):
             .first()
         )
 
+    def has_pending_contracts(self, driver_id: str) -> bool:
+        """Check if the driver has any active or future contract."""
+        today = datetime.now(tz=UTC).date()
+        return (
+            self.db.query(Contract)
+            .filter(
+                Contract.driver_id == driver_id,
+                Contract.end_date >= today,
+            )
+            .first()
+        ) is not None
+
+    def has_history(self, driver_id: str) -> bool:
+        """Return True if the driver is referenced by any contract, event or incidence."""
+        return any(
+            self.db.query(model.driver_id).filter(model.driver_id == driver_id).first() is not None
+            for model in (Contract, Event, Incidence)
+        )
+
+    def soft_delete_driver(self, driver: Driver) -> Driver:
+        """Mark the driver as deleted while keeping its data (used when the driver has history)."""
+        try:
+            driver.deleted_at = datetime.now(tz=UTC)
+            self.db.commit()
+            self.db.refresh(driver)
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error soft-deleting driver %s: %s", driver.id, ex, exc_info=True)
+            raise DBOperationError("Error deleting driver") from ex
+        return driver
+
     def _base_query(self, status: DriverStatus | None, archived: bool):
         """Build a base query with archive and status filters applied."""
-        query = self.db.query(Driver)
+        query = self.db.query(Driver).filter(Driver.deleted_at.is_(None))
         query = query.filter(Driver.archived_at.isnot(None)) if archived else query.filter(Driver.archived_at.is_(None))
         if status:
             query = query.filter(Driver.status == status)
@@ -130,6 +178,146 @@ class DriverRepository(DBRepository):
     def count_drivers(self, status: DriverStatus | None, search: str | None, archived: bool) -> int:
         """Return the total count of drivers matching the given filters."""
         return self._apply_search(self._base_query(status, archived), search).count()
+
+    def archive_driver(self, driver: Driver) -> Driver:
+        """Set archived_at on the driver."""
+        try:
+            driver.archived_at = datetime.now(UTC)
+            self.db.commit()
+            self.db.refresh(driver)
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error archiving driver %s: %s", driver.id, ex, exc_info=True)
+            raise DBOperationError("Error archiving driver") from ex
+        return driver
+
+    def unarchive_driver(self, driver: Driver) -> Driver:
+        """Clear archived_at on the driver."""
+        try:
+            driver.archived_at = None
+            self.db.commit()
+            self.db.refresh(driver)
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error unarchiving driver %s: %s", driver.id, ex, exc_info=True)
+            raise DBOperationError("Error unarchiving driver") from ex
+        return driver
+
+    def _delete_documents(self, document_ids: list[int]) -> list[str]:
+        """Delete the given documents and return their storage keys."""
+        if not document_ids:
+            return []
+        keys = [url for (url,) in self.db.query(Document.url).filter(Document.id.in_(document_ids)).all()]
+        self.db.query(Document).filter(Document.id.in_(document_ids)).delete(synchronize_session=False)
+        return keys
+
+    def cascade_delete_driver(self, driver: Driver) -> list[str]:
+        """Permanently delete a driver without history and its dependent data in a single transaction.
+
+        Only for drivers without contracts, events or incidences (see `has_history`); drivers with
+        history are soft-deleted instead.
+
+        Cascade order:
+        1. Unlink guarantors → delete guarantor docs → delete orphan guarantors
+        2. Unlink driver documents → delete document records
+        3. Unlink references → delete ref docs → delete orphan references
+        4. Delete driver record
+
+        Objects are expired before `db.delete` so the ORM does not try to remove link rows that the
+        Core DELETEs above already removed (StaleDataError when the collections were eager loaded).
+
+        Returns the storage keys of the deleted documents so the caller can clean up storage.
+        """
+        driver_id = driver.id
+        document_keys: list[str] = []
+        try:
+            guarantor_ids = [
+                row.guarantor_id
+                for row in self.db.execute(
+                    driver_guarantor_table.select().where(driver_guarantor_table.c.driver_id == driver_id),
+                ).fetchall()
+            ]
+            self.db.execute(
+                driver_guarantor_table.delete().where(driver_guarantor_table.c.driver_id == driver_id),
+            )
+            if guarantor_ids:
+                still_linked = select(driver_guarantor_table.c.guarantor_id).where(
+                    driver_guarantor_table.c.guarantor_id.in_(guarantor_ids),
+                )
+                orphan_guarantors = (
+                    self.db.query(Guarantor).filter(Guarantor.id.in_(guarantor_ids), Guarantor.id.not_in(still_linked)).all()
+                )
+                for g in orphan_guarantors:
+                    g_doc_ids = [
+                        row.document_id
+                        for row in self.db.execute(
+                            guarantor_document_table.select().where(
+                                guarantor_document_table.c.guarantor_id == g.id,
+                            ),
+                        ).fetchall()
+                    ]
+                    self.db.execute(
+                        guarantor_document_table.delete().where(
+                            guarantor_document_table.c.guarantor_id == g.id,
+                        ),
+                    )
+                    document_keys.extend(self._delete_documents(g_doc_ids))
+                    self.db.expire(g)
+                    self.db.delete(g)
+
+            doc_ids = [
+                row.document_id
+                for row in self.db.execute(
+                    driver_document_table.select().where(driver_document_table.c.driver_id == driver_id),
+                ).fetchall()
+            ]
+            self.db.execute(
+                driver_document_table.delete().where(driver_document_table.c.driver_id == driver_id),
+            )
+            document_keys.extend(self._delete_documents(doc_ids))
+
+            ref_ids = [
+                row.reference_id
+                for row in self.db.execute(
+                    driver_reference_table.select().where(driver_reference_table.c.driver_id == driver_id),
+                ).fetchall()
+            ]
+            self.db.execute(
+                driver_reference_table.delete().where(driver_reference_table.c.driver_id == driver_id),
+            )
+            if ref_ids:
+                still_linked_refs = select(driver_reference_table.c.reference_id).where(
+                    driver_reference_table.c.reference_id.in_(ref_ids),
+                )
+                orphan_refs = (
+                    self.db.query(Reference).filter(Reference.id.in_(ref_ids), Reference.id.not_in(still_linked_refs)).all()
+                )
+                for ref in orphan_refs:
+                    ref_doc_ids = [
+                        row.document_id
+                        for row in self.db.execute(
+                            reference_document_table.select().where(
+                                reference_document_table.c.reference_id == ref.id,
+                            ),
+                        ).fetchall()
+                    ]
+                    self.db.execute(
+                        reference_document_table.delete().where(
+                            reference_document_table.c.reference_id == ref.id,
+                        ),
+                    )
+                    document_keys.extend(self._delete_documents(ref_doc_ids))
+                    self.db.expire(ref)
+                    self.db.delete(ref)
+
+            self.db.expire(driver)
+            self.db.delete(driver)
+            self.db.commit()
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error cascade-deleting driver %s: %s", driver_id, ex, exc_info=True)
+            raise DBOperationError("Error deleting driver") from ex
+        return document_keys
 
     def list_drivers(
         self,

@@ -61,6 +61,7 @@ class Driver(Base):
     garage_address = Column(ARRAY(String(255)), nullable=False)
     photo = Column(String(512), nullable=True)
     archived_at = Column(DateTime(timezone=True), nullable=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
 

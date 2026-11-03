@@ -4,7 +4,9 @@ from sqlalchemy.exc import IntegrityError
 
 from app.errors.database import DBOperationError
 from app.errors.driver import (
+    DriverHasActiveContractException,
     DriverIdAlreadyExistsException,
+    DriverNotArchivedException,
     DriverNotFoundException,
     IdentificationNumberAlreadyExistsException,
     LicenseNumberAlreadyExistsException,
@@ -24,6 +26,7 @@ from app.schemas.driver import (
     DriverStatusSchema,
     GuarantorDetailSchema,
 )
+from app.schemas.user import ActionSuccess
 from app.storage import r2
 from app.utils.dates import compute_expiry_status
 
@@ -61,7 +64,7 @@ class DriverService:
         if data.license_validity.date() < datetime.now(UTC).date():
             raise LicenseValidityInPastException
 
-        if self.repository.get_by_id(data.id):
+        if self.repository.get_by_id(data.id, include_deleted=True):
             raise DriverIdAlreadyExistsException(data.id)
 
         if self.repository.get_by_identification_number(data.identification_number):
@@ -143,7 +146,6 @@ class DriverService:
             documents=documents,
             guarantors=guarantors,
             assigned_car=assigned_car,
-            archived_at=driver.archived_at,
         )
 
     def update_driver(self, driver_id: str, data: DriverPatchSchema) -> Driver:
@@ -198,3 +200,47 @@ class DriverService:
 
         driver.status = data.status
         return self.repository.update(driver)
+
+    def archive_driver(self, driver_id: str) -> Driver:
+        """Archive a driver by setting archived_at."""
+        driver = self.repository.get_by_id(driver_id)
+        if not driver:
+            raise DriverNotFoundException(driver_id)
+
+        if driver.archived_at is not None:
+            return driver
+
+        if self.repository.has_pending_contracts(driver_id):
+            raise DriverHasActiveContractException(driver_id)
+
+        return self.repository.archive_driver(driver)
+
+    def unarchive_driver(self, driver_id: str) -> Driver:
+        """Restore an archived driver."""
+        driver = self.repository.get_by_id(driver_id)
+        if not driver:
+            raise DriverNotFoundException(driver_id)
+
+        return self.repository.unarchive_driver(driver)
+
+    def delete_driver(self, driver_id: str) -> ActionSuccess:
+        """Delete an archived driver.
+
+        Drivers with history (contracts, events or incidences) are soft-deleted and keep all their
+        data. Drivers without history are permanently deleted with cascade cleanup; the files of
+        their deleted documents are moved to the `deleted/` storage prefix (best effort).
+        """
+        driver = self.repository.get_by_id(driver_id)
+        if not driver:
+            raise DriverNotFoundException(driver_id)
+
+        if driver.archived_at is None:
+            raise DriverNotArchivedException(driver_id)
+
+        if self.repository.has_history(driver_id):
+            self.repository.soft_delete_driver(driver)
+            return ActionSuccess(message=f"Driver '{driver_id}' was deleted (history preserved)")
+
+        document_keys = self.repository.cascade_delete_driver(driver)
+        r2.soft_delete_documents_best_effort(document_keys)
+        return ActionSuccess(message=f"Driver '{driver_id}' was deleted")

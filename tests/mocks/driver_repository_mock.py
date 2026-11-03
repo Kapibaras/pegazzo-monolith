@@ -65,6 +65,7 @@ class DriverRepositoryMock:
         self.drivers: list[Driver] = []
         self.driver_documents: dict[str, list[Document]] = {}
         self.contracts: list[Contract] = []
+        self.guarantor_repo = None
         self.reset()
 
     def reset(self):
@@ -87,6 +88,7 @@ class DriverRepositoryMock:
             garage_address=list(d.garage_address),
             photo=d.photo,
             archived_at=d.archived_at,
+            deleted_at=d.deleted_at,
             created_at=d.created_at,
             updated_at=d.updated_at,
         )
@@ -100,7 +102,10 @@ class DriverRepositoryMock:
         result = [
             d
             for d in self.drivers
-            if not (archived and d.archived_at is None) and not (not archived and d.archived_at is not None) and (not status or d.status == status)
+            if d.deleted_at is None
+            and not (archived and d.archived_at is None)
+            and not (not archived and d.archived_at is not None)
+            and (not status or d.status == status)
         ]
 
         if not search:
@@ -123,8 +128,11 @@ class DriverRepositoryMock:
     def count_drivers(self, status: DriverStatus | None, search: str | None, archived: bool) -> int:
         return len(self._filter(status, search, archived))
 
-    def get_by_id(self, driver_id: str) -> Driver | None:
-        return next((d for d in self.drivers if d.id == driver_id), None)
+    def get_by_id(self, driver_id: str, *, include_deleted: bool = False) -> Driver | None:
+        return next(
+            (d for d in self.drivers if d.id == driver_id and (include_deleted or d.deleted_at is None)),
+            None,
+        )
 
     def get_by_identification_number(self, identification_number: str) -> Driver | None:
         return next((d for d in self.drivers if d.identification_number == identification_number), None)
@@ -135,16 +143,23 @@ class DriverRepositoryMock:
     def get_active_contract_for_driver(self, driver_id: str) -> Contract | None:
         today = datetime.now(tz=UTC).date()
         return next(
-            (
-                c
-                for c in self.contracts
-                if c.driver_id == driver_id and c.start_date <= today and c.end_date >= today
-            ),
+            (c for c in self.contracts if c.driver_id == driver_id and c.start_date <= today and c.end_date >= today),
             None,
         )
 
     def update(self, driver: Driver) -> Driver:
         driver.updated_at = datetime.now(UTC)
+        return driver
+
+    def has_pending_contracts(self, driver_id: str) -> bool:
+        today = datetime.now(tz=UTC).date()
+        return any(c.driver_id == driver_id and c.end_date >= today for c in self.contracts)
+
+    def has_history(self, driver_id: str) -> bool:
+        return any(c.driver_id == driver_id for c in self.contracts)
+
+    def soft_delete_driver(self, driver: Driver) -> Driver:
+        driver.deleted_at = datetime.now(UTC)
         return driver
 
     def create_driver(self, driver: Driver) -> Driver:
@@ -155,6 +170,28 @@ class DriverRepositoryMock:
             driver.updated_at = now
         self.drivers.append(driver)
         return driver
+
+    def archive_driver(self, driver: Driver) -> Driver:
+        now = datetime.now(UTC)
+        driver.archived_at = now
+        driver.updated_at = now
+        return driver
+
+    def unarchive_driver(self, driver: Driver) -> Driver:
+        driver.archived_at = None
+        driver.updated_at = datetime.now(UTC)
+        return driver
+
+    def cascade_delete_driver(self, driver: Driver) -> list[str]:
+        driver_id = driver.id
+        document_keys: list[str] = []
+        if self.guarantor_repo:
+            for g in list(driver.guarantors):
+                document_keys.extend(self.guarantor_repo.unlink_and_delete_if_orphan(driver_id, g))
+        self.drivers = [d for d in self.drivers if d.id != driver_id]
+        document_keys.extend(doc.url for doc in self.driver_documents.pop(driver_id, []))
+        self.contracts = [c for c in self.contracts if c.driver_id != driver_id]
+        return document_keys
 
     def list_drivers(
         self,

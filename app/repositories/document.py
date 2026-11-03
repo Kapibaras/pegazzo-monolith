@@ -19,8 +19,8 @@ class DocumentRepository(DBRepository):
         return self.db.query(Car).filter(Car.id == car_id, Car.deleted_at.is_(None)).first() is not None
 
     def driver_exists(self, driver_id: str) -> bool:
-        """Return True if a driver with the given ID exists."""
-        return self.db.query(Driver).filter_by(id=driver_id).first() is not None
+        """Return True if a non-deleted driver with the given ID exists."""
+        return self.db.query(Driver).filter(Driver.id == driver_id, Driver.deleted_at.is_(None)).first() is not None
 
     def guarantor_exists(self, guarantor_id: int) -> bool:
         """Return True if a guarantor with the given ID exists."""

@@ -117,6 +117,19 @@ class TestImageRouter:
         assert response.status_code == 404
         assert "driver" in response.json()["detail"].lower()
 
+    def test_request_upload_url_soft_deleted_driver(self, authorized_client):
+        authorized_client.image_repo.drivers[0].deleted_at = datetime.now(UTC)
+        response = authorized_client.post(
+            "/pegazzo/management/images/upload-url",
+            json={
+                "filename": "photo.jpg",
+                "content_type": "image/jpeg",
+                "entity_type": "driver_photo",
+                "entity_id": DRIVER_ID,
+            },
+        )
+        assert response.status_code == 404
+
     # -------------------------------------------------------------------------
     # PATCH /management/images/cars/{car_id}/agency-image
     # -------------------------------------------------------------------------
@@ -250,6 +263,14 @@ class TestImageRouter:
         response = authorized_client.patch(
             "/pegazzo/management/images/drivers/NOPE/photo",
             json={"url": "some/url.jpg"},
+        )
+        assert response.status_code == 404
+
+    def test_set_driver_photo_soft_deleted_driver(self, authorized_client):
+        authorized_client.image_repo.drivers[0].deleted_at = datetime.now(UTC)
+        response = authorized_client.patch(
+            f"/pegazzo/management/images/drivers/{DRIVER_ID}/photo",
+            json={"url": "driver_photo/DRV001/uuid.jpg"},
         )
         assert response.status_code == 404
 

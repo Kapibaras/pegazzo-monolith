@@ -33,6 +33,7 @@ car_model_repo_mock = CarModelRepositoryMock()
 document_repo_mock = DocumentRepositoryMock()
 driver_repo_mock = DriverRepositoryMock()
 guarantor_repo_mock = GuarantorRepositoryMock()
+driver_repo_mock.guarantor_repo = guarantor_repo_mock
 image_repo_mock = ImageRepositoryMock()
 
 

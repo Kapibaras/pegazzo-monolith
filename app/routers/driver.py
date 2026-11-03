@@ -14,6 +14,7 @@ from app.schemas.driver import (
     DriverResponseSchema,
     DriverStatusSchema,
 )
+from app.schemas.user import ActionSuccess
 from app.services.driver import DriverService
 
 router = APIRouter(prefix="/management/drivers", tags=["Drivers"])
@@ -69,6 +70,34 @@ def change_driver_status(
 
 
 @router.patch(
+    "/{driver_id}/archive",
+    response_model=DriverResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+def archive_driver(
+    driver_id: str = Path(..., description="Driver id"),
+    service: DriverService = Depends(ServiceFactory.driver_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> DriverResponseSchema:
+    """Archive a driver by setting archived_at."""
+    return service.archive_driver(driver_id)
+
+
+@router.patch(
+    "/{driver_id}/unarchive",
+    response_model=DriverResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+def unarchive_driver(
+    driver_id: str = Path(..., description="Driver id"),
+    service: DriverService = Depends(ServiceFactory.driver_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> DriverResponseSchema:
+    """Restore an archived driver."""
+    return service.unarchive_driver(driver_id)
+
+
+@router.patch(
     "/{driver_id}",
     response_model=DriverResponseSchema,
     status_code=status.HTTP_200_OK,
@@ -81,3 +110,17 @@ def update_driver(
 ) -> DriverResponseSchema:
     """Update a driver's fields partially (excluding status)."""
     return service.update_driver(driver_id, body)
+
+
+@router.delete(
+    "/{driver_id}",
+    response_model=ActionSuccess,
+    status_code=status.HTTP_200_OK,
+)
+def delete_driver(
+    driver_id: str = Path(..., description="Driver id"),
+    service: DriverService = Depends(ServiceFactory.driver_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> ActionSuccess:
+    """Delete an archived driver (soft delete when it has history, cascade delete otherwise)."""
+    return service.delete_driver(driver_id)
