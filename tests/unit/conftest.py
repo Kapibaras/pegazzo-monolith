@@ -15,6 +15,7 @@ from tests.mocks import (
     CarModelRepositoryMock,
     CarRepositoryMock,
     DocumentRepositoryMock,
+    DriverRepositoryMock,
     ImageRepositoryMock,
     InsuranceRepositoryMock,
     UserRepositoryMock,
@@ -29,6 +30,7 @@ associate_repo_mock = AssociateRepositoryMock()
 car_repo_mock = CarRepositoryMock()
 car_model_repo_mock = CarModelRepositoryMock()
 document_repo_mock = DocumentRepositoryMock()
+driver_repo_mock = DriverRepositoryMock()
 image_repo_mock = ImageRepositoryMock()
 
 
@@ -49,6 +51,7 @@ def reset_state():
     car_repo_mock.reset()
     car_model_repo_mock.reset()
     document_repo_mock.reset()
+    driver_repo_mock.reset()
     image_repo_mock.reset()
 
 
@@ -61,6 +64,7 @@ def _dependency_overrides():
         RepositoryFactory.car_repository: lambda: car_repo_mock,
         RepositoryFactory.car_model_repository: lambda: car_model_repo_mock,
         RepositoryFactory.document_repository: lambda: document_repo_mock,
+        RepositoryFactory.driver_repository: lambda: driver_repo_mock,
         RepositoryFactory.image_repository: lambda: image_repo_mock,
     }
 
@@ -73,6 +77,7 @@ def _attach_repos(client):
     client.car_repo = car_repo_mock
     client.car_model_repo = car_model_repo_mock
     client.document_repo = document_repo_mock
+    client.driver_repo = driver_repo_mock
     client.image_repo = image_repo_mock
 
 

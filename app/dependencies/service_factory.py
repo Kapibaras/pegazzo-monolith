@@ -9,6 +9,7 @@ from app.services import (
     CarModelService,
     CarService,
     DocumentService,
+    DriverService,
     ImageService,
     InsuranceService,
     UserService,
@@ -123,3 +124,8 @@ class ServiceFactory:
         Yields:ImageService: An instance of ImageService initialized with the provided repository.
         """
         yield ImageService(repository)
+
+    @staticmethod
+    def driver_service(repository=Depends(RepositoryFactory.driver_repository)):
+        """Provide an instance of DriverService."""
+        yield DriverService(repository)
