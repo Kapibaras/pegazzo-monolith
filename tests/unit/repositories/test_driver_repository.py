@@ -36,3 +36,33 @@ class TestCascadeDeleteDriver:
             self.repository.cascade_delete_driver(self.driver)
 
         self.db.rollback.assert_called_once()
+
+
+@pytest.mark.usefixtures("driver_repository_test_setup")
+class TestSoftDeleteDriver:
+    """History detection and soft delete."""
+
+    def test_has_history_when_any_reference_exists(self):
+        self.db.query.return_value.filter.return_value.first.side_effect = [None, object()]
+
+        assert self.repository.has_history("DRV-003") is True
+
+    def test_has_no_history_without_references(self):
+        self.db.query.return_value.filter.return_value.first.return_value = None
+
+        assert self.repository.has_history("DRV-003") is False
+
+    def test_soft_delete_sets_deleted_at_and_commits(self):
+        self.repository.soft_delete_driver(self.driver)
+
+        assert self.driver.deleted_at is not None
+        self.db.commit.assert_called_once()
+        self.db.delete.assert_not_called()
+
+    def test_soft_delete_failure_rolls_back(self):
+        self.db.commit.side_effect = RuntimeError("boom")
+
+        with pytest.raises(DBOperationError):
+            self.repository.soft_delete_driver(self.driver)
+
+        self.db.rollback.assert_called_once()

@@ -1,7 +1,10 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from unittest.mock import patch
 
 import pytest
+
+from app.models.contract import Contract
+from app.models.document import Document
 
 _VALID_DRIVER_BODY = {
     "id": "DRV-NEW",
@@ -615,3 +618,60 @@ class TestDeleteDriver:
         url = self.ENDPOINT.format(driver_id="DRV-003")
         response = employee_authorized_client.delete(url)
         assert response.status_code == 403
+
+
+def _past_contract(driver_id: str) -> Contract:
+    return Contract(
+        id="CTR-OLD",
+        start_date=date(2024, 1, 1),
+        end_date=date(2024, 12, 31),
+        type="rent",
+        amount=1000,
+        guarantee_amount=500,
+        car_id="CAR-001",
+        driver_id=driver_id,
+    )
+
+
+@pytest.mark.usefixtures("authorized_client")
+class TestSoftDeleteDriver:
+    """DELETE on a driver with history keeps its data and hides it from the API."""
+
+    DRIVERS = "/pegazzo/management/drivers"
+
+    @pytest.fixture(autouse=True)
+    def _soft_deleted_driver(self, authorized_client):
+        self.contract = _past_contract("DRV-003")
+        authorized_client.driver_repo.contracts.append(self.contract)
+        authorized_client.driver_repo.driver_documents["DRV-003"] = [
+            Document(id=10, type="PDF", url="docs/ine.pdf", category="ine", expiry_date=None),
+        ]
+        with patch("app.storage.r2.soft_delete_document") as mock_soft_delete:
+            self.response = authorized_client.delete(f"{self.DRIVERS}/DRV-003")
+        self.mock_soft_delete = mock_soft_delete
+
+    def test_driver_with_history_is_soft_deleted(self, authorized_client):
+        assert self.response.status_code == 200
+        assert "history preserved" in self.response.json()["message"]
+        driver = authorized_client.driver_repo.get_by_id("DRV-003", include_deleted=True)
+        assert driver.deleted_at is not None
+
+    def test_soft_delete_keeps_contract_documents_and_files(self, authorized_client):
+        assert self.contract.driver_id == "DRV-003"
+        assert authorized_client.driver_repo.driver_documents["DRV-003"]
+        self.mock_soft_delete.assert_not_called()
+
+    def test_soft_deleted_driver_is_not_found(self, authorized_client):
+        assert authorized_client.get(f"{self.DRIVERS}/DRV-003").status_code == 404
+        assert authorized_client.patch(f"{self.DRIVERS}/DRV-003/unarchive").status_code == 404
+        assert authorized_client.delete(f"{self.DRIVERS}/DRV-003").status_code == 404
+
+    def test_soft_deleted_driver_is_not_listed(self, authorized_client):
+        response = authorized_client.get(self.DRIVERS, params={"archived": True})
+        assert "DRV-003" not in [d["id"] for d in response.json()["drivers"]]
+
+    def test_soft_deleted_driver_id_cannot_be_reused(self, authorized_client):
+        body = {**_VALID_DRIVER_BODY, "id": "DRV-003"}
+        response = authorized_client.post(self.DRIVERS, json=body)
+        assert response.status_code == 400
+        assert "already exists" in response.json()["detail"]

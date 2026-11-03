@@ -19,6 +19,8 @@ from app.models.driver import (
     guarantor_document_table,
     reference_document_table,
 )
+from app.models.event import Event
+from app.models.incidence import Incidence
 from app.utils.logging_config import logger
 
 from .abstract import DBRepository
@@ -35,17 +37,22 @@ _DRIVER_SORT_COLUMNS = {
 class DriverRepository(DBRepository):
     """Data-access layer for the Driver entity."""
 
-    def get_by_id(self, driver_id: str) -> Driver | None:
-        """Retrieve a driver by id with eager-loaded relationships."""
-        return (
+    def get_by_id(self, driver_id: str, *, include_deleted: bool = False) -> Driver | None:
+        """Retrieve a driver by id with eager-loaded relationships.
+
+        Soft-deleted drivers are excluded unless include_deleted is True.
+        """
+        query = (
             self.db.query(Driver)
             .options(
                 selectinload(Driver.documents),
                 selectinload(Driver.guarantors).selectinload(Guarantor.documents),
             )
             .filter(Driver.id == driver_id)
-            .first()
         )
+        if not include_deleted:
+            query = query.filter(Driver.deleted_at.is_(None))
+        return query.first()
 
     def get_by_identification_number(self, identification_number: str) -> Driver | None:
         """Retrieve a driver by identification number."""
@@ -97,9 +104,28 @@ class DriverRepository(DBRepository):
             .first()
         ) is not None
 
+    def has_history(self, driver_id: str) -> bool:
+        """Return True if the driver is referenced by any contract, event or incidence."""
+        return any(
+            self.db.query(model.driver_id).filter(model.driver_id == driver_id).first() is not None
+            for model in (Contract, Event, Incidence)
+        )
+
+    def soft_delete_driver(self, driver: Driver) -> Driver:
+        """Mark the driver as deleted while keeping its data (used when the driver has history)."""
+        try:
+            driver.deleted_at = datetime.now(tz=UTC)
+            self.db.commit()
+            self.db.refresh(driver)
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error soft-deleting driver %s: %s", driver.id, ex, exc_info=True)
+            raise DBOperationError("Error deleting driver") from ex
+        return driver
+
     def _base_query(self, status: DriverStatus | None, archived: bool):
         """Build a base query with archive and status filters applied."""
-        query = self.db.query(Driver)
+        query = self.db.query(Driver).filter(Driver.deleted_at.is_(None))
         query = query.filter(Driver.archived_at.isnot(None)) if archived else query.filter(Driver.archived_at.is_(None))
         if status:
             query = query.filter(Driver.status == status)
@@ -172,14 +198,16 @@ class DriverRepository(DBRepository):
         return keys
 
     def cascade_delete_driver(self, driver: Driver) -> list[str]:
-        """Delete a driver and all dependent data in a single transaction.
+        """Permanently delete a driver without history and its dependent data in a single transaction.
+
+        Only for drivers without contracts, events or incidences (see `has_history`); drivers with
+        history are soft-deleted instead.
 
         Cascade order:
         1. Unlink guarantors → delete guarantor docs → delete orphan guarantors
         2. Unlink driver documents → delete document records
         3. Unlink references → delete ref docs → delete orphan references
-        4. Nullify contract FK references
-        5. Delete driver record
+        4. Delete driver record
 
         Objects are expired before `db.delete` so the ORM does not try to remove link rows that the
         Core DELETEs above already removed (StaleDataError when the collections were eager loaded).
@@ -267,11 +295,6 @@ class DriverRepository(DBRepository):
                     document_keys.extend(self._delete_documents(ref_doc_ids))
                     self.db.expire(ref)
                     self.db.delete(ref)
-
-            self.db.query(Contract).filter(Contract.driver_id == driver_id).update(
-                {Contract.driver_id: None},
-                synchronize_session=False,
-            )
 
             self.db.expire(driver)
             self.db.delete(driver)

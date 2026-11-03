@@ -90,6 +90,5 @@ def delete_driver(
     service: DriverService = Depends(ServiceFactory.driver_service),
     _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
 ) -> ActionSuccess:
-    """Permanently delete an archived driver with cascade cleanup."""
-    service.delete_driver(driver_id)
-    return {"message": "Driver deleted successfully"}
+    """Delete an archived driver (soft delete when it has history, cascade delete otherwise)."""
+    return service.delete_driver(driver_id)
