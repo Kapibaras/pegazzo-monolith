@@ -201,7 +201,7 @@ class TransactionResponseSchema(BaseModel):
     payment_method: PaymentMethod = Field(..., description="Payment method")
     status: TransactionStatus = Field(..., description="Approval status of the transaction")
     category: str | None = Field(default=None, description="Category of the transaction")
-    car_id: int | None = Field(default=None, description="Associated car ID (nullable)")
+    car_id: str | None = Field(default=None, description="Associated car ID (internal folio, nullable)")
 
     @field_validator("description", mode="before")
     @classmethod

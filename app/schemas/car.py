@@ -19,7 +19,7 @@ class CarSchema(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     # Identity
-    id: str = Field(..., min_length=1, max_length=15, description="Unique car identifier")
+    id: str = Field(..., min_length=1, max_length=30, description="Unique car identifier (internal folio)")
     make: str = Field(..., min_length=1, max_length=50)
     model: str = Field(..., min_length=1, max_length=50)
     year: str = Field(..., min_length=4, max_length=4)

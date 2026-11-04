@@ -68,6 +68,19 @@ class TestCarRouter:
         response = authorized_client.post("/pegazzo/management/cars", json=payload)
         assert response.status_code == 201
 
+    def test_create_car_with_computed_folio_as_id(self, authorized_client):
+        """The folio (e.g. US-GF-MZ2(TA)-01) is longer than 15 chars and must be accepted as the car id."""
+        folio = "US-GDR-MZ2(TA)-07"
+        response = authorized_client.post("/pegazzo/management/cars", json={**BASE_PAYLOAD, "id": folio})
+
+        assert response.status_code == 201
+        assert response.json()["id"] == folio
+
+    def test_create_car_id_too_long(self, authorized_client):
+        response = authorized_client.post("/pegazzo/management/cars", json={**BASE_PAYLOAD, "id": "X" * 31})
+
+        assert response.status_code == 422
+
     def test_create_car_duplicate_id(self, authorized_client):
         authorized_client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
 
@@ -286,10 +299,18 @@ class TestCarRouter:
         now = datetime.now(UTC)
         doc_valid = Document(id=1, type="PDF", url="key/doc1.pdf", category="license", expiry_date=now + timedelta(days=60))
         doc_expiring = Document(
-            id=2, type="PDF", url="key/doc2.pdf", category="insurance", expiry_date=now + timedelta(days=10),
+            id=2,
+            type="PDF",
+            url="key/doc2.pdf",
+            category="insurance",
+            expiry_date=now + timedelta(days=10),
         )
         doc_expired = Document(
-            id=3, type="PDF", url="key/doc3.pdf", category="registration", expiry_date=now - timedelta(days=1),
+            id=3,
+            type="PDF",
+            url="key/doc3.pdf",
+            category="registration",
+            expiry_date=now - timedelta(days=1),
         )
         doc_no_expiry = Document(id=4, type="PDF", url="key/doc4.pdf", category="other", expiry_date=None)
         authorized_client.car_repo.car_documents["CAR-001"] = [

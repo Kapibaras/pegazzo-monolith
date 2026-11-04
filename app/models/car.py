@@ -9,7 +9,7 @@ from app.database.base import Base
 car_document_table = Table(
     "car_document",
     Base.metadata,
-    Column("car_id", String(15), ForeignKey("car.id"), primary_key=True, nullable=False),
+    Column("car_id", String(30), ForeignKey("car.id"), primary_key=True, nullable=False),
     Column("document_id", Integer, ForeignKey("document.id"), primary_key=True, nullable=False),
 )
 
@@ -17,7 +17,7 @@ associate_car = Table(
     "associate_car",
     Base.metadata,
     Column("associate_id", Integer, ForeignKey("associate.id"), primary_key=True, nullable=False),
-    Column("car_id", String(15), ForeignKey("car.id"), primary_key=True, nullable=False),
+    Column("car_id", String(30), ForeignKey("car.id"), primary_key=True, nullable=False),
 )
 
 
@@ -25,7 +25,7 @@ class Car(Base):
     """Car model class."""
 
     __tablename__ = "car"
-    id = Column(String(15), primary_key=True, nullable=False)
+    id = Column(String(30), primary_key=True, nullable=False)
     status = Column(String(20), nullable=False)
     make = Column(String(50), nullable=False)
     model = Column(String(50), nullable=False)
