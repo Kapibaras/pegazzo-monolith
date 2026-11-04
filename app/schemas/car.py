@@ -24,7 +24,7 @@ class CarSchema(BaseModel):
     model: str = Field(..., min_length=1, max_length=50)
     year: str = Field(..., min_length=4, max_length=4)
     color: str = Field(..., min_length=1, max_length=30)
-    status: CarStatus = Field(..., description="Car status: ACTIVE, INACTIVE or IN_MAINTENANCE")
+    # `status` is not accepted on creation: every car starts INACTIVE and changes via PATCH /{car_id}/status.
 
     # Technical
     vin: str = Field(..., min_length=1, max_length=17, description="Vehicle Identification Number (unique)")

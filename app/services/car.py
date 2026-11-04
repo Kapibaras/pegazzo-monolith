@@ -201,7 +201,7 @@ class CarService:
             model=data.model,
             year=data.year,
             color=data.color,
-            status=data.status,
+            status=CarStatus.INACTIVE,
             vin=data.vin,
             plate=data.plate,
             body_type=data.body_type,

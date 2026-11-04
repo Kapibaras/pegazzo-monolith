@@ -39,13 +39,13 @@ class TestUpdateCar:
         assert data["features"] == {"ac": True}
         # Untouched fields keep their value
         assert data["make"] == "Toyota"
-        assert data["status"] == "ACTIVE"
+        assert data["status"] == "INACTIVE"
 
     def test_update_does_not_change_status(self, authorized_client, created_car):
         response = authorized_client.patch(f"{ENDPOINT}/{created_car}", json={"color": "Blue", "status": "INACTIVE"})
 
         assert response.status_code == 200
-        assert response.json()["status"] == "ACTIVE"
+        assert response.json()["status"] == "INACTIVE"
 
     def test_update_same_vin_and_plate_of_the_car_is_allowed(self, authorized_client, created_car):
         response = authorized_client.patch(
@@ -267,11 +267,11 @@ class TestUpdateCarStatus:
     def test_update_status_of_archived_car_is_rejected(self, authorized_client, created_car):
         assert authorized_client.patch(f"{ENDPOINT}/{created_car}/archive").status_code == 200
 
-        response = authorized_client.patch(f"{ENDPOINT}/{created_car}/status", json={"status": "INACTIVE"})
+        response = authorized_client.patch(f"{ENDPOINT}/{created_car}/status", json={"status": "ACTIVE"})
 
         assert response.status_code == 400
         assert "archived" in response.json()["detail"]
-        assert authorized_client.car_repo.get_by_id(created_car).status == "ACTIVE"
+        assert authorized_client.car_repo.get_by_id(created_car).status == "INACTIVE"
 
     def test_update_status_invalid_value(self, authorized_client, created_car):
         response = authorized_client.patch(f"{ENDPOINT}/{created_car}/status", json={"status": "BROKEN"})

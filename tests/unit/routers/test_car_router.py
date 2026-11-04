@@ -16,7 +16,6 @@ BASE_PAYLOAD = {
     "model": "Corolla",
     "year": "2022",
     "color": "White",
-    "status": "ACTIVE",
     "vin": "1HGBH41JXMN109186",
     "plate": "ABC-1234",
     "bodyType": "Sedan",
@@ -61,7 +60,13 @@ class TestCarRouter:
         assert data["make"] == "Toyota"
         assert data["vin"] == "1HGBH41JXMN109186"
         assert data["plate"] == "ABC-1234"
-        assert data["status"] == "ACTIVE"
+        assert data["status"] == "INACTIVE"
+
+    def test_create_car_ignores_client_status(self, authorized_client):
+        response = authorized_client.post("/pegazzo/management/cars", json={**BASE_PAYLOAD, "status": "ACTIVE"})
+
+        assert response.status_code == 201
+        assert response.json()["status"] == "INACTIVE"
 
     def test_create_car_with_associate(self, authorized_client):
         payload = {**BASE_PAYLOAD, "associateId": 1}
@@ -158,7 +163,7 @@ class TestCarRouter:
         assert car["make"] == "Toyota"
         assert car["model"] == "Corolla"
         assert car["plate"] == "ABC-1234"
-        assert car["status"] == "ACTIVE"
+        assert car["status"] == "INACTIVE"
         assert car["year"] == "2022"
         assert car["color"] == "White"
         assert "agencyImage" in car
@@ -185,7 +190,8 @@ class TestCarRouter:
 
     def test_list_cars_filter_by_status(self, authorized_client):
         authorized_client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
-        payload2 = {**BASE_PAYLOAD, "id": "CAR-002", "vin": "VIN00000000000002", "plate": "PLT-002", "status": "INACTIVE"}
+        authorized_client.patch("/pegazzo/management/cars/CAR-001/status", json={"status": "ACTIVE"})
+        payload2 = {**BASE_PAYLOAD, "id": "CAR-002", "vin": "VIN00000000000002", "plate": "PLT-002"}
         authorized_client.post("/pegazzo/management/cars", json=payload2)
 
         response = authorized_client.get("/pegazzo/management/cars?status=ACTIVE")
