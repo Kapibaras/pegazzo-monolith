@@ -23,6 +23,13 @@ class AssociateService:
         """List all associates."""
         return self.repository.list_all(search=search)
 
+    def get(self, associate_id: int) -> Associate:
+        """Retrieve an associate with its linked cars."""
+        associate = self.repository.get_by_id(associate_id)
+        if not associate:
+            raise AssociateNotFoundException(associate_id)
+        return associate
+
     def update(self, associate_id: int, data: AssociatePatchSchema) -> Associate:
         """Update an associate partially."""
         associate = self.repository.get_by_id(associate_id)

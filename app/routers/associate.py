@@ -3,7 +3,12 @@ from fastapi import APIRouter, Body, Depends, Path, Query, status
 from app.auth import AuthUser, RequiresAuth
 from app.dependencies import ServiceFactory
 from app.enum.auth import Role
-from app.schemas.associate import AssociatePatchSchema, AssociateResponseSchema, AssociateSchema
+from app.schemas.associate import (
+    AssociateDetailResponseSchema,
+    AssociatePatchSchema,
+    AssociateResponseSchema,
+    AssociateSchema,
+)
 from app.schemas.user import ActionSuccess
 from app.services.associate import AssociateService
 
@@ -36,6 +41,20 @@ def list_associates(
 ) -> list[AssociateResponseSchema]:
     """List all associates."""
     return service.list_all(search=search)
+
+
+@router.get(
+    "/{associate_id}",
+    response_model=AssociateDetailResponseSchema,
+    status_code=status.HTTP_200_OK,
+)
+def get_associate(
+    associate_id: int = Path(..., description="Associate id"),
+    service: AssociateService = Depends(ServiceFactory.associate_service),
+    _user: AuthUser = Depends(RequiresAuth([Role.OWNER, Role.ADMIN])),
+) -> AssociateDetailResponseSchema:
+    """Get an associate with the cars linked to it."""
+    return service.get(associate_id=associate_id)
 
 
 @router.patch(

@@ -94,6 +94,11 @@ class Associate(Base):
     created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
 
+    @property
+    def car_count(self) -> int:
+        """Number of cars linked to this associate."""
+        return len(self.cars)
+
 
 class OwnerAssociate(Base):
     """Associates that get the 'US' owner prefix in the internal car folio."""
