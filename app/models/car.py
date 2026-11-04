@@ -57,7 +57,7 @@ class Car(Base):
     battery_date = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     policy_number = Column(String(30), nullable=False)
     insurance_provider_id = Column(Integer, ForeignKey("insurance.id"), nullable=False)
-    insurance_provider = relationship("Insurance")
+    insurance_provider = relationship("Insurance", back_populates="cars")
     policy_expiration_date = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     policy_type = Column(String(20), nullable=False)
     is_financed_liquidated = Column(Boolean, nullable=False)
@@ -80,6 +80,12 @@ class Insurance(Base):
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String(50), nullable=False)
     telephones = Column(ARRAY(String), nullable=False)
+    cars = relationship("Car", back_populates="insurance_provider")
+
+    @property
+    def car_count(self) -> int:
+        """Number of cars insured by this provider."""
+        return len(self.cars)
 
 
 class Associate(Base):
