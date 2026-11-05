@@ -9,7 +9,7 @@ from app.database.base import Base
 car_document_table = Table(
     "car_document",
     Base.metadata,
-    Column("car_id", String(15), ForeignKey("car.id"), primary_key=True, nullable=False),
+    Column("car_id", String(30), ForeignKey("car.id"), primary_key=True, nullable=False),
     Column("document_id", Integer, ForeignKey("document.id"), primary_key=True, nullable=False),
 )
 
@@ -17,7 +17,7 @@ associate_car = Table(
     "associate_car",
     Base.metadata,
     Column("associate_id", Integer, ForeignKey("associate.id"), primary_key=True, nullable=False),
-    Column("car_id", String(15), ForeignKey("car.id"), primary_key=True, nullable=False),
+    Column("car_id", String(30), ForeignKey("car.id"), primary_key=True, nullable=False),
 )
 
 
@@ -25,7 +25,7 @@ class Car(Base):
     """Car model class."""
 
     __tablename__ = "car"
-    id = Column(String(15), primary_key=True, nullable=False)
+    id = Column(String(30), primary_key=True, nullable=False)
     status = Column(String(20), nullable=False)
     make = Column(String(50), nullable=False)
     model = Column(String(50), nullable=False)
@@ -57,7 +57,7 @@ class Car(Base):
     battery_date = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     policy_number = Column(String(30), nullable=False)
     insurance_provider_id = Column(Integer, ForeignKey("insurance.id"), nullable=False)
-    insurance_provider = relationship("Insurance")
+    insurance_provider = relationship("Insurance", back_populates="cars")
     policy_expiration_date = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     policy_type = Column(String(20), nullable=False)
     is_financed_liquidated = Column(Boolean, nullable=False)
@@ -80,6 +80,12 @@ class Insurance(Base):
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String(50), nullable=False)
     telephones = Column(ARRAY(String), nullable=False)
+    cars = relationship("Car", back_populates="insurance_provider")
+
+    @property
+    def car_count(self) -> int:
+        """Number of cars insured by this provider."""
+        return len(self.cars)
 
 
 class Associate(Base):
@@ -93,6 +99,11 @@ class Associate(Base):
     cars = relationship("Car", secondary=associate_car, back_populates="associate")
     created_at = Column(DateTime(timezone=True), default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
+
+    @property
+    def car_count(self) -> int:
+        """Number of cars linked to this associate."""
+        return len(self.cars)
 
 
 class OwnerAssociate(Base):

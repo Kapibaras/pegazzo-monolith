@@ -16,7 +16,6 @@ BASE_PAYLOAD = {
     "model": "Corolla",
     "year": "2022",
     "color": "White",
-    "status": "ACTIVE",
     "vin": "1HGBH41JXMN109186",
     "plate": "ABC-1234",
     "bodyType": "Sedan",
@@ -61,12 +60,31 @@ class TestCarRouter:
         assert data["make"] == "Toyota"
         assert data["vin"] == "1HGBH41JXMN109186"
         assert data["plate"] == "ABC-1234"
-        assert data["status"] == "ACTIVE"
+        assert data["status"] == "INACTIVE"
+
+    def test_create_car_ignores_client_status(self, authorized_client):
+        response = authorized_client.post("/pegazzo/management/cars", json={**BASE_PAYLOAD, "status": "ACTIVE"})
+
+        assert response.status_code == 201
+        assert response.json()["status"] == "INACTIVE"
 
     def test_create_car_with_associate(self, authorized_client):
         payload = {**BASE_PAYLOAD, "associateId": 1}
         response = authorized_client.post("/pegazzo/management/cars", json=payload)
         assert response.status_code == 201
+
+    def test_create_car_with_computed_folio_as_id(self, authorized_client):
+        """The folio (e.g. US-GF-MZ2(TA)-01) is longer than 15 chars and must be accepted as the car id."""
+        folio = "US-GDR-MZ2(TA)-07"
+        response = authorized_client.post("/pegazzo/management/cars", json={**BASE_PAYLOAD, "id": folio})
+
+        assert response.status_code == 201
+        assert response.json()["id"] == folio
+
+    def test_create_car_id_too_long(self, authorized_client):
+        response = authorized_client.post("/pegazzo/management/cars", json={**BASE_PAYLOAD, "id": "X" * 31})
+
+        assert response.status_code == 422
 
     def test_create_car_duplicate_id(self, authorized_client):
         authorized_client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
@@ -145,7 +163,7 @@ class TestCarRouter:
         assert car["make"] == "Toyota"
         assert car["model"] == "Corolla"
         assert car["plate"] == "ABC-1234"
-        assert car["status"] == "ACTIVE"
+        assert car["status"] == "INACTIVE"
         assert car["year"] == "2022"
         assert car["color"] == "White"
         assert "agencyImage" in car
@@ -172,7 +190,8 @@ class TestCarRouter:
 
     def test_list_cars_filter_by_status(self, authorized_client):
         authorized_client.post("/pegazzo/management/cars", json=BASE_PAYLOAD)
-        payload2 = {**BASE_PAYLOAD, "id": "CAR-002", "vin": "VIN00000000000002", "plate": "PLT-002", "status": "INACTIVE"}
+        authorized_client.patch("/pegazzo/management/cars/CAR-001/status", json={"status": "ACTIVE"})
+        payload2 = {**BASE_PAYLOAD, "id": "CAR-002", "vin": "VIN00000000000002", "plate": "PLT-002"}
         authorized_client.post("/pegazzo/management/cars", json=payload2)
 
         response = authorized_client.get("/pegazzo/management/cars?status=ACTIVE")
@@ -286,10 +305,18 @@ class TestCarRouter:
         now = datetime.now(UTC)
         doc_valid = Document(id=1, type="PDF", url="key/doc1.pdf", category="license", expiry_date=now + timedelta(days=60))
         doc_expiring = Document(
-            id=2, type="PDF", url="key/doc2.pdf", category="insurance", expiry_date=now + timedelta(days=10),
+            id=2,
+            type="PDF",
+            url="key/doc2.pdf",
+            category="insurance",
+            expiry_date=now + timedelta(days=10),
         )
         doc_expired = Document(
-            id=3, type="PDF", url="key/doc3.pdf", category="registration", expiry_date=now - timedelta(days=1),
+            id=3,
+            type="PDF",
+            url="key/doc3.pdf",
+            category="registration",
+            expiry_date=now - timedelta(days=1),
         )
         doc_no_expiry = Document(id=4, type="PDF", url="key/doc4.pdf", category="other", expiry_date=None)
         authorized_client.car_repo.car_documents["CAR-001"] = [

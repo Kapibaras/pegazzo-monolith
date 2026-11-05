@@ -1,3 +1,5 @@
+from sqlalchemy.orm import selectinload
+
 from app.errors.database import DBOperationError
 from app.models.car import Associate, associate_car
 from app.utils.logging_config import logger
@@ -14,7 +16,7 @@ class AssociateRepository(DBRepository):
 
     def list_all(self, search: str | None = None) -> list[Associate]:
         """List all associates, optionally filtered by name or surnames."""
-        query = self.db.query(Associate)
+        query = self.db.query(Associate).options(selectinload(Associate.cars))
         if search:
             query = query.filter(
                 Associate.name.ilike(f"%{search}%") | Associate.surnames.ilike(f"%{search}%"),

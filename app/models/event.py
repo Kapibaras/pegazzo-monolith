@@ -20,7 +20,7 @@ class Event(Base):
     id = Column(Integer, primary_key=True, nullable=False)
     category = Column(String(20), nullable=False)
     description = Column(Text, nullable=True)
-    car_id = Column(String(15), ForeignKey("car.id"), nullable=True)
+    car_id = Column(String(30), ForeignKey("car.id"), nullable=True)
     driver_id = Column(String(15), ForeignKey("driver.id"), nullable=True)
     car = relationship("Car")
     driver = relationship("Driver")

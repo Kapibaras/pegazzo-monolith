@@ -28,3 +28,4 @@ class InsuranceResponseSchema(BaseModel):
     id: int
     name: str
     telephones: list[str] | None = None
+    car_count: int = Field(0, description="Number of cars insured by this provider")

@@ -115,3 +115,24 @@ class TestAssociateRouter:
     def test_delete_associate_unauthenticated(self, client):
         response = client.delete(f"{BASE_URL}/1")
         assert response.status_code == 401
+
+    def test_list_associates_includes_car_count(self, authorized_client):
+        response = authorized_client.get(BASE_URL)
+        assert response.status_code == 200
+        assert all(item["car_count"] == 0 for item in response.json())
+
+    def test_get_associate_success(self, authorized_client):
+        response = authorized_client.get(f"{BASE_URL}/1")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == 1
+        assert data["car_count"] == 0
+        assert data["cars"] == []
+
+    def test_get_associate_not_found(self, authorized_client):
+        response = authorized_client.get(f"{BASE_URL}/999")
+        assert response.status_code == 404
+
+    def test_get_associate_unauthenticated(self, client):
+        response = client.get(f"{BASE_URL}/1")
+        assert response.status_code == 401

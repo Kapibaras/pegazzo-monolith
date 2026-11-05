@@ -23,7 +23,7 @@ class Incidence(Base):
     location = Column(String(255), nullable=True)
     odometer = Column(Integer, nullable=True)
     occurred_at = Column(DateTime(timezone=True))
-    car_id = Column(String(15), ForeignKey("car.id"), nullable=True)
+    car_id = Column(String(30), ForeignKey("car.id"), nullable=True)
     driver_id = Column(String(15), ForeignKey("driver.id"), nullable=True)
     car = relationship("Car")
     driver = relationship("Driver")

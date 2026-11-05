@@ -21,7 +21,7 @@ class Contract(Base):
     signed_document_out = Column(String(512), nullable=True)
     signed_checklist_in = Column(String(512), nullable=True)
     signed_checklist_out = Column(String(512), nullable=True)
-    car_id = Column(String(15), ForeignKey("car.id"), nullable=True)
+    car_id = Column(String(30), ForeignKey("car.id"), nullable=True)
     driver_id = Column(String(15), ForeignKey("driver.id"), nullable=True)
     car = relationship("Car")
     driver = relationship("Driver")
