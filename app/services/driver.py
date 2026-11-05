@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
 
+from app.enum.crm import ImageEntityType
 from app.errors.database import DBOperationError
 from app.errors.driver import (
     DriverHasActiveContractException,
@@ -14,6 +15,7 @@ from app.errors.driver import (
 )
 from app.models.driver import Driver
 from app.repositories.driver import DriverRepository
+from app.schemas.address import format_address
 from app.schemas.car import DocumentDetailSchema, PaginationSchema
 from app.schemas.driver import (
     AssignedCarSchema,
@@ -24,11 +26,16 @@ from app.schemas.driver import (
     DriverPatchSchema,
     DriverResponseSchema,
     DriverStatusSchema,
+    GarageDetailSchema,
     GuarantorDetailSchema,
 )
 from app.schemas.user import ActionSuccess
 from app.storage import r2
 from app.utils.dates import compute_expiry_status
+from app.utils.driver_folio import build_driver_folio
+from app.utils.logging_config import logger
+
+_FOLIO_ATTEMPTS = 5
 
 
 class DriverService:
@@ -61,11 +68,8 @@ class DriverService:
 
     def create_driver(self, data: DriverCreateSchema) -> Driver:
         """Create a new driver with validations."""
-        if data.license_validity.date() < datetime.now(UTC).date():
+        if data.license_validity is not None and data.license_validity.date() < datetime.now(UTC).date():
             raise LicenseValidityInPastException
-
-        if self.repository.get_by_id(data.id, include_deleted=True):
-            raise DriverIdAlreadyExistsException(data.id)
 
         if self.repository.get_by_identification_number(data.identification_number):
             raise IdentificationNumberAlreadyExistsException(data.identification_number)
@@ -73,8 +77,10 @@ class DriverService:
         if self.repository.get_by_license_number(data.license_number):
             raise LicenseNumberAlreadyExistsException(data.license_number)
 
+        folio = self._next_free_folio(data.name, data.surnames)
+
         driver = Driver(
-            id=data.id,
+            id=folio,
             name=data.name,
             surnames=data.surnames,
             status=data.status,
@@ -82,8 +88,8 @@ class DriverService:
             license_number=data.license_number,
             license_validity=data.license_validity,
             identification_number=data.identification_number,
-            address=data.address,
-            garage_address=data.garage_address,
+            address=format_address(data.address_fields),
+            address_fields=data.address_fields.model_dump(),
         )
 
         try:
@@ -95,7 +101,15 @@ class DriverService:
                 raise LicenseNumberAlreadyExistsException(data.license_number) from ex
             if "identification_number" in detail:
                 raise IdentificationNumberAlreadyExistsException(data.identification_number) from ex
-            raise DriverIdAlreadyExistsException(data.id) from ex
+            raise DriverIdAlreadyExistsException(folio) from ex
+
+    def _next_free_folio(self, name: str, surnames: str) -> str:
+        """Build the next folio from the global sequence, skipping ids already taken (including soft-deleted)."""
+        for _ in range(_FOLIO_ATTEMPTS):
+            folio = build_driver_folio(name, surnames, self.repository.next_folio_number())
+            if not self.repository.get_by_id(folio, include_deleted=True):
+                return folio
+        raise DBOperationError("Could not generate a unique driver folio")
 
     @staticmethod
     def _to_document_detail(doc) -> DocumentDetailSchema:
@@ -123,10 +137,21 @@ class DriverService:
                 surnames=g.surnames,
                 telephones=g.telephones,
                 address=g.address,
+                address_fields=g.address_fields,
                 relation=g.relation,
                 documents=[self._to_document_detail(doc) for doc in g.documents],
             )
             for g in driver.guarantors
+        ]
+
+        garages = [
+            GarageDetailSchema(
+                id=garage.id,
+                address=garage.address,
+                address_fields=garage.address_fields,
+                documents=[self._to_document_detail(doc) for doc in garage.documents],
+            )
+            for garage in driver.garages
         ]
 
         assigned_car = None
@@ -145,6 +170,7 @@ class DriverService:
             **DriverResponseSchema.model_validate(driver).model_dump(),
             documents=documents,
             guarantors=guarantors,
+            garages=garages,
             assigned_car=assigned_car,
         )
 
@@ -155,7 +181,8 @@ class DriverService:
             raise DriverNotFoundException(driver_id)
 
         if (
-            data.license_validity is not None
+            "license_validity" in data.model_fields_set
+            and data.license_validity is not None
             and data.license_validity != driver.license_validity
             and data.license_validity.date() < datetime.now(UTC).date()
         ):
@@ -175,11 +202,19 @@ class DriverService:
         ):
             raise LicenseNumberAlreadyExistsException(data.license_number)
 
-        for field, value in data.model_dump(exclude_unset=True).items():
+        changes = data.model_dump(exclude_unset=True)
+        address_changed = False
+        if data.address_fields is not None:
+            changes.pop("address_fields")
+            new_address = format_address(data.address_fields)
+            address_changed = new_address != driver.address
+            driver.address = new_address
+            driver.address_fields = data.address_fields.model_dump()
+        for field, value in changes.items():
             setattr(driver, field, value)
 
         try:
-            return self.repository.update(driver)
+            updated = self.repository.update(driver)
         except IntegrityError as ex:
             diag = getattr(ex.orig, "diag", None)
             detail = getattr(diag, "message_detail", None) or str(ex)
@@ -188,6 +223,11 @@ class DriverService:
             if "identification_number" in detail:
                 raise IdentificationNumberAlreadyExistsException(data.identification_number) from ex
             raise DBOperationError("Error updating driver in the database") from ex
+
+        if address_changed:
+            # The proof of the old address is no longer valid: a new one has to be uploaded.
+            r2.soft_delete_documents_best_effort(self.repository.delete_address_proof(driver_id))
+        return updated
 
     def change_driver_status(self, driver_id: str, data: DriverStatusSchema) -> Driver:
         """Change a driver's operational status."""
@@ -241,6 +281,26 @@ class DriverService:
             self.repository.soft_delete_driver(driver)
             return ActionSuccess(message=f"Driver '{driver_id}' was deleted (history preserved)")
 
+        photo = driver.photo
         document_keys = self.repository.cascade_delete_driver(driver)
         r2.soft_delete_documents_best_effort(document_keys)
+        self._cleanup_photo(driver_id, photo)
         return ActionSuccess(message=f"Driver '{driver_id}' was deleted")
+
+    @staticmethod
+    def _cleanup_photo(driver_id: str, photo: str | None) -> None:
+        """Move the driver's photo to `deleted/` (best effort). Only files under the driver's own folder are touched."""
+        if not photo:
+            return
+        own_prefix = r2.get_image_public_url(f"{ImageEntityType.DRIVER_PHOTO}/{driver_id}/")
+        if not photo.startswith(own_prefix):
+            logger.warning(
+                "Skipping photo '%s' of driver '%s': it is not stored under the driver's own folder",
+                photo,
+                driver_id,
+            )
+            return
+        try:
+            r2.soft_delete_image(photo)
+        except Exception as ex:  # noqa: BLE001, RUF100 - best-effort cleanup must never fail the request
+            logger.error("Storage cleanup failed for '%s': %s", photo, ex, exc_info=True)

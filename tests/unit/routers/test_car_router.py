@@ -353,7 +353,6 @@ class TestCarRouter:
             license_validity=datetime.now(UTC),
             identification_number="ID001",
             address="Calle 1",
-            garage_address=["Calle 2"],
         )
         contract = Contract(
             id="CNT-001",

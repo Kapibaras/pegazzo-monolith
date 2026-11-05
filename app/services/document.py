@@ -81,7 +81,10 @@ class DocumentService:
         document = self.repository.get_by_id(document_id)
         if not document:
             raise DocumentNotFoundException(document_id)
+        key = document.url
         self.repository.delete(document)
+        # The record is gone; move its file to `deleted/` (best effort, never fails the request).
+        r2.soft_delete_documents_best_effort([key])
 
     def _assert_entity_exists(self, entity_type: DocumentEntityType, entity_id: str) -> None:
         if entity_type == DocumentEntityType.CAR:
@@ -90,6 +93,13 @@ class DocumentService:
         elif entity_type == DocumentEntityType.DRIVER:
             if not self.repository.driver_exists(entity_id):
                 raise EntityNotFoundException("driver", entity_id)
+        elif entity_type == DocumentEntityType.GARAGE:
+            try:
+                garage_id = int(entity_id)
+            except ValueError as err:
+                raise EntityNotFoundException("garage", entity_id) from err
+            if not self.repository.garage_exists(garage_id):
+                raise EntityNotFoundException("garage", entity_id)
         elif entity_type == DocumentEntityType.GUARANTOR:
             try:
                 guarantor_id = int(entity_id)
@@ -105,3 +115,5 @@ class DocumentService:
             self.repository.link_to_driver(document_id, entity_id)
         elif entity_type == DocumentEntityType.GUARANTOR:
             self.repository.link_to_guarantor(document_id, int(entity_id))
+        elif entity_type == DocumentEntityType.GARAGE:
+            self.repository.link_to_garage(document_id, int(entity_id))

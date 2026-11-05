@@ -16,6 +16,7 @@ from tests.mocks import (
     CarRepositoryMock,
     DocumentRepositoryMock,
     DriverRepositoryMock,
+    GarageRepositoryMock,
     GuarantorRepositoryMock,
     ImageRepositoryMock,
     InsuranceRepositoryMock,
@@ -33,6 +34,7 @@ car_model_repo_mock = CarModelRepositoryMock()
 document_repo_mock = DocumentRepositoryMock()
 driver_repo_mock = DriverRepositoryMock()
 guarantor_repo_mock = GuarantorRepositoryMock()
+garage_repo_mock = GarageRepositoryMock()
 driver_repo_mock.guarantor_repo = guarantor_repo_mock
 image_repo_mock = ImageRepositoryMock()
 
@@ -56,6 +58,7 @@ def reset_state():
     document_repo_mock.reset()
     driver_repo_mock.reset()
     guarantor_repo_mock.reset()
+    garage_repo_mock.reset()
     image_repo_mock.reset()
     yield
     user_repo_mock.users = [_initial_user]
@@ -67,6 +70,7 @@ def reset_state():
     document_repo_mock.reset()
     driver_repo_mock.reset()
     guarantor_repo_mock.reset()
+    garage_repo_mock.reset()
     image_repo_mock.reset()
 
 
@@ -81,6 +85,7 @@ def _dependency_overrides():
         RepositoryFactory.document_repository: lambda: document_repo_mock,
         RepositoryFactory.driver_repository: lambda: driver_repo_mock,
         RepositoryFactory.guarantor_repository: lambda: guarantor_repo_mock,
+        RepositoryFactory.garage_repository: lambda: garage_repo_mock,
         RepositoryFactory.image_repository: lambda: image_repo_mock,
     }
 
@@ -95,6 +100,7 @@ def _attach_repos(client):
     client.document_repo = document_repo_mock
     client.driver_repo = driver_repo_mock
     client.guarantor_repo = guarantor_repo_mock
+    client.garage_repo = garage_repo_mock
     client.image_repo = image_repo_mock
 
 

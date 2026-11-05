@@ -2,11 +2,21 @@ from unittest.mock import patch
 
 import pytest
 
+_ADDRESS_FIELDS = {
+    "street": "Calle Nueva",
+    "exteriorNumber": "10",
+    "neighborhood": "Centro",
+    "postalCode": "06000",
+    "municipality": "Cuauhtémoc",
+    "state": "CDMX",
+}
+_ADDRESS_TEXT = "Calle Nueva 10, Col. Centro, C.P. 06000, Cuauhtémoc, CDMX"
+
 _VALID_GUARANTOR_BODY = {
     "name": "Carlos",
     "surnames": "Ramírez Vega",
     "telephones": ["+525551234567"],
-    "address": "Calle Nueva #10",
+    "addressFields": _ADDRESS_FIELDS,
     "relation": "father",
 }
 
@@ -29,7 +39,8 @@ class TestCreateGuarantor:
         assert data["name"] == "Carlos"
         assert data["surnames"] == "Ramírez Vega"
         assert data["telephones"] == ["+525551234567"]
-        assert data["address"] == "Calle Nueva #10"
+        assert data["address"] == _ADDRESS_TEXT
+        assert data["addressFields"] == {**_ADDRESS_FIELDS, "interiorNumber": None}
         assert data["relation"] == "father"
         assert "id" in data
         assert "createdAt" in data
@@ -65,7 +76,7 @@ class TestCreateGuarantor:
         assert response.status_code == 422
 
     def test_create_guarantor_missing_address(self, authorized_client):
-        body = {k: v for k, v in _VALID_GUARANTOR_BODY.items() if k != "address"}
+        body = {k: v for k, v in _VALID_GUARANTOR_BODY.items() if k != "addressFields"}
         url = self.ENDPOINT.format(driver_id="DRV-001")
         response = authorized_client.post(url, json=body)
         assert response.status_code == 422
@@ -122,9 +133,32 @@ class TestUpdateGuarantor:
     def test_update_guarantor_address(self, authorized_client):
         gid = self._create_linked_guarantor(authorized_client)
         url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=gid)
-        response = authorized_client.patch(url, json={"address": "Av. Nueva #99"})
+        response = authorized_client.patch(url, json={"addressFields": {**_ADDRESS_FIELDS, "street": "Av. Nueva"}})
         assert response.status_code == 200
-        assert response.json()["address"] == "Av. Nueva #99"
+        assert response.json()["address"] == "Av. Nueva 10, Col. Centro, C.P. 06000, Cuauhtémoc, CDMX"
+
+    def test_update_guarantor_address_change_deletes_the_address_proof(self, authorized_client):
+        gid = self._create_linked_guarantor(authorized_client)
+        authorized_client.guarantor_repo.proof_keys[gid] = ["guarantor/proof.pdf"]
+        url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=gid)
+        with patch("app.storage.r2.soft_delete_document") as soft_delete:
+            response = authorized_client.patch(url, json={"addressFields": {**_ADDRESS_FIELDS, "street": "Otra calle"}})
+        assert response.status_code == 200
+        assert authorized_client.guarantor_repo.deleted_proofs == [gid]
+        soft_delete.assert_called_once_with("guarantor/proof.pdf")
+
+    def test_update_guarantor_same_address_keeps_the_address_proof(self, authorized_client):
+        gid = self._create_linked_guarantor(authorized_client)
+        url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=gid)
+        response = authorized_client.patch(url, json={"addressFields": _ADDRESS_FIELDS})
+        assert response.status_code == 200
+        assert authorized_client.guarantor_repo.deleted_proofs == []
+
+    def test_update_guarantor_other_fields_keep_the_address_proof(self, authorized_client):
+        gid = self._create_linked_guarantor(authorized_client)
+        url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=gid)
+        authorized_client.patch(url, json={"name": "Nuevo"})
+        assert authorized_client.guarantor_repo.deleted_proofs == []
 
     def test_update_guarantor_multiple_fields(self, authorized_client):
         gid = self._create_linked_guarantor(authorized_client)

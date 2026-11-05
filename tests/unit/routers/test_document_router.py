@@ -144,6 +144,61 @@ class TestDocumentRouter:
             )
         assert response.status_code == 201
 
+    def test_request_upload_url_garage(self, authorized_client):
+        with patch("app.services.document.r2.generate_document_upload_url", return_value=PRESIGNED_PUT_URL):
+            response = authorized_client.post(
+                "/pegazzo/management/documents/upload-url",
+                json={
+                    "filename": "proof.pdf",
+                    "content_type": "application/pdf",
+                    "entity_type": "garage",
+                    "entity_id": "1",
+                },
+            )
+        assert response.status_code == 200
+        assert response.json()["key"].startswith("garage/1/")
+
+    def test_request_upload_url_garage_not_found(self, authorized_client):
+        response = authorized_client.post(
+            "/pegazzo/management/documents/upload-url",
+            json={
+                "filename": "proof.pdf",
+                "content_type": "application/pdf",
+                "entity_type": "garage",
+                "entity_id": "999",
+            },
+        )
+        assert response.status_code == 404
+        assert "Garage with id" in response.json()["detail"]
+
+    def test_create_document_garage_proof_of_address(self, authorized_client):
+        with patch("app.services.document.r2.generate_document_read_url", return_value=PRESIGNED_GET_URL):
+            response = authorized_client.post(
+                "/pegazzo/management/documents",
+                json={
+                    "key": "garage/1/some-uuid.pdf",
+                    "type": "proof_of_address",
+                    "entity_type": "garage",
+                    "entity_id": "1",
+                },
+            )
+        assert response.status_code == 201
+        links = authorized_client.document_repo.links
+        assert links[-1]["entity_type"] == "garage"
+
+    @pytest.mark.parametrize("doc_type", ["ine", "driver_license", "promissory_note", "contract"])
+    def test_create_document_garage_only_accepts_the_address_proof(self, authorized_client, doc_type):
+        response = authorized_client.post(
+            "/pegazzo/management/documents",
+            json={
+                "key": "garage/1/some-uuid.pdf",
+                "type": doc_type,
+                "entity_type": "garage",
+                "entity_id": "1",
+            },
+        )
+        assert response.status_code == 422
+
     def test_create_document_entity_not_found(self, authorized_client):
         response = authorized_client.post(
             "/pegazzo/management/documents",
@@ -276,6 +331,13 @@ class TestDocumentRouter:
         data = response.json()
         assert "message" in data
         assert "1" in data["message"]
+
+    def test_delete_document_moves_file_to_deleted(self, authorized_client):
+        key = authorized_client.document_repo.get_by_id(1).url
+        with patch("app.services.document.r2.soft_delete_documents_best_effort") as soft_delete:
+            response = authorized_client.delete("/pegazzo/management/documents/1")
+        assert response.status_code == 200
+        soft_delete.assert_called_once_with([key])
 
     def test_delete_document_not_found(self, authorized_client):
         response = authorized_client.delete("/pegazzo/management/documents/9999")

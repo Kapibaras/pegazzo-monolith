@@ -5,11 +5,13 @@ from .contract import Contract
 from .document import Document
 from .driver import (
     Driver,
+    DriverGarage,
     Guarantor,
     Reference,
     driver_document_table,
     driver_guarantor_table,
     driver_reference_table,
+    garage_document_table,
     guarantor_document_table,
     reference_document_table,
 )
@@ -25,6 +27,7 @@ __all__ = [
     "Contract",
     "Document",
     "Driver",
+    "DriverGarage",
     "Event",
     "Guarantor",
     "Incidence",
@@ -43,6 +46,7 @@ __all__ = [
     "driver_guarantor_table",
     "driver_reference_table",
     "event_document_table",
+    "garage_document_table",
     "guarantor_document_table",
     "incidence_document_table",
     "reference_document_table",

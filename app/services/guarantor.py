@@ -4,6 +4,7 @@ from app.errors.guarantor import GuarantorLimitReachedException, GuarantorNotFou
 from app.models.driver import Guarantor
 from app.repositories.driver import DriverRepository
 from app.repositories.guarantor import GuarantorRepository
+from app.schemas.address import format_address
 from app.schemas.guarantor import GuarantorCreateSchema, GuarantorPatchSchema
 from app.storage import r2
 
@@ -27,7 +28,8 @@ class GuarantorService:
             name=data.name,
             surnames=data.surnames,
             telephones=data.telephones,
-            address=data.address,
+            address=format_address(data.address_fields),
+            address_fields=data.address_fields.model_dump(),
             relation=data.relation,
         )
         return self.repository.create_and_link(guarantor, driver_id)
@@ -50,12 +52,20 @@ class GuarantorService:
             guarantor.surnames = data.surnames
         if data.telephones is not None:
             guarantor.telephones = data.telephones
-        if data.address is not None:
-            guarantor.address = data.address
+        address_changed = False
+        if data.address_fields is not None:
+            new_address = format_address(data.address_fields)
+            address_changed = new_address != guarantor.address
+            guarantor.address = new_address
+            guarantor.address_fields = data.address_fields.model_dump()
         if data.relation is not None:
             guarantor.relation = data.relation
 
-        return self.repository.update(guarantor)
+        updated = self.repository.update(guarantor)
+        if address_changed:
+            # The proof of the old address is no longer valid: a new one has to be uploaded.
+            r2.soft_delete_documents_best_effort(self.repository.delete_address_proof(guarantor_id))
+        return updated
 
     def delete_guarantor(self, driver_id: str, guarantor_id: int) -> None:
         """Unlink a guarantor from a driver; delete the guarantor if it becomes an orphan.

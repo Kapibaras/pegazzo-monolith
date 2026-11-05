@@ -4,6 +4,7 @@ from .car_model_repository_mock import CarModelRepositoryMock
 from .car_repository_mock import CarRepositoryMock
 from .document_repository_mock import DocumentRepositoryMock
 from .driver_repository_mock import DriverRepositoryMock
+from .garage_repository_mock import GarageRepositoryMock
 from .guarantor_repository_mock import GuarantorRepositoryMock
 from .image_repository_mock import ImageRepositoryMock
 from .insurance_repository_mock import InsuranceRepositoryMock
@@ -16,6 +17,7 @@ __all__ = [
     "CarRepositoryMock",
     "DocumentRepositoryMock",
     "DriverRepositoryMock",
+    "GarageRepositoryMock",
     "GuarantorRepositoryMock",
     "ImageRepositoryMock",
     "InsuranceRepositoryMock",

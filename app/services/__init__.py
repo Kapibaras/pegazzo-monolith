@@ -6,6 +6,7 @@ from .car_folio import CarFolioService
 from .car_model import CarModelService
 from .document import DocumentService
 from .driver import DriverService
+from .garage import GarageService
 from .guarantor import GuarantorService
 from .image import ImageService
 from .insurance import InsuranceService
@@ -20,6 +21,7 @@ __all__ = [
     "CarService",
     "DocumentService",
     "DriverService",
+    "GarageService",
     "GuarantorService",
     "ImageService",
     "InsuranceService",

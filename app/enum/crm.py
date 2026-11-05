@@ -15,6 +15,7 @@ class DocumentEntityType(StrEnum):
     CAR = "car"
     DRIVER = "driver"
     GUARANTOR = "guarantor"
+    GARAGE = "garage"
 
 
 class CarStatus(StrEnum):

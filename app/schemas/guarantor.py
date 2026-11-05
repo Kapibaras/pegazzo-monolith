@@ -4,6 +4,8 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+from app.schemas.address import AddressFieldsSchema
+
 
 class GuarantorCreateSchema(BaseModel):
     """Request body for POST /management/drivers/{driver_id}/guarantors."""
@@ -13,8 +15,8 @@ class GuarantorCreateSchema(BaseModel):
     name: str = Field(..., min_length=1, max_length=50)
     surnames: str = Field(..., min_length=1, max_length=100)
     telephones: list[Annotated[str, Field(min_length=1, max_length=20)]] = Field(default_factory=list)
-    address: str = Field(..., min_length=1, max_length=255)
-    relation: str = Field(..., min_length=1, max_length=10)
+    address_fields: AddressFieldsSchema
+    relation: str = Field(..., min_length=1, max_length=50)
 
 
 class GuarantorPatchSchema(BaseModel):
@@ -25,8 +27,8 @@ class GuarantorPatchSchema(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=50)
     surnames: str | None = Field(default=None, min_length=1, max_length=100)
     telephones: list[Annotated[str, Field(min_length=1, max_length=20)]] | None = None
-    address: str | None = Field(default=None, min_length=1, max_length=255)
-    relation: str | None = Field(default=None, min_length=1, max_length=10)
+    address_fields: AddressFieldsSchema | None = None
+    relation: str | None = Field(default=None, min_length=1, max_length=50)
 
 
 class GuarantorResponseSchema(BaseModel):
@@ -39,6 +41,7 @@ class GuarantorResponseSchema(BaseModel):
     surnames: str
     telephones: list[str]
     address: str
+    address_fields: AddressFieldsSchema | None = None
     relation: str
     created_at: datetime
     updated_at: datetime

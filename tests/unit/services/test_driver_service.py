@@ -38,19 +38,25 @@ def driver_service_test_setup(request):
     mock_repository.get_by_id.return_value = None
     mock_repository.get_by_identification_number.return_value = None
     mock_repository.get_by_license_number.return_value = None
+    mock_repository.next_folio_number.return_value = 7
     request.cls.service = DriverService(repository=mock_repository)
     request.cls.mock_repo = mock_repository
     request.cls.data = DriverCreateSchema(
-        id="DRV-NEW",
         name="Carlos",
         surnames="Ramírez Vega",
         status=DriverStatus.ACTIVE,
         telephones=["+525551234567"],
         license_number="LICNEW",
         license_validity=datetime.now(UTC) + timedelta(days=365),
-        identification_number="IDNEW",
-        address="Calle Nueva #10",
-        garage_address=["Calle Garage #20"],
+        identification_number="NEWW010101HDFXXX01",
+        address_fields={
+            "street": "Calle Nueva",
+            "exterior_number": "10",
+            "neighborhood": "Centro",
+            "postal_code": "06000",
+            "municipality": "Cuauhtémoc",
+            "state": "CDMX",
+        },
     )
 
 
@@ -117,7 +123,7 @@ class TestUpdateDriverIntegrityError:
             "UNIQUE constraint failed: driver.identification_number",
         )
         with pytest.raises(IdentificationNumberAlreadyExistsException):
-            self.service.update_driver("DRV-001", DriverPatchSchema(identification_number="ID999"))
+            self.service.update_driver("DRV-001", DriverPatchSchema(identification_number="ZZZZ010101HDFXXX99"))
 
     def test_unknown_constraint_raises_db_operation_error(self):
         self._given_existing_driver()
