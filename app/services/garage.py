@@ -40,10 +40,15 @@ class GarageService:
         return self.repository.create(garage)
 
     def update_garage(self, driver_id: str, garage_id: int, data: GaragePatchSchema) -> DriverGarage:
-        """Replace the address of a garage."""
+        """Replace the address of a garage. If it changed, its address proof is deleted."""
         garage = self._get_owned(driver_id, garage_id)
+        address_changed = format_address(data.address_fields) != garage.address
         self._apply_address(garage, data.address_fields)
-        return self.repository.update(garage)
+        updated = self.repository.update(garage)
+        if address_changed:
+            # The proof of the old address is no longer valid: a new one has to be uploaded.
+            r2.soft_delete_documents_best_effort(self.repository.delete_address_proof(garage_id))
+        return updated
 
     def delete_garage(self, driver_id: str, garage_id: int) -> None:
         """Delete a garage with its documents; their files move to the `deleted/` prefix (best effort)."""

@@ -52,13 +52,20 @@ class GuarantorService:
             guarantor.surnames = data.surnames
         if data.telephones is not None:
             guarantor.telephones = data.telephones
+        address_changed = False
         if data.address_fields is not None:
-            guarantor.address = format_address(data.address_fields)
+            new_address = format_address(data.address_fields)
+            address_changed = new_address != guarantor.address
+            guarantor.address = new_address
             guarantor.address_fields = data.address_fields.model_dump()
         if data.relation is not None:
             guarantor.relation = data.relation
 
-        return self.repository.update(guarantor)
+        updated = self.repository.update(guarantor)
+        if address_changed:
+            # The proof of the old address is no longer valid: a new one has to be uploaded.
+            r2.soft_delete_documents_best_effort(self.repository.delete_address_proof(guarantor_id))
+        return updated
 
     def delete_guarantor(self, driver_id: str, guarantor_id: int) -> None:
         """Unlink a guarantor from a driver; delete the guarantor if it becomes an orphan.

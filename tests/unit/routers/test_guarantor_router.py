@@ -137,6 +137,29 @@ class TestUpdateGuarantor:
         assert response.status_code == 200
         assert response.json()["address"] == "Av. Nueva 10, Col. Centro, C.P. 06000, Cuauhtémoc, CDMX"
 
+    def test_update_guarantor_address_change_deletes_the_address_proof(self, authorized_client):
+        gid = self._create_linked_guarantor(authorized_client)
+        authorized_client.guarantor_repo.proof_keys[gid] = ["guarantor/proof.pdf"]
+        url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=gid)
+        with patch("app.storage.r2.soft_delete_document") as soft_delete:
+            response = authorized_client.patch(url, json={"addressFields": {**_ADDRESS_FIELDS, "street": "Otra calle"}})
+        assert response.status_code == 200
+        assert authorized_client.guarantor_repo.deleted_proofs == [gid]
+        soft_delete.assert_called_once_with("guarantor/proof.pdf")
+
+    def test_update_guarantor_same_address_keeps_the_address_proof(self, authorized_client):
+        gid = self._create_linked_guarantor(authorized_client)
+        url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=gid)
+        response = authorized_client.patch(url, json={"addressFields": _ADDRESS_FIELDS})
+        assert response.status_code == 200
+        assert authorized_client.guarantor_repo.deleted_proofs == []
+
+    def test_update_guarantor_other_fields_keep_the_address_proof(self, authorized_client):
+        gid = self._create_linked_guarantor(authorized_client)
+        url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=gid)
+        authorized_client.patch(url, json={"name": "Nuevo"})
+        assert authorized_client.guarantor_repo.deleted_proofs == []
+
     def test_update_guarantor_multiple_fields(self, authorized_client):
         gid = self._create_linked_guarantor(authorized_client)
         url = self.ENDPOINT.format(driver_id="DRV-001", guarantor_id=gid)

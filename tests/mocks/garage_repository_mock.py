@@ -10,6 +10,8 @@ class GarageRepositoryMock:
         self.garages: list[DriverGarage] = []
         self._next_id = 1
         self.document_keys: dict[int, list[str]] = {}
+        self.deleted_proofs: list[int] = []
+        self.proof_keys: dict[int, list[str]] = {}
 
     def reset(self):
         self.__init__()
@@ -29,6 +31,10 @@ class GarageRepositoryMock:
     def update(self, garage: DriverGarage) -> DriverGarage:
         garage.updated_at = datetime.now(UTC)
         return garage
+
+    def delete_address_proof(self, garage_id: int) -> list[str]:
+        self.deleted_proofs.append(garage_id)
+        return self.proof_keys.pop(garage_id, [])
 
     def delete_with_documents(self, garage: DriverGarage) -> list[str]:
         self.garages = [g for g in self.garages if g.id != garage.id]

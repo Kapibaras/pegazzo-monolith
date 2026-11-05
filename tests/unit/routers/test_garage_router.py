@@ -72,6 +72,22 @@ class TestGarageRouter:
         assert response.status_code == 200
         assert response.json()["address"].startswith("Insurgentes 100 Int. 4")
 
+    def test_update_garage_address_change_deletes_the_address_proof(self, authorized_client):
+        garage_id = self._create(authorized_client)
+        authorized_client.garage_repo.proof_keys[garage_id] = ["garage/1/proof.pdf"]
+        body = {"addressFields": {**_ADDRESS_FIELDS, "street": "Insurgentes"}}
+        with patch("app.storage.r2.soft_delete_document") as soft_delete:
+            response = authorized_client.patch(self.ITEM.format(driver_id="DRV-001", garage_id=garage_id), json=body)
+        assert response.status_code == 200
+        assert authorized_client.garage_repo.deleted_proofs == [garage_id]
+        soft_delete.assert_called_once_with("garage/1/proof.pdf")
+
+    def test_update_garage_same_address_keeps_the_address_proof(self, authorized_client):
+        garage_id = self._create(authorized_client)
+        response = authorized_client.patch(self.ITEM.format(driver_id="DRV-001", garage_id=garage_id), json=_BODY)
+        assert response.status_code == 200
+        assert authorized_client.garage_repo.deleted_proofs == []
+
     def test_update_garage_of_another_driver_is_not_found(self, authorized_client):
         garage_id = self._create(authorized_client, "DRV-001")
         response = authorized_client.patch(self.ITEM.format(driver_id="DRV-002", garage_id=garage_id), json=_BODY)

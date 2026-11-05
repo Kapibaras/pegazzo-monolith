@@ -302,6 +302,17 @@ class TestCreateDriver:
         response = employee_authorized_client.post(self.ENDPOINT, json=_VALID_DRIVER_BODY)
         assert response.status_code == 403
 
+    def test_create_driver_permanent_license(self, authorized_client):
+        body = {**_VALID_DRIVER_BODY, "licenseValidity": None}
+        response = authorized_client.post(self.ENDPOINT, json=body)
+        assert response.status_code == 201
+        assert response.json()["licenseValidity"] is None
+
+    def test_create_driver_license_validity_must_be_sent(self, authorized_client):
+        body = {k: v for k, v in _VALID_DRIVER_BODY.items() if k != "licenseValidity"}
+        response = authorized_client.post(self.ENDPOINT, json=body)
+        assert response.status_code == 422
+
     def test_create_driver_license_validity_tomorrow_accepted(self, authorized_client):
         from datetime import UTC, datetime, timedelta
 
@@ -783,6 +794,31 @@ class TestUpdateDriver:
         assert data["address"] == _ADDRESS_TEXT
         assert data["addressFields"] == {**_ADDRESS_FIELDS, "interiorNumber": None}
 
+    def test_update_driver_address_change_deletes_the_address_proof(self, authorized_client):
+        authorized_client.driver_repo.proof_keys["DRV-001"] = ["driver/DRV-001/proof.pdf"]
+        with patch("app.storage.r2.soft_delete_document") as soft_delete:
+            response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"addressFields": _ADDRESS_FIELDS})
+        assert response.status_code == 200
+        assert authorized_client.driver_repo.deleted_proofs == ["DRV-001"]
+        soft_delete.assert_called_once_with("driver/DRV-001/proof.pdf")
+
+    def test_update_driver_same_address_keeps_the_address_proof(self, authorized_client):
+        authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"addressFields": _ADDRESS_FIELDS})
+        authorized_client.driver_repo.deleted_proofs.clear()
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"addressFields": _ADDRESS_FIELDS})
+        assert response.status_code == 200
+        assert authorized_client.driver_repo.deleted_proofs == []
+
+    def test_update_driver_without_address_keeps_the_address_proof(self, authorized_client):
+        authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"name": "Pedro"})
+        assert authorized_client.driver_repo.deleted_proofs == []
+
+    def test_update_driver_proof_storage_failure_does_not_fail_the_request(self, authorized_client):
+        authorized_client.driver_repo.proof_keys["DRV-001"] = ["driver/DRV-001/proof.pdf"]
+        with patch("app.storage.r2.soft_delete_document", side_effect=RuntimeError("R2 down")):
+            response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"addressFields": _ADDRESS_FIELDS})
+        assert response.status_code == 200
+
     def test_update_driver_telephones(self, authorized_client):
         body = {"telephones": ["+525559999999", "+525558888888"]}
         response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json=body)
@@ -799,6 +835,27 @@ class TestUpdateDriver:
         response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json=body)
         assert response.status_code == 200
         assert response.json()["photo"] == "https://images.example.com/new-photo.jpg"
+
+    def test_update_driver_license_to_permanent(self, authorized_client):
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"licenseValidity": None})
+        assert response.status_code == 200
+        assert response.json()["licenseValidity"] is None
+        assert authorized_client.driver_repo.get_by_id("DRV-001").license_validity is None
+
+    def test_update_driver_permanent_license_back_to_a_date(self, authorized_client):
+        authorized_client.driver_repo.get_by_id("DRV-001").license_validity = None
+        response = authorized_client.patch(
+            f"{self.ENDPOINT}/DRV-001",
+            json={"licenseValidity": "2031-01-01T00:00:00+00:00"},
+        )
+        assert response.status_code == 200
+        assert response.json()["licenseValidity"].startswith("2031-01-01")
+
+    def test_get_driver_with_permanent_license(self, authorized_client):
+        authorized_client.driver_repo.get_by_id("DRV-001").license_validity = None
+        response = authorized_client.get(f"{self.ENDPOINT}/DRV-001")
+        assert response.status_code == 200
+        assert response.json()["licenseValidity"] is None
 
     def test_update_driver_license_validity_future(self, authorized_client):
         from datetime import timedelta

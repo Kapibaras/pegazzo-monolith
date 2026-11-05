@@ -26,6 +26,7 @@ from app.models.incidence import Incidence
 from app.utils.logging_config import logger
 
 from .abstract import DBRepository
+from .owned_documents import delete_address_proofs
 
 _SIMILARITY_THRESHOLD = 0.3
 
@@ -88,6 +89,10 @@ class DriverRepository(DBRepository):
             self.db.rollback()
             logger.error("Error reading the driver folio sequence: %s", ex, exc_info=True)
             raise DBOperationError("Error generating driver folio") from ex
+
+    def delete_address_proof(self, driver_id: str) -> list[str]:
+        """Delete the driver's address proof (its address changed). Returns the storage keys of the deleted files."""
+        return delete_address_proofs(self.db, driver_document_table, "driver_id", driver_id)
 
     def update(self, driver: Driver) -> Driver:
         """Update an existing driver."""

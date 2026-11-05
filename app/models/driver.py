@@ -59,7 +59,7 @@ class Driver(Base):
     surnames = Column(String(100), nullable=False)
     telephones = Column(ARRAY(String(20)), nullable=False)
     license_number = Column(String(20), nullable=False, unique=True, index=True)
-    license_validity = Column(DateTime(timezone=True), default=func.now(), nullable=False)
+    license_validity = Column(DateTime(timezone=True), nullable=True)  # null = permanent license
     identification_number = Column(String(20), nullable=False, unique=True)
     address = Column(String(255), nullable=False)
     address_fields = Column(JSON, nullable=True)

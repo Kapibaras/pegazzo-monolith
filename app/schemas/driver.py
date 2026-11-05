@@ -10,7 +10,8 @@ from app.schemas.address import AddressFieldsSchema
 from app.schemas.car import DocumentDetailSchema, PaginationSchema
 from app.schemas.types import RequestUTCDatetime
 
-CLEARABLE_DRIVER_FIELDS = frozenset({"photo"})
+# `license_validity: null` means a permanent license (no expiry date).
+CLEARABLE_DRIVER_FIELDS = frozenset({"photo", "license_validity"})
 
 _CAMEL = ConfigDict(from_attributes=True, alias_generator=to_camel, populate_by_name=True)
 
@@ -65,7 +66,10 @@ class DriverCreateSchema(BaseModel):
     status: DriverStatus
     telephones: list[Annotated[str, Field(min_length=1, max_length=20)]] = Field(..., min_length=1)
     license_number: str = Field(..., max_length=20)
-    license_validity: RequestUTCDatetime
+    license_validity: RequestUTCDatetime | None = Field(
+        ...,
+        description="License expiry date (timezone-aware). Send null for a permanent license.",
+    )
     identification_number: str = Field(..., min_length=18, max_length=18, description="CURP")
     address_fields: AddressFieldsSchema
 
@@ -116,7 +120,7 @@ class _DriverBaseSchema(BaseModel):
     status: DriverStatus
     telephones: list[str]
     license_number: str
-    license_validity: datetime
+    license_validity: datetime | None = None
     identification_number: str
     address: str
     address_fields: AddressFieldsSchema | None = None

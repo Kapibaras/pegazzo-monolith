@@ -4,6 +4,7 @@ from app.models.driver import DriverGarage, garage_document_table
 from app.utils.logging_config import logger
 
 from .abstract import DBRepository
+from .owned_documents import delete_address_proofs
 
 
 class GarageRepository(DBRepository):
@@ -24,6 +25,10 @@ class GarageRepository(DBRepository):
             logger.error("Error creating garage for driver %s: %s", garage.driver_id, ex, exc_info=True)
             raise DBOperationError("Error creating garage in the database") from ex
         return garage
+
+    def delete_address_proof(self, garage_id: int) -> list[str]:
+        """Delete the garage's address proof (its address changed). Returns the storage keys of the deleted files."""
+        return delete_address_proofs(self.db, garage_document_table, "garage_id", garage_id)
 
     def update(self, garage: DriverGarage) -> DriverGarage:
         """Update an existing garage."""

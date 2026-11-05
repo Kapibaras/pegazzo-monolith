@@ -6,6 +6,7 @@ from app.models.driver import Driver, Guarantor, driver_guarantor_table, guarant
 from app.utils.logging_config import logger
 
 from .abstract import DBRepository
+from .owned_documents import delete_address_proofs
 
 
 class GuarantorRepository(DBRepository):
@@ -30,6 +31,10 @@ class GuarantorRepository(DBRepository):
             logger.error("Error creating guarantor for driver %s: %s", driver_id, ex, exc_info=True)
             raise DBOperationError("Error creating guarantor in the database") from ex
         return guarantor
+
+    def delete_address_proof(self, guarantor_id: int) -> list[str]:
+        """Delete the guarantor's address proof (its address changed). Returns the storage keys of the deleted files."""
+        return delete_address_proofs(self.db, guarantor_document_table, "guarantor_id", guarantor_id)
 
     def update(self, guarantor: Guarantor) -> Guarantor:
         """Update an existing guarantor."""

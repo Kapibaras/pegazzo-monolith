@@ -68,7 +68,7 @@ class DriverService:
 
     def create_driver(self, data: DriverCreateSchema) -> Driver:
         """Create a new driver with validations."""
-        if data.license_validity.date() < datetime.now(UTC).date():
+        if data.license_validity is not None and data.license_validity.date() < datetime.now(UTC).date():
             raise LicenseValidityInPastException
 
         if self.repository.get_by_identification_number(data.identification_number):
@@ -181,7 +181,8 @@ class DriverService:
             raise DriverNotFoundException(driver_id)
 
         if (
-            data.license_validity is not None
+            "license_validity" in data.model_fields_set
+            and data.license_validity is not None
             and data.license_validity != driver.license_validity
             and data.license_validity.date() < datetime.now(UTC).date()
         ):
@@ -202,15 +203,18 @@ class DriverService:
             raise LicenseNumberAlreadyExistsException(data.license_number)
 
         changes = data.model_dump(exclude_unset=True)
+        address_changed = False
         if data.address_fields is not None:
             changes.pop("address_fields")
-            driver.address = format_address(data.address_fields)
+            new_address = format_address(data.address_fields)
+            address_changed = new_address != driver.address
+            driver.address = new_address
             driver.address_fields = data.address_fields.model_dump()
         for field, value in changes.items():
             setattr(driver, field, value)
 
         try:
-            return self.repository.update(driver)
+            updated = self.repository.update(driver)
         except IntegrityError as ex:
             diag = getattr(ex.orig, "diag", None)
             detail = getattr(diag, "message_detail", None) or str(ex)
@@ -219,6 +223,11 @@ class DriverService:
             if "identification_number" in detail:
                 raise IdentificationNumberAlreadyExistsException(data.identification_number) from ex
             raise DBOperationError("Error updating driver in the database") from ex
+
+        if address_changed:
+            # The proof of the old address is no longer valid: a new one has to be uploaded.
+            r2.soft_delete_documents_best_effort(self.repository.delete_address_proof(driver_id))
+        return updated
 
     def change_driver_status(self, driver_id: str, data: DriverStatusSchema) -> Driver:
         """Change a driver's operational status."""

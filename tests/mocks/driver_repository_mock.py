@@ -64,6 +64,8 @@ class DriverRepositoryMock:
         self.contracts: list[Contract] = []
         self.guarantor_repo = None
         self.folio_counter = 0
+        self.deleted_proofs: list[str] = []
+        self.proof_keys: dict[str, list[str]] = {}
         self.reset()
 
     def reset(self):
@@ -71,6 +73,12 @@ class DriverRepositoryMock:
         self.driver_documents = {}
         self.contracts = []
         self.folio_counter = 0
+        self.deleted_proofs = []
+        self.proof_keys = {}
+
+    def delete_address_proof(self, driver_id: str) -> list[str]:
+        self.deleted_proofs.append(driver_id)
+        return self.proof_keys.pop(driver_id, [])
 
     def next_folio_number(self) -> int:
         self.folio_counter += 1
