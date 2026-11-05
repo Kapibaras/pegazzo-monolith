@@ -1,3 +1,4 @@
+import re
 from datetime import UTC, date, datetime
 from unittest.mock import patch
 
@@ -6,17 +7,27 @@ import pytest
 from app.models.contract import Contract
 from app.models.document import Document
 
+_ADDRESS_FIELDS = {
+    "street": "Calle Nueva",
+    "exteriorNumber": "10",
+    "neighborhood": "Centro",
+    "postalCode": "06000",
+    "municipality": "Cuauhtémoc",
+    "state": "CDMX",
+}
+_ADDRESS_TEXT = "Calle Nueva 10, Col. Centro, C.P. 06000, Cuauhtémoc, CDMX"
+_SEED_CURP_1 = "AAAA010101HDFXXX01"
+_SEED_CURP_2 = "AAAA010101HDFXXX02"
+
 _VALID_DRIVER_BODY = {
-    "id": "DRV-NEW",
     "name": "Carlos",
     "surnames": "Ramírez Vega",
     "status": "ACTIVE",
     "telephones": ["+525551234567"],
     "licenseNumber": "LICNEW",
     "licenseValidity": "2028-06-01T00:00:00+00:00",
-    "identificationNumber": "IDNEW",
-    "address": "Calle Nueva #10",
-    "garageAddress": ["Calle Garage #20"],
+    "identificationNumber": "NEWW010101HDFXXX01",
+    "addressFields": _ADDRESS_FIELDS,
 }
 
 
@@ -181,15 +192,16 @@ class TestCreateDriver:
         response = authorized_client.post(self.ENDPOINT, json=_VALID_DRIVER_BODY)
         assert response.status_code == 201
         data = response.json()
-        assert data["id"] == "DRV-NEW"
+        assert data["id"] == "CD-CRV-0001"
         assert data["name"] == "Carlos"
         assert data["surnames"] == "Ramírez Vega"
         assert data["status"] == "ACTIVE"
         assert data["telephones"] == ["+525551234567"]
         assert data["licenseNumber"] == "LICNEW"
-        assert data["identificationNumber"] == "IDNEW"
-        assert data["address"] == "Calle Nueva #10"
-        assert data["garageAddress"] == ["Calle Garage #20"]
+        assert data["identificationNumber"] == "NEWW010101HDFXXX01"
+        assert data["address"] == _ADDRESS_TEXT
+        assert data["addressFields"] == {**_ADDRESS_FIELDS, "interiorNumber": None}
+        assert "garageAddress" not in data
 
     def test_create_driver_returns_timestamps(self, authorized_client):
         response = authorized_client.post(self.ENDPOINT, json=_VALID_DRIVER_BODY)
@@ -205,14 +217,25 @@ class TestCreateDriver:
     # Uniqueness validations
     # -----------------------------------------------------------------
 
-    def test_create_driver_duplicate_id(self, authorized_client):
-        body = {**_VALID_DRIVER_BODY, "id": "DRV-001"}
-        response = authorized_client.post(self.ENDPOINT, json=body)
-        assert response.status_code == 400
-        assert "already exists" in response.json()["detail"]
+    def test_create_driver_assigns_generated_folio(self, authorized_client):
+        response = authorized_client.post(self.ENDPOINT, json=_VALID_DRIVER_BODY)
+        assert response.status_code == 201
+        assert re.fullmatch(r"CD-CRV-\d{4}", response.json()["id"])
+
+    def test_create_driver_ignores_client_provided_id(self, authorized_client):
+        response = authorized_client.post(self.ENDPOINT, json={**_VALID_DRIVER_BODY, "id": "DRV-001"})
+        assert response.status_code == 201
+        assert response.json()["id"] != "DRV-001"
+
+    def test_create_driver_folios_are_unique_and_consecutive(self, authorized_client):
+        first = authorized_client.post(self.ENDPOINT, json=_VALID_DRIVER_BODY).json()["id"]
+        second_body = {**_VALID_DRIVER_BODY, "licenseNumber": "LIC-B", "identificationNumber": "NEWW010101HDFXXX02"}
+        second = authorized_client.post(self.ENDPOINT, json=second_body).json()["id"]
+        assert first != second
+        assert int(second[-4:]) == int(first[-4:]) + 1
 
     def test_create_driver_duplicate_identification_number(self, authorized_client):
-        body = {**_VALID_DRIVER_BODY, "identificationNumber": "ID001"}
+        body = {**_VALID_DRIVER_BODY, "identificationNumber": _SEED_CURP_1}
         response = authorized_client.post(self.ENDPOINT, json=body)
         assert response.status_code == 400
         assert "Identification number" in response.json()["detail"]
@@ -247,10 +270,29 @@ class TestCreateDriver:
         response = authorized_client.post(self.ENDPOINT, json=body)
         assert response.status_code == 422
 
-    def test_create_driver_empty_garage_address(self, authorized_client):
-        body = {**_VALID_DRIVER_BODY, "garageAddress": []}
+    @pytest.mark.parametrize("curp", ["SHORT", "NEWW010101HDFXXX012", ""])
+    def test_create_driver_curp_must_have_18_characters(self, authorized_client, curp):
+        body = {**_VALID_DRIVER_BODY, "identificationNumber": curp}
         response = authorized_client.post(self.ENDPOINT, json=body)
         assert response.status_code == 422
+
+    @pytest.mark.parametrize("field", ["street", "exteriorNumber", "neighborhood", "postalCode", "municipality", "state"])
+    def test_create_driver_address_fields_are_required(self, authorized_client, field):
+        fields = {k: v for k, v in _ADDRESS_FIELDS.items() if k != field}
+        response = authorized_client.post(self.ENDPOINT, json={**_VALID_DRIVER_BODY, "addressFields": fields})
+        assert response.status_code == 422
+
+    @pytest.mark.parametrize("postal_code", ["123", "1234a", "123456"])
+    def test_create_driver_postal_code_must_have_5_digits(self, authorized_client, postal_code):
+        fields = {**_ADDRESS_FIELDS, "postalCode": postal_code}
+        response = authorized_client.post(self.ENDPOINT, json={**_VALID_DRIVER_BODY, "addressFields": fields})
+        assert response.status_code == 422
+
+    def test_create_driver_interior_number_is_part_of_the_joined_address(self, authorized_client):
+        fields = {**_ADDRESS_FIELDS, "interiorNumber": "4B"}
+        response = authorized_client.post(self.ENDPOINT, json={**_VALID_DRIVER_BODY, "addressFields": fields})
+        assert response.status_code == 201
+        assert response.json()["address"] == "Calle Nueva 10 Int. 4B, Col. Centro, C.P. 06000, Cuauhtémoc, CDMX"
 
     # -----------------------------------------------------------------
     # RBAC
@@ -264,7 +306,7 @@ class TestCreateDriver:
         from datetime import UTC, datetime, timedelta
 
         tomorrow = (datetime.now(UTC) + timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S+00:00")
-        body = {**_VALID_DRIVER_BODY, "id": "DRV-TMRW", "licenseValidity": tomorrow}
+        body = {**_VALID_DRIVER_BODY, "licenseValidity": tomorrow}
         response = authorized_client.post(self.ENDPOINT, json=body)
         assert response.status_code == 201
 
@@ -293,9 +335,9 @@ class TestGetDriverDetail:
         assert data["status"] == "ACTIVE"
         assert data["telephones"] == ["+521234567890"]
         assert data["licenseNumber"] == "LIC001"
-        assert data["identificationNumber"] == "ID001"
+        assert data["identificationNumber"] == _SEED_CURP_1
         assert data["address"] == "Calle 1 #100"
-        assert data["garageAddress"] == ["Calle 2 #200"]
+        assert data["garages"] == []
         assert "createdAt" in data
         assert "updatedAt" in data
         assert data["archivedAt"] is None
@@ -357,6 +399,7 @@ class TestGetDriverDetail:
             surnames="López",
             telephones=["+521111111111"],
             address="Calle X",
+            address_fields=None,
             relation="padre",
             documents=[gdoc],
         )
@@ -563,6 +606,39 @@ class TestDeleteDriver:
         assert authorized_client.driver_repo.driver_documents.get("DRV-003") is None
         mock_soft_delete.assert_called_once_with("docs/ine.pdf")
 
+    def test_delete_driver_moves_own_photo_to_deleted(self, authorized_client):
+        from app.storage import r2
+
+        photo = r2.get_image_public_url("driver_photo/DRV-003/a.jpg")
+        authorized_client.driver_repo.get_by_id("DRV-003").photo = photo
+
+        url = self.ENDPOINT.format(driver_id="DRV-003")
+        with patch("app.storage.r2.soft_delete_image") as mock_image:
+            response = authorized_client.delete(url)
+        assert response.status_code == 200
+        mock_image.assert_called_once_with(photo)
+
+    def test_delete_driver_skips_photo_outside_own_folder(self, authorized_client):
+        from app.storage import r2
+
+        authorized_client.driver_repo.get_by_id("DRV-003").photo = r2.get_image_public_url("driver_photo/OTHER/a.jpg")
+
+        url = self.ENDPOINT.format(driver_id="DRV-003")
+        with patch("app.storage.r2.soft_delete_image") as mock_image:
+            response = authorized_client.delete(url)
+        assert response.status_code == 200
+        mock_image.assert_not_called()
+
+    def test_delete_driver_photo_cleanup_failure_does_not_fail_request(self, authorized_client):
+        from app.storage import r2
+
+        authorized_client.driver_repo.get_by_id("DRV-003").photo = r2.get_image_public_url("driver_photo/DRV-003/a.jpg")
+
+        url = self.ENDPOINT.format(driver_id="DRV-003")
+        with patch("app.storage.r2.soft_delete_image", side_effect=RuntimeError("R2 down")):
+            response = authorized_client.delete(url)
+        assert response.status_code == 200
+
     def test_delete_driver_guarantor_orphan(self, authorized_client):
         from app.models.document import Document
 
@@ -672,11 +748,12 @@ class TestSoftDeleteDriver:
         response = authorized_client.get(self.DRIVERS, params={"archived": True})
         assert "DRV-003" not in [d["id"] for d in response.json()["drivers"]]
 
-    def test_soft_deleted_driver_id_cannot_be_reused(self, authorized_client):
-        body = {**_VALID_DRIVER_BODY, "id": "DRV-003"}
-        response = authorized_client.post(self.DRIVERS, json=body)
-        assert response.status_code == 400
-        assert "already exists" in response.json()["detail"]
+    def test_soft_deleted_driver_folio_is_skipped(self, authorized_client):
+        taken = authorized_client.driver_repo.get_by_id("DRV-003", include_deleted=True)
+        taken.id = "CD-CRV-0001"
+        response = authorized_client.post(self.DRIVERS, json=_VALID_DRIVER_BODY)
+        assert response.status_code == 201
+        assert response.json()["id"] == "CD-CRV-0002"
 
 
 @pytest.mark.usefixtures("authorized_client", "client", "admin_authorized_client", "employee_authorized_client")
@@ -697,13 +774,14 @@ class TestUpdateDriver:
         assert data["surnames"] == "García López"
 
     def test_update_driver_multiple_fields(self, authorized_client):
-        body = {"name": "Juan", "surnames": "López Ruiz", "address": "Av. Nueva #5"}
+        body = {"name": "Juan", "surnames": "López Ruiz", "addressFields": _ADDRESS_FIELDS}
         response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json=body)
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == "Juan"
         assert data["surnames"] == "López Ruiz"
-        assert data["address"] == "Av. Nueva #5"
+        assert data["address"] == _ADDRESS_TEXT
+        assert data["addressFields"] == {**_ADDRESS_FIELDS, "interiorNumber": None}
 
     def test_update_driver_telephones(self, authorized_client):
         body = {"telephones": ["+525559999999", "+525558888888"]}
@@ -711,11 +789,10 @@ class TestUpdateDriver:
         assert response.status_code == 200
         assert response.json()["telephones"] == ["+525559999999", "+525558888888"]
 
-    def test_update_driver_garage_address(self, authorized_client):
-        body = {"garageAddress": ["Nueva Garage #1", "Nueva Garage #2"]}
-        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json=body)
-        assert response.status_code == 200
-        assert response.json()["garageAddress"] == ["Nueva Garage #1", "Nueva Garage #2"]
+    def test_update_driver_ignores_the_removed_garage_address_field(self, authorized_client):
+        # Garages are managed through /drivers/{id}/garages now; the old field alone is an empty update.
+        response = authorized_client.patch(f"{self.ENDPOINT}/DRV-001", json={"garageAddress": ["Nueva Garage #1"]})
+        assert response.status_code == 422
 
     def test_update_driver_photo(self, authorized_client):
         body = {"photo": "https://images.example.com/new-photo.jpg"}
@@ -762,7 +839,7 @@ class TestUpdateDriver:
     def test_update_driver_duplicate_identification_number(self, authorized_client):
         response = authorized_client.patch(
             f"{self.ENDPOINT}/DRV-001",
-            json={"identificationNumber": "ID002"},
+            json={"identificationNumber": _SEED_CURP_2},
         )
         assert response.status_code == 400
         assert "Identification number" in response.json()["detail"]
@@ -770,7 +847,7 @@ class TestUpdateDriver:
     def test_update_driver_same_identification_number(self, authorized_client):
         response = authorized_client.patch(
             f"{self.ENDPOINT}/DRV-001",
-            json={"identificationNumber": "ID001"},
+            json={"identificationNumber": _SEED_CURP_1},
         )
         assert response.status_code == 200
 
@@ -835,10 +912,10 @@ class TestUpdateDriver:
         )
         assert response.status_code == 422
 
-    def test_update_driver_garage_address_item_empty(self, authorized_client):
+    def test_update_driver_address_fields_incomplete(self, authorized_client):
         response = authorized_client.patch(
             f"{self.ENDPOINT}/DRV-001",
-            json={"garageAddress": [""]},
+            json={"addressFields": {"street": "Solo calle"}},
         )
         assert response.status_code == 422
 

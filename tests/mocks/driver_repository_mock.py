@@ -15,9 +15,8 @@ _SEED_DRIVERS = [
         telephones=["+521234567890"],
         license_number="LIC001",
         license_validity=datetime(2027, 6, 1, tzinfo=UTC),
-        identification_number="ID001",
+        identification_number="AAAA010101HDFXXX01",
         address="Calle 1 #100",
-        garage_address=["Calle 2 #200"],
         photo="https://images.example.com/drv001.jpg",
         archived_at=None,
         created_at=datetime(2026, 1, 15, tzinfo=UTC),
@@ -31,9 +30,8 @@ _SEED_DRIVERS = [
         telephones=["+529876543210"],
         license_number="LIC002",
         license_validity=datetime(2026, 12, 1, tzinfo=UTC),
-        identification_number="ID002",
+        identification_number="AAAA010101HDFXXX02",
         address="Av. Principal #50",
-        garage_address=["Av. Secundaria #60"],
         photo=None,
         archived_at=None,
         created_at=datetime(2026, 2, 20, tzinfo=UTC),
@@ -47,9 +45,8 @@ _SEED_DRIVERS = [
         telephones=["+525551112222"],
         license_number="LIC003",
         license_validity=datetime(2027, 3, 1, tzinfo=UTC),
-        identification_number="ID003",
+        identification_number="AAAA010101HDFXXX03",
         address="Blvd. Norte #300",
-        garage_address=["Calle Sur #400"],
         photo=None,
         archived_at=datetime(2026, 6, 1, tzinfo=UTC),
         created_at=datetime(2026, 3, 10, tzinfo=UTC),
@@ -66,12 +63,18 @@ class DriverRepositoryMock:
         self.driver_documents: dict[str, list[Document]] = {}
         self.contracts: list[Contract] = []
         self.guarantor_repo = None
+        self.folio_counter = 0
         self.reset()
 
     def reset(self):
         self.drivers = [self._copy(d) for d in _SEED_DRIVERS]
         self.driver_documents = {}
         self.contracts = []
+        self.folio_counter = 0
+
+    def next_folio_number(self) -> int:
+        self.folio_counter += 1
+        return self.folio_counter
 
     @staticmethod
     def _copy(d: Driver) -> Driver:
@@ -85,7 +88,7 @@ class DriverRepositoryMock:
             license_validity=d.license_validity,
             identification_number=d.identification_number,
             address=d.address,
-            garage_address=list(d.garage_address),
+            address_fields=d.address_fields,
             photo=d.photo,
             archived_at=d.archived_at,
             deleted_at=d.deleted_at,
@@ -94,6 +97,7 @@ class DriverRepositoryMock:
         )
         driver.guarantors = list(d.guarantors)
         driver.documents = list(d.documents)
+        driver.garages = list(d.garages)
         return driver
 
     def _filter(self, status: DriverStatus | None, search: str | None, archived: bool) -> list[Driver]:

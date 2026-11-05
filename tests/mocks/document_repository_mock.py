@@ -38,6 +38,7 @@ class DocumentRepositoryMock:
         self.existing_drivers: set[str] = {"DRV001"}
         self.deleted_drivers: set[str] = set()
         self.existing_guarantors: set[int] = {1}
+        self.existing_garages: set[int] = {1}
         self.links: list[dict] = []
         self.raise_on_create = False
 
@@ -61,6 +62,10 @@ class DocumentRepositoryMock:
         """Return True if guarantor_id is in the set of known guarantors."""
         return guarantor_id in self.existing_guarantors
 
+    def garage_exists(self, garage_id: int) -> bool:
+        """Return True if garage_id is in the set of known garages."""
+        return garage_id in self.existing_garages
+
     def create(self, document: Document) -> Document:
         """Assign an auto-incremented ID and append the document to the list."""
         if self.raise_on_create:
@@ -83,6 +88,10 @@ class DocumentRepositoryMock:
     def link_to_guarantor(self, document_id: int, guarantor_id: int) -> None:
         """Record a guarantor-document link."""
         self.links.append({"entity_type": DocumentEntityType.GUARANTOR, "entity_id": guarantor_id, "document_id": document_id})
+
+    def link_to_garage(self, document_id: int, garage_id: int) -> None:
+        """Record a garage-document link."""
+        self.links.append({"entity_type": DocumentEntityType.GARAGE, "entity_id": garage_id, "document_id": document_id})
 
     def delete(self, document: Document) -> None:
         """Remove the document from the in-memory list."""

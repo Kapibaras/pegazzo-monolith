@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import case, func, select
+from sqlalchemy import case, func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -11,11 +11,13 @@ from app.models.contract import Contract
 from app.models.document import Document
 from app.models.driver import (
     Driver,
+    DriverGarage,
     Guarantor,
     Reference,
     driver_document_table,
     driver_guarantor_table,
     driver_reference_table,
+    garage_document_table,
     guarantor_document_table,
     reference_document_table,
 )
@@ -47,6 +49,7 @@ class DriverRepository(DBRepository):
             .options(
                 selectinload(Driver.documents),
                 selectinload(Driver.guarantors).selectinload(Guarantor.documents),
+                selectinload(Driver.garages).selectinload(DriverGarage.documents),
             )
             .filter(Driver.id == driver_id)
         )
@@ -76,6 +79,15 @@ class DriverRepository(DBRepository):
             logger.error("Error creating driver %s due to: %s", driver.id, ex, exc_info=True)
             raise DBOperationError("Error creating driver in the database") from ex
         return driver
+
+    def next_folio_number(self) -> int:
+        """Return the next value of the global driver folio sequence (unique even across concurrent creates)."""
+        try:
+            return int(self.db.execute(text("SELECT nextval('driver_folio_seq')")).scalar_one())
+        except Exception as ex:
+            self.db.rollback()
+            logger.error("Error reading the driver folio sequence: %s", ex, exc_info=True)
+            raise DBOperationError("Error generating driver folio") from ex
 
     def update(self, driver: Driver) -> Driver:
         """Update an existing driver."""
@@ -264,6 +276,19 @@ class DriverRepository(DBRepository):
                     document_keys.extend(self._delete_documents(g_doc_ids))
                     self.db.expire(g)
                     self.db.delete(g)
+
+            garage_ids = [row.id for row in self.db.query(DriverGarage.id).filter(DriverGarage.driver_id == driver_id).all()]
+            for garage_id in garage_ids:
+                garage_doc_ids = [
+                    row.document_id
+                    for row in self.db.execute(
+                        garage_document_table.select().where(garage_document_table.c.garage_id == garage_id),
+                    ).fetchall()
+                ]
+                self.db.execute(garage_document_table.delete().where(garage_document_table.c.garage_id == garage_id))
+                document_keys.extend(self._delete_documents(garage_doc_ids))
+            if garage_ids:
+                self.db.query(DriverGarage).filter(DriverGarage.id.in_(garage_ids)).delete(synchronize_session=False)
 
             doc_ids = [
                 row.document_id

@@ -56,7 +56,6 @@ def _default_driver() -> Driver:
         license_number="LIC001",
         identification_number="ID001",
         address="Calle 1",
-        garage_address=["Calle 2"],
         photo=None,
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),

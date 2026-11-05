@@ -123,9 +123,8 @@ def _add_active_contract(db, car_id: str) -> None:
                 telephones=["+52 55 0000 0004"],
                 license_number="LIC-DEMO-001",
                 license_validity=now + timedelta(days=365),
-                identification_number="ID-DEMO-001",
-                address="Calle Demo 123",
-                garage_address=["Calle Demo 123"],
+                identification_number="DEMO010101HDFXXX01",
+                address="Calle Demo 123, Col. Centro, C.P. 06000, Cuauhtémoc, CDMX",
             ),
         )
         db.flush()
