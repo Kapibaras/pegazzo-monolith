@@ -1,6 +1,6 @@
 import pytest
 
-from app.services.driver_folio import build_driver_folio, driver_initials
+from app.utils.driver_folio import build_driver_folio, driver_initials
 
 
 class TestDriverInitials:

@@ -30,9 +30,9 @@ from app.schemas.driver import (
     GuarantorDetailSchema,
 )
 from app.schemas.user import ActionSuccess
-from app.services.driver_folio import build_driver_folio
 from app.storage import r2
 from app.utils.dates import compute_expiry_status
+from app.utils.driver_folio import build_driver_folio
 from app.utils.logging_config import logger
 
 _FOLIO_ATTEMPTS = 5
