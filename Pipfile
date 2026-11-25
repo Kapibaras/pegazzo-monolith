@@ -15,13 +15,14 @@ python-dotenv = "*"
 sqlalchemy = ">=2.0,<2.1"
 uvicorn = "*"
 gunicorn = "*"
-httpx = "==0.24.1"
+httpx = "==0.28.1"
 alembic = "*"
 ruff = "*"
 argon2-cffi = "*"
 boto3 = "*"
 celery = {version = "*", extras = ["redis"]}
 psycopg2-binary = "*"
+google-genai = "==2.24.0"
 
 [dev-packages]
 pytest = "*"

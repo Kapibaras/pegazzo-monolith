@@ -1,5 +1,6 @@
 from .constants import AppConfig
 from .variables import (
+    AI,
     AUTHORIZATION,
     CELERY,
     CORS_ORIGINS,
@@ -11,6 +12,7 @@ from .variables import (
 )
 
 __all__ = [
+    "AI",
     "AUTHORIZATION",
     "CELERY",
     "CORS_ORIGINS",

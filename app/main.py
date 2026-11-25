@@ -10,7 +10,7 @@ from mangum import Mangum
 
 import app.auth.core
 import app.database.events
-from app.config import CORS_ORIGINS, DEBUG, DOCS_PASSWORD, DOCS_USER, ENVIRONMENT, AppConfig
+from app.config import AI, CORS_ORIGINS, DEBUG, DOCS_PASSWORD, DOCS_USER, ENVIRONMENT, AppConfig
 from app.database.core import test_connection
 from app.routers import (
     associate_router,
@@ -27,6 +27,8 @@ from app.routers import (
     insurance_router,
     user_router,
 )
+
+AI.validate()
 
 _serve_openapi = ENVIRONMENT == "LOCAL"
 

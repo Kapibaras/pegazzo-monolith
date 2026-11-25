@@ -51,6 +51,37 @@ class CELERY:
     WORKER_STUCK_TASK_MINUTES: int = int(os.getenv("WORKER_STUCK_TASK_MINUTES", "10"))
 
 
+class AI:
+    """AI document analysis provider (Gemini) configuration.
+
+    Uses os.getenv instead of _require_env so that services which import
+    app.config but never call the provider (Celery worker/beat) can start
+    without GOOGLE_API_KEY. The API validates these values at startup via
+    AI.validate(); the key must only be configured on the API service.
+    """
+
+    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+    GEMINI_TIMEOUT_SECONDS: float = float(os.getenv("GEMINI_TIMEOUT_SECONDS", "15"))
+    # TODO(PGZ-187): final max document size is defined there; 10 MB is a provisional default.
+    MAX_DOCUMENT_BYTES: int = int(os.getenv("AI_MAX_DOCUMENT_BYTES", "10485760"))
+    RETRY_BUDGET_SECONDS: float = float(os.getenv("AI_RETRY_BUDGET_SECONDS", "20"))
+
+    @classmethod
+    def validate(cls) -> None:
+        """Fail fast on missing key (outside LOCAL) or inconsistent limits. Never includes the key in errors."""
+        _require_env("GOOGLE_API_KEY", "")
+        if cls.GEMINI_TIMEOUT_SECONDS <= 0:
+            raise ValueError(f"GEMINI_TIMEOUT_SECONDS must be > 0 (got {cls.GEMINI_TIMEOUT_SECONDS})")
+        if cls.RETRY_BUDGET_SECONDS < cls.GEMINI_TIMEOUT_SECONDS:
+            raise ValueError(
+                f"AI_RETRY_BUDGET_SECONDS ({cls.RETRY_BUDGET_SECONDS}) must be >= "
+                f"GEMINI_TIMEOUT_SECONDS ({cls.GEMINI_TIMEOUT_SECONDS})",
+            )
+        if cls.MAX_DOCUMENT_BYTES <= 0:
+            raise ValueError(f"AI_MAX_DOCUMENT_BYTES must be > 0 (got {cls.MAX_DOCUMENT_BYTES})")
+
+
 class AUTHORIZATION:
     """Authorization configuration."""
 
