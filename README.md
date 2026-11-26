@@ -221,7 +221,7 @@ try:
         entity_id=car.id,
         analysis_ids=body.analysis_ids,
         manual_analysis_ids=body.manual_analysis_ids,  # OWNER only, failed / rejected analyses
-        allowed_types={"circulation_card", "invoice", "plates"},
+        allowed_types={"circulation_card", "plates"},  # identity section (PGZ-183); the invoice goes in section B
         final_values={doc.analysis_id: FinalValues(fields=doc.fields, expiry_date=doc.expiry_date) for doc in body.documents},
         caller=user,
     )
