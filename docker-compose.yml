@@ -55,6 +55,12 @@ services:
     restart: unless-stopped
     environment:
       <<: *common-env
+      # AI provider (API service only — never add to worker/beat)
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GEMINI_MODEL: gemini-3.6-flash
+      GEMINI_TIMEOUT_SECONDS: "20"
+      AI_MAX_DOCUMENT_BYTES: "15728640"
+      AI_RETRY_BUDGET_SECONDS: "20"
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
