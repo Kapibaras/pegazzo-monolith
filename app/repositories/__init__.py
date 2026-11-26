@@ -3,6 +3,7 @@ from .balance import BalanceRepository
 from .car import CarRepository
 from .car_model import CarModelRepository
 from .document import DocumentRepository
+from .document_analysis import DocumentAnalysisRepository
 from .driver import DriverRepository
 from .garage import GarageRepository
 from .guarantor import GuarantorRepository
@@ -15,6 +16,7 @@ __all__ = [
     "BalanceRepository",
     "CarModelRepository",
     "CarRepository",
+    "DocumentAnalysisRepository",
     "DocumentRepository",
     "DriverRepository",
     "GarageRepository",

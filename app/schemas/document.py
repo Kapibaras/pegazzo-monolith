@@ -17,7 +17,19 @@ ALLOWED_CONTENT_TYPES = frozenset(
     },
 )
 
+_EXTENSIONS = {
+    "application/pdf": "pdf",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+}
+
 _VALID_TYPES = {member.value for member in DocumentType}
+
+
+def extension_for(content_type: str) -> str:
+    """Return the file extension used in storage keys for *content_type* (``bin`` when unknown)."""
+    return _EXTENSIONS.get(content_type, "bin")
 
 
 class UploadUrlRequestSchema(BaseModel):

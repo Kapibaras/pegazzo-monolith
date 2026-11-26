@@ -12,18 +12,9 @@ from app.schemas.document import (
     DocumentResponseSchema,
     UploadUrlRequestSchema,
     UploadUrlResponseSchema,
+    extension_for,
 )
 from app.storage import r2
-
-
-def _extension_for(content_type: str) -> str:
-    extensions = {
-        "application/pdf": "pdf",
-        "image/jpeg": "jpg",
-        "image/png": "png",
-        "image/webp": "webp",
-    }
-    return extensions.get(content_type, "bin")
 
 
 class DocumentService:
@@ -40,7 +31,7 @@ class DocumentService:
 
         self._assert_entity_exists(data.entity_type, data.entity_id)
 
-        ext = _extension_for(data.content_type)
+        ext = extension_for(data.content_type)
         key = f"{data.entity_type}/{data.entity_id}/{uuid.uuid4()}.{ext}"
         upload_url = r2.generate_document_upload_url(key, data.content_type)
         return UploadUrlResponseSchema(upload_url=upload_url, key=key, expires_in=3600)
