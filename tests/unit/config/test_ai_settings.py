@@ -44,7 +44,7 @@ def test_defaults(load_ai):
     assert ai.GOOGLE_API_KEY == ""
     assert ai.GEMINI_MODEL == "gemini-3.6-flash"
     assert ai.GEMINI_TIMEOUT_SECONDS == 15
-    assert ai.MAX_DOCUMENT_BYTES == 10 * 1024 * 1024
+    assert ai.MAX_DOCUMENT_BYTES == 15 * 1024 * 1024
     assert ai.RETRY_BUDGET_SECONDS == 20
     ai.validate()
 
