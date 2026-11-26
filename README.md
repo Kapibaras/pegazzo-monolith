@@ -182,7 +182,7 @@ Document analysis calls Gemini **synchronously inside the API request** (no Cele
 |---|---|---|---|---|
 | `GOOGLE_API_KEY` | Google AI Studio API key for Gemini | — (required outside `LOCAL`) | **Yes** | Local `.env` · Dokploy dev/staging/prod → **API service** |
 | `GEMINI_MODEL` | Gemini model used for extraction | `gemini-3.6-flash` | No | Local `.env` · Dokploy → API service |
-| `GEMINI_TIMEOUT_SECONDS` | Timeout for a single provider call | `15` | No | Local `.env` · Dokploy → API service |
+| `GEMINI_TIMEOUT_SECONDS` | Timeout for a single provider call | `20` | No | Local `.env` · Dokploy → API service |
 | `AI_MAX_DOCUMENT_BYTES` | Max document size accepted for analysis; same as the frontend upload limit (provisional, final value in PGZ-187) | `15728640` (15 MB) | No | Local `.env` · Dokploy → API service |
 | `AI_RETRY_BUDGET_SECONDS` | Total retry budget within one request (must be `>= GEMINI_TIMEOUT_SECONDS`) | `20` | No | Local `.env` · Dokploy → API service |
 

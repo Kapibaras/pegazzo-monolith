@@ -58,7 +58,7 @@ services:
       # AI provider (API service only — never add to worker/beat)
       GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
       GEMINI_MODEL: gemini-3.6-flash
-      GEMINI_TIMEOUT_SECONDS: "15"
+      GEMINI_TIMEOUT_SECONDS: "20"
       AI_MAX_DOCUMENT_BYTES: "15728640"
       AI_RETRY_BUDGET_SECONDS: "20"
     ports:

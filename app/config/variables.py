@@ -62,7 +62,7 @@ class AI:
 
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
-    GEMINI_TIMEOUT_SECONDS: float = float(os.getenv("GEMINI_TIMEOUT_SECONDS", "15"))
+    GEMINI_TIMEOUT_SECONDS: float = float(os.getenv("GEMINI_TIMEOUT_SECONDS", "20"))
     # TODO(PGZ-187): final limit is defined there. 15 MB matches the frontend and the upload limit (PGZ-179);
     # it covers ~5 scanned pages, revisit with real multi-page scans.
     MAX_DOCUMENT_BYTES: int = int(os.getenv("AI_MAX_DOCUMENT_BYTES", "15728640"))
