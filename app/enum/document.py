@@ -59,3 +59,21 @@ class DocumentErrorReason(StrEnum):
     PROVIDER_UNAVAILABLE = "provider_unavailable"
     STUCK = "stuck"
     WRONG_DOCUMENT = "wrong_document"
+
+
+class AnalysisStatus(StrEnum):
+    """Lifecycle of a temporary ``document_analysis`` (not to be confused with ``DocumentAnalysisStatus``).
+
+    Status machine::
+
+        uploaded → analyzed | rejected | failed → consumed
+        uploaded → consumed  (evidence-only types, e.g. plates)
+
+    Not consumed analyses are deleted by the cleanup task after 24 hours.
+    """
+
+    UPLOADED = "uploaded"
+    ANALYZED = "analyzed"
+    REJECTED = "rejected"
+    FAILED = "failed"
+    CONSUMED = "consumed"

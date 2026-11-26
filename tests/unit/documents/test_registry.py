@@ -64,3 +64,52 @@ class TestDocumentRegistry:
         assert get_doc_type_spec("ine")["has_expiry"] is True
         assert get_doc_type_spec("invoice")["has_expiry"] is False
         assert get_doc_type_spec("plates")["has_expiry"] is False
+
+
+class TestRegistrationHelpers:
+    """Registration flow helpers: registration types, max files and analyzable check."""
+
+    def test_registration_types_include_defaults(self):
+        from app.documents.registry import REGISTRATION_DOCUMENT_TYPES
+
+        expected = {
+            "circulation_card",
+            "invoice",
+            "credit_contract",
+            "amortization_table",
+            "insurance_policy",
+            "plates",
+            "ine",
+            "driver_license",
+            "proof_of_address",
+        }
+        assert expected.issubset(REGISTRATION_DOCUMENT_TYPES)
+
+    def test_registration_types_exclude_signed_documents(self):
+        from app.documents.registry import REGISTRATION_DOCUMENT_TYPES
+
+        assert "contract" not in REGISTRATION_DOCUMENT_TYPES
+        assert "promissory_note" not in REGISTRATION_DOCUMENT_TYPES
+
+    def test_registration_types_only_include_registered_types(self):
+        from app.documents.registry import REGISTRATION_DOCUMENT_TYPES, get_all_specs
+
+        assert REGISTRATION_DOCUMENT_TYPES.issubset(get_all_specs())
+
+    def test_max_files_ine_is_two(self):
+        from app.documents.registry import get_max_files
+
+        assert get_max_files("ine") == 2
+
+    def test_max_files_defaults_to_one(self):
+        from app.documents.registry import get_max_files
+
+        assert get_max_files("invoice") == 1
+        assert get_max_files("unknown_type") == 1
+
+    def test_is_ai_analyzable(self):
+        from app.documents.registry import is_ai_analyzable
+
+        assert is_ai_analyzable("ine") is True
+        assert is_ai_analyzable("plates") is False
+        assert is_ai_analyzable("unknown_type") is False
