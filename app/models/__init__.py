@@ -3,6 +3,7 @@ from .car import Associate, Car, Insurance, OwnerAssociate, associate_car, car_d
 from .car_model import CarModel
 from .contract import Contract
 from .document import Document
+from .document_analysis import DocumentAnalysis
 from .driver import (
     Driver,
     DriverGarage,
@@ -26,6 +27,7 @@ __all__ = [
     "CarModel",
     "Contract",
     "Document",
+    "DocumentAnalysis",
     "Driver",
     "DriverGarage",
     "Event",

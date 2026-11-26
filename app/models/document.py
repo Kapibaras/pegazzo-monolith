@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, Numeric, String, Uuid
 from sqlalchemy.sql import func
 
 from app.database.base import Base
@@ -34,6 +34,14 @@ class Document(Base):
     analyzed_at = Column(DateTime(timezone=True), nullable=True)
     model_version = Column(String(50), nullable=True)
     error_reason = Column(String(50), nullable=True)
+
+    # Temporary analysis this document was promoted from (PGZ-179); files of one analysis share it (e.g. INE sides)
+    analysis_id = Column(
+        Uuid,
+        ForeignKey("document_analysis.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     # Human-verification traceability
     verified_by = Column(String(30), ForeignKey("user.username"), nullable=True)
