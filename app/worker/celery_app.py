@@ -28,5 +28,6 @@ app.conf.update(
 
 app.conf.include = [
     "app.worker.tasks.dummy",
+    "app.worker.tasks.analysis_cleanup",
     "app.worker.beat_schedules",
 ]

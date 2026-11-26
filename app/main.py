@@ -12,12 +12,14 @@ import app.auth.core
 import app.database.events
 from app.config import CORS_ORIGINS, DEBUG, DOCS_PASSWORD, DOCS_USER, ENVIRONMENT, AppConfig
 from app.database.core import test_connection
+from app.errors import PegazzoException
 from app.routers import (
     associate_router,
     auth_router,
     balance_router,
     car_model_router,
     car_router,
+    document_analysis_router,
     document_router,
     driver_router,
     garage_router,
@@ -116,6 +118,15 @@ else:
 # * EXCEPTION HANDLERS * #
 
 
+@app.exception_handler(PegazzoException)
+async def pegazzo_exception_handler(_request, exc: PegazzoException):
+    """Return { "detail": "..." }, plus a stable "code" when the exception defines one."""
+    content = {"detail": exc.detail}
+    if exc.code:
+        content["code"] = exc.code
+    return JSONResponse(status_code=exc.status_code, content=content, headers=exc.headers)
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(_request, exc: RequestValidationError):
     """Normalize Pydantic validation errors to { "detail": "..." }."""
@@ -161,6 +172,7 @@ app.include_router(insurance_router, prefix="/pegazzo")
 app.include_router(associate_router, prefix="/pegazzo")
 app.include_router(car_model_router, prefix="/pegazzo")
 app.include_router(car_router, prefix="/pegazzo")
+app.include_router(document_analysis_router, prefix="/pegazzo")
 app.include_router(document_router, prefix="/pegazzo")
 app.include_router(driver_router, prefix="/pegazzo")
 app.include_router(garage_router, prefix="/pegazzo")

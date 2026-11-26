@@ -16,6 +16,25 @@ DOC_TYPES_DIR = Path(__file__).resolve().parent / "doc_types"
 
 _REGISTRY: dict[str, dict[str, Any]] = {}
 
+DEFAULT_MAX_FILES = 1
+
+# Types that can be uploaded through a registration flow (analyzable or evidence-only). A candidate only counts when
+# it exists in the registry, so types added later (e.g. ``invoice_letter`` and ``tax_status_certificate`` in PGZ-164)
+# are picked up as soon as their JSON lands. ``contract`` and ``promissory_note`` are signed later, never uploaded here.
+_REGISTRATION_CANDIDATES = (
+    "circulation_card",
+    "invoice",
+    "invoice_letter",
+    "credit_contract",
+    "amortization_table",
+    "insurance_policy",
+    "tax_status_certificate",
+    "plates",
+    "ine",
+    "driver_license",
+    "proof_of_address",
+)
+
 
 def _load_registry() -> None:
     for path in sorted(DOC_TYPES_DIR.glob("*.json")):
@@ -31,6 +50,8 @@ def _load_registry() -> None:
 
 
 _load_registry()
+
+REGISTRATION_DOCUMENT_TYPES: frozenset[str] = frozenset(name for name in _REGISTRATION_CANDIDATES if name in _REGISTRY)
 
 
 def get_doc_type_spec(doc_type: str) -> dict[str, Any] | None:
@@ -54,3 +75,15 @@ def get_analyzable_types() -> list[str]:
 def get_all_specs() -> dict[str, dict[str, Any]]:
     """Return the full registry (read-only view)."""
     return dict(_REGISTRY)
+
+
+def is_ai_analyzable(doc_type: str) -> bool:
+    """Return ``True`` when *doc_type* is analyzed by AI (``False`` for evidence-only or unknown types)."""
+    spec = _REGISTRY.get(doc_type)
+    return bool(spec and spec.get("ai_analyzable"))
+
+
+def get_max_files(doc_type: str) -> int:
+    """Return how many files one upload of *doc_type* may contain (e.g. INE front and back = 2)."""
+    spec = _REGISTRY.get(doc_type) or {}
+    return int(spec.get("max_files", DEFAULT_MAX_FILES))

@@ -17,6 +17,7 @@ class InvalidContentTypeException(PegazzoException):
         super().__init__(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Content type '{content_type}' is not allowed. Allowed types: application/pdf, image/jpeg, image/png, image/webp",
+            code="unsupported_content_type",
         )
 
 

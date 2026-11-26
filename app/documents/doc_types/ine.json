@@ -4,6 +4,7 @@
   "allowed_entity_types": ["driver", "guarantor"],
   "has_expiry": true,
   "ai_analyzable": true,
+  "max_files": 2,
   "fields": {
     "document_type": "type of document exactly as printed on the card title",
     "full_name": "full name as printed",

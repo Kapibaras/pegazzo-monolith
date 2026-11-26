@@ -16,6 +16,11 @@ app.conf.beat_schedule = {
         "task": "app.worker.beat_schedules.check_stuck_tasks",
         "schedule": crontab(minute="*/5"),
     },
+    "cleanup-expired-analyses": {
+        "task": "app.worker.tasks.analysis_cleanup.cleanup_expired_analyses",
+        "schedule": crontab(minute=0),
+        "options": {"queue": "documents"},
+    },
 }
 
 

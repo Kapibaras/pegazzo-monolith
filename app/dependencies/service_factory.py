@@ -8,6 +8,7 @@ from app.services import (
     CarFolioService,
     CarModelService,
     CarService,
+    DocumentAnalysisService,
     DocumentService,
     DriverService,
     GarageService,
@@ -116,6 +117,20 @@ class ServiceFactory:
         Yields:DocumentService: An instance of DocumentService initialized with the provided repository.
         """
         yield DocumentService(repository)
+
+    @staticmethod
+    def document_analysis_service(
+        repository=Depends(RepositoryFactory.document_analysis_repository),
+        document_repository=Depends(RepositoryFactory.document_repository),
+    ):
+        """Provide an instance of DocumentAnalysisService.
+
+        Both repositories receive the same request session (FastAPI caches ``get_db`` per request), so a promotion
+        and the section that triggers it share one transaction.
+
+        Yields:DocumentAnalysisService: An instance of DocumentAnalysisService.
+        """
+        yield DocumentAnalysisService(repository, document_repository)
 
     @staticmethod
     def image_service(repository=Depends(RepositoryFactory.image_repository)):

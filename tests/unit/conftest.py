@@ -14,6 +14,7 @@ from tests.mocks import (
     BalanceRepositoryMock,
     CarModelRepositoryMock,
     CarRepositoryMock,
+    DocumentAnalysisRepositoryMock,
     DocumentRepositoryMock,
     DriverRepositoryMock,
     GarageRepositoryMock,
@@ -22,6 +23,7 @@ from tests.mocks import (
     InsuranceRepositoryMock,
     UserRepositoryMock,
 )
+from tests.unit.sqlite_session import analysis_db  # noqa: F401 - shared fixture
 
 user_repo_mock = UserRepositoryMock()
 _initial_user = user_repo_mock.users[0]
@@ -32,6 +34,7 @@ associate_repo_mock = AssociateRepositoryMock()
 car_repo_mock = CarRepositoryMock()
 car_model_repo_mock = CarModelRepositoryMock()
 document_repo_mock = DocumentRepositoryMock()
+document_analysis_repo_mock = DocumentAnalysisRepositoryMock()
 driver_repo_mock = DriverRepositoryMock()
 guarantor_repo_mock = GuarantorRepositoryMock()
 garage_repo_mock = GarageRepositoryMock()
@@ -56,6 +59,7 @@ def reset_state():
     car_repo_mock.reset()
     car_model_repo_mock.reset()
     document_repo_mock.reset()
+    document_analysis_repo_mock.reset()
     driver_repo_mock.reset()
     guarantor_repo_mock.reset()
     garage_repo_mock.reset()
@@ -68,6 +72,7 @@ def reset_state():
     car_repo_mock.reset()
     car_model_repo_mock.reset()
     document_repo_mock.reset()
+    document_analysis_repo_mock.reset()
     driver_repo_mock.reset()
     guarantor_repo_mock.reset()
     garage_repo_mock.reset()
@@ -83,6 +88,7 @@ def _dependency_overrides():
         RepositoryFactory.car_repository: lambda: car_repo_mock,
         RepositoryFactory.car_model_repository: lambda: car_model_repo_mock,
         RepositoryFactory.document_repository: lambda: document_repo_mock,
+        RepositoryFactory.document_analysis_repository: lambda: document_analysis_repo_mock,
         RepositoryFactory.driver_repository: lambda: driver_repo_mock,
         RepositoryFactory.guarantor_repository: lambda: guarantor_repo_mock,
         RepositoryFactory.garage_repository: lambda: garage_repo_mock,
@@ -98,6 +104,7 @@ def _attach_repos(client):
     client.car_repo = car_repo_mock
     client.car_model_repo = car_model_repo_mock
     client.document_repo = document_repo_mock
+    client.document_analysis_repo = document_analysis_repo_mock
     client.driver_repo = driver_repo_mock
     client.guarantor_repo = guarantor_repo_mock
     client.garage_repo = garage_repo_mock

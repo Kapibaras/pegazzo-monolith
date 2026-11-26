@@ -66,7 +66,7 @@ class DocumentRepositoryMock:
         """Return True if garage_id is in the set of known garages."""
         return garage_id in self.existing_garages
 
-    def create(self, document: Document) -> Document:
+    def create(self, document: Document, *, commit: bool = True) -> Document:  # noqa: ARG002
         """Assign an auto-incremented ID and append the document to the list."""
         if self.raise_on_create:
             raise DBOperationError("Error creating document in the database")
@@ -77,19 +77,19 @@ class DocumentRepositoryMock:
         self.documents.append(document)
         return document
 
-    def link_to_car(self, document_id: int, car_id: str) -> None:
+    def link_to_car(self, document_id: int, car_id: str, *, commit: bool = True) -> None:  # noqa: ARG002
         """Record a car-document link."""
         self.links.append({"entity_type": DocumentEntityType.CAR, "entity_id": car_id, "document_id": document_id})
 
-    def link_to_driver(self, document_id: int, driver_id: str) -> None:
+    def link_to_driver(self, document_id: int, driver_id: str, *, commit: bool = True) -> None:  # noqa: ARG002
         """Record a driver-document link."""
         self.links.append({"entity_type": DocumentEntityType.DRIVER, "entity_id": driver_id, "document_id": document_id})
 
-    def link_to_guarantor(self, document_id: int, guarantor_id: int) -> None:
+    def link_to_guarantor(self, document_id: int, guarantor_id: int, *, commit: bool = True) -> None:  # noqa: ARG002
         """Record a guarantor-document link."""
         self.links.append({"entity_type": DocumentEntityType.GUARANTOR, "entity_id": guarantor_id, "document_id": document_id})
 
-    def link_to_garage(self, document_id: int, garage_id: int) -> None:
+    def link_to_garage(self, document_id: int, garage_id: int, *, commit: bool = True) -> None:  # noqa: ARG002
         """Record a garage-document link."""
         self.links.append({"entity_type": DocumentEntityType.GARAGE, "entity_id": garage_id, "document_id": document_id})
 

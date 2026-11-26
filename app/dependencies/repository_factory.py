@@ -6,6 +6,7 @@ from app.repositories import (
     BalanceRepository,
     CarModelRepository,
     CarRepository,
+    DocumentAnalysisRepository,
     DocumentRepository,
     DriverRepository,
     GarageRepository,
@@ -73,6 +74,16 @@ class RepositoryFactory:
         """
 
         yield CarRepository(db_session)
+
+    @staticmethod
+    def document_analysis_repository(db_session=Depends(get_db)):
+        """Provide an instance of DocumentAnalysisRepository.
+
+        Args:db_session (Session): The database session, injected via FastAPI's Depends.
+
+        Yields:DocumentAnalysisRepository: An instance of DocumentAnalysisRepository with the request session.
+        """
+        yield DocumentAnalysisRepository(db_session)
 
     @staticmethod
     def document_repository(db_session=Depends(get_db)):

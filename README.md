@@ -174,6 +174,70 @@ Broker down is **non-fatal** — the API keeps running, but the flag shows `unre
 
 ---
 
+## 📄 Document analysis: temporary storage and promotion
+
+Registration documents are uploaded and analyzed **before** the car, driver or associate exists. They live in a temporary area until the person saves a section of the registration; only then do they become final `Document` rows.
+
+### Lifecycle of an analysis (`document_analysis`)
+
+```
+uploaded ──analysis (PGZ-124)──> analyzed | rejected | failed ──section saved──> consumed
+uploaded ──section saved (evidence-only types, e.g. plates)──────────────────> consumed
+```
+
+1. `POST /pegazzo/management/documents/analysis/upload-url` (`OWNER`, `ADMIN`) validates the declared type, the number of files, the content types and the sizes (max 15 MB, `DocumentConfig.MAX_FILE_BYTES`), creates the row with `status = uploaded` and returns one presigned PUT per file (`Content-Type` and `Content-Length` are signed, URLs expire after 1 hour).
+2. The browser PUTs the files directly to R2; the analysis endpoint (PGZ-124) fills the result columns.
+3. A section endpoint calls `promote_analyses`: the files are copied to their final keys, one `Document` is created per file (linked by `document.analysis_id`) and the analysis becomes `consumed`.
+4. Not consumed analyses older than **24 h** are deleted with their temporary files by the hourly beat task `cleanup-expired-analyses`. The R2 lifecycle rule (`private/tmp/` expires after 1 day) is the safety net.
+
+An `analysis_id` is only usable by the user who created it; another user gets `404 analysis_not_found`.
+
+### Storage keys
+
+| Kind | Key in the documents bucket |
+|---|---|
+| Temporary file | `private/tmp/analysis/{analysis_id}/{index}.{ext}` |
+| Final document | `private/{entity_type}/{entity_id}/{uuid}.{ext}` |
+
+`document.url` and `document_analysis.files[].key` store keys **without** the `private/` prefix; the R2 helpers add it.
+
+### Error codes
+
+Errors keep the `{ "detail": "..." }` shape and add a stable `code` the frontend can rely on: `document_type_not_allowed`, `too_many_files`, `unsupported_content_type`, `empty_file`, `file_too_large`, `analysis_not_found`, `analysis_consumed`, `analysis_not_analyzed`, `analysis_file_missing`, `analysis_duplicated`, `manual_entry_requires_owner`, `manual_entry_not_allowed`.
+
+### Calling the promotion from a section endpoint
+
+`promote_analyses` **never commits**: it flushes in the caller's session so the section data and its documents are committed together. The section service commits, then deletes the temporary files; on any failure it rolls back and deletes the copied final files.
+
+```python
+from app.enum.crm import DocumentEntityType
+from app.services.document_analysis import FinalValues, finalize_promotion, rollback_promotion
+
+result = None
+try:
+    car = self.repository.save_identity(car_id, body, commit=False)  # non-committing section write
+    result = self.analysis_service.promote_analyses(
+        entity_type=DocumentEntityType.CAR,
+        entity_id=car.id,
+        analysis_ids=body.analysis_ids,
+        manual_analysis_ids=body.manual_analysis_ids,  # OWNER only, failed / rejected analyses
+        allowed_types={"circulation_card", "plates"},  # identity section (PGZ-183); the invoice goes in section B
+        final_values={doc.analysis_id: FinalValues(fields=doc.fields, expiry_date=doc.expiry_date) for doc in body.documents},
+        caller=user,
+    )
+    self.repository.commit()
+except Exception:
+    self.repository.rollback()
+    if result is not None:
+        rollback_promotion(result)  # removes the copied final files; temporary files stay for a retry
+    raise
+finalize_promotion(result)  # best effort: deletes the temporary files
+```
+
+Rules enforced by the promotion: analyzable types need `status = analyzed`; evidence-only types are promoted from `uploaded`; manual entry (`manual_analysis_ids`) requires `OWNER` and an analysis that is `failed`, or `rejected` for any reason except `wrong_document`. Analyzed documents are saved as `valid` and verified by the caller; manual and evidence-only ones as `not_analyzed` (manual ones verified by the owner).
+
+---
+
 ## 📂 Project Structure
 
 ```txt

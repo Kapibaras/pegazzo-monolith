@@ -38,57 +38,76 @@ class DocumentRepository(DBRepository):
         """Return True if a garage with the given ID exists."""
         return self.db.query(DriverGarage).filter_by(id=garage_id).first() is not None
 
-    def create(self, document: Document) -> Document:
-        """Persist a new document and return it with its generated ID."""
+    def create(self, document: Document, *, commit: bool = True) -> Document:
+        """Persist a new document and return it with its generated ID.
+
+        With ``commit=False`` the document is only flushed, so it joins the caller's transaction (the caller commits
+        or rolls back).
+        """
         try:
             self.db.add(document)
+            if not commit:
+                self.db.flush()
+                return document
             self.db.commit()
             self.db.refresh(document)
         except Exception as ex:
-            self.db.rollback()
+            if commit:
+                self.db.rollback()
             logger.error(f"Error creating document due to: {ex}")
             raise DBOperationError("Error creating document in the database") from ex
         return document
 
-    def link_to_car(self, document_id: int, car_id: str) -> None:
-        """Insert a row in the car_document M2M table."""
+    def _insert_link(self, statement, entity: str, entity_id: str | int, document_id: int, *, commit: bool) -> None:
         try:
-            self.db.execute(car_document_table.insert().values(car_id=car_id, document_id=document_id))
-            self.db.commit()
+            self.db.execute(statement)
+            if commit:
+                self.db.commit()
         except Exception as ex:
-            self.db.rollback()
-            logger.error(f"Error linking document {document_id} to car {car_id}: {ex}")
-            raise DBOperationError("Error linking document to car") from ex
+            if commit:
+                self.db.rollback()
+            logger.error(f"Error linking document {document_id} to {entity} {entity_id}: {ex}")
+            raise DBOperationError(f"Error linking document to {entity}") from ex
 
-    def link_to_driver(self, document_id: int, driver_id: str) -> None:
-        """Insert a row in the driver_document M2M table."""
-        try:
-            self.db.execute(driver_document_table.insert().values(driver_id=driver_id, document_id=document_id))
-            self.db.commit()
-        except Exception as ex:
-            self.db.rollback()
-            logger.error(f"Error linking document {document_id} to driver {driver_id}: {ex}")
-            raise DBOperationError("Error linking document to driver") from ex
+    def link_to_car(self, document_id: int, car_id: str, *, commit: bool = True) -> None:
+        """Insert a row in the car_document M2M table (only flushed with the caller's transaction when ``commit=False``)."""
+        self._insert_link(
+            car_document_table.insert().values(car_id=car_id, document_id=document_id),
+            "car",
+            car_id,
+            document_id,
+            commit=commit,
+        )
 
-    def link_to_guarantor(self, document_id: int, guarantor_id: int) -> None:
-        """Insert a row in the guarantor_document M2M table."""
-        try:
-            self.db.execute(guarantor_document_table.insert().values(guarantor_id=guarantor_id, document_id=document_id))
-            self.db.commit()
-        except Exception as ex:
-            self.db.rollback()
-            logger.error(f"Error linking document {document_id} to guarantor {guarantor_id}: {ex}")
-            raise DBOperationError("Error linking document to guarantor") from ex
+    def link_to_driver(self, document_id: int, driver_id: str, *, commit: bool = True) -> None:
+        """Insert a row in the driver_document M2M table (only flushed with the caller's transaction when ``commit=False``)."""
+        self._insert_link(
+            driver_document_table.insert().values(driver_id=driver_id, document_id=document_id),
+            "driver",
+            driver_id,
+            document_id,
+            commit=commit,
+        )
 
-    def link_to_garage(self, document_id: int, garage_id: int) -> None:
-        """Insert a row in the garage_document M2M table."""
-        try:
-            self.db.execute(garage_document_table.insert().values(garage_id=garage_id, document_id=document_id))
-            self.db.commit()
-        except Exception as ex:
-            self.db.rollback()
-            logger.error(f"Error linking document {document_id} to garage {garage_id}: {ex}")
-            raise DBOperationError("Error linking document to garage") from ex
+    def link_to_guarantor(self, document_id: int, guarantor_id: int, *, commit: bool = True) -> None:
+        """Insert a row in the guarantor_document M2M table (only flushed with the caller's transaction when ``commit=False``)."""
+        self._insert_link(
+            guarantor_document_table.insert().values(guarantor_id=guarantor_id, document_id=document_id),
+            "guarantor",
+            guarantor_id,
+            document_id,
+            commit=commit,
+        )
+
+    def link_to_garage(self, document_id: int, garage_id: int, *, commit: bool = True) -> None:
+        """Insert a row in the garage_document M2M table (only flushed with the caller's transaction when ``commit=False``)."""
+        self._insert_link(
+            garage_document_table.insert().values(garage_id=garage_id, document_id=document_id),
+            "garage",
+            garage_id,
+            document_id,
+            commit=commit,
+        )
 
     def delete(self, document: Document) -> None:
         """Remove a document record and its links to cars, drivers, guarantors, etc. in one transaction.
