@@ -23,6 +23,7 @@ from tests.mocks import (
     InsuranceRepositoryMock,
     UserRepositoryMock,
 )
+from tests.unit.sqlite_session import analysis_db  # noqa: F401 - shared fixture
 
 user_repo_mock = UserRepositoryMock()
 _initial_user = user_repo_mock.users[0]
