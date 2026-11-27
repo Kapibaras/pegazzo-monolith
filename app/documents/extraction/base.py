@@ -34,6 +34,9 @@ class ExtractionResult:
     issuing_state: str | None
     expiry_source: ExpirySource
     fields: dict[str, str | None]
+    # Fields printed on the document that could not be read (value ``None``): an extraction error. A ``None`` field
+    # that is not listed here is not printed on the document, which is fine.
+    unreadable_fields: list[str]
     model_version: str
     input_tokens: int
     output_tokens: int

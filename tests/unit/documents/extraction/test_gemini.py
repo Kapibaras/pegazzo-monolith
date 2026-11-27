@@ -22,6 +22,7 @@ INE_OUTPUT = {
     "issuing_state": "NUEVO LEON",
     "expiry_source": "printed",
     "fields": INE_FIELDS,
+    "unreadable_fields": [],
 }
 
 
@@ -46,6 +47,7 @@ class TestExtract:
         assert result.expiry_source == ExpirySource.PRINTED
         assert result.fields["curp"] == "PELJ800101HNLRPN09"
         assert result.fields["gender"] is None
+        assert result.unreadable_fields == []
         assert result.model_version == "gemini-3.6-flash-001"
         assert result.pages_sent == 1
         assert result.duration_ms >= 0
@@ -139,7 +141,7 @@ class TestParseOutput:
     def test_missing_fields_are_none_and_unknown_keys_dropped(self):
         text = json.dumps({**INE_OUTPUT, "fields": {"curp": " X ", "invented": "1", "address": ""}})
 
-        _, _, _, fields = parse_output(text, "ine")
+        fields = parse_output(text, "ine").fields
 
         assert fields["curp"] == "X"
         assert fields["address"] is None
@@ -149,31 +151,52 @@ class TestParseOutput:
     def test_non_string_values(self):
         text = json.dumps({**INE_OUTPUT, "fields": {"expiry_year": 2033, "address": {"street": "x"}}})
 
-        _, _, _, fields = parse_output(text, "ine")
+        fields = parse_output(text, "ine").fields
 
         assert fields["expiry_year"] == "2033"
         assert fields["address"] is None
 
     def test_detected_type_outside_taxonomy_is_unknown(self):
-        detected, *_ = parse_output(json.dumps({**INE_OUTPUT, "detected_type": "passport"}), "ine")
+        parsed = parse_output(json.dumps({**INE_OUTPUT, "detected_type": "passport"}), "ine")
 
-        assert detected == "unknown"
+        assert parsed.detected_type == "unknown"
 
     def test_unknown_result(self):
-        detected, state, source, fields = parse_output(
+        parsed = parse_output(
             json.dumps({"detected_type": "unknown", "issuing_state": None, "expiry_source": "none", "fields": {}}),
             "invoice",
         )
 
-        assert detected == "unknown"
-        assert state is None
-        assert source == ExpirySource.NONE
-        assert set(fields.values()) == {None}
+        assert parsed.detected_type == "unknown"
+        assert parsed.issuing_state is None
+        assert parsed.expiry_source == ExpirySource.NONE
+        assert set(parsed.fields.values()) == {None}
+        assert parsed.unreadable_fields == []
 
     def test_invalid_expiry_source_is_none(self):
-        _, _, source, _ = parse_output(json.dumps({**INE_OUTPUT, "expiry_source": "guess"}), "ine")
+        parsed = parse_output(json.dumps({**INE_OUTPUT, "expiry_source": "guess"}), "ine")
 
-        assert source == ExpirySource.NONE
+        assert parsed.expiry_source == ExpirySource.NONE
+
+    def test_unreadable_fields_are_kept_apart_from_absent_ones(self):
+        output = {
+            **INE_OUTPUT,
+            "fields": {**INE_FIELDS, "curp": "PELJ8?0101", "section": None},
+            "unreadable_fields": ["curp", "curp", "not_a_field"],
+        }
+
+        parsed = parse_output(json.dumps(output), "ine")
+
+        assert parsed.unreadable_fields == ["curp"]
+        assert parsed.fields["curp"] is None  # printed but not legible: never kept as a guess
+        assert parsed.fields["section"] is None  # not printed: fine
+        assert "section" not in parsed.unreadable_fields
+
+    @pytest.mark.parametrize("value", [None, "curp", {"curp": True}])
+    def test_invalid_unreadable_fields_are_ignored(self, value):
+        parsed = parse_output(json.dumps({**INE_OUTPUT, "unreadable_fields": value}), "ine")
+
+        assert parsed.unreadable_fields == []
 
     @pytest.mark.parametrize("text", ["not json", "", "[1, 2]", '"text"'])
     def test_invalid_output(self, text):
@@ -295,6 +318,7 @@ class TestCallLog:
         assert entry["output_tokens"] == 500
         assert entry["estimated_cost"] == estimate_cost(1000, 500)
         assert entry["outcome"] == "ok"
+        assert entry["unreadable_fields"] == []
         assert "duration_ms" in entry
 
     def test_never_logs_values_or_contents(self, extractor, genai_client, response_factory, jpeg, caplog):
@@ -369,3 +393,22 @@ class TestClient:
     def test_shared_extractor(self):
         assert get_document_extractor() is get_document_extractor()
         assert isinstance(get_document_extractor(), GeminiExtractor)
+
+
+class TestResponseSchema:
+    """Schema sent to Gemini."""
+
+    def test_common_keys_and_field_names(self):
+        schema = build_response_schema("tax_status_certificate")
+
+        assert list(schema.properties) == [
+            "detected_type",
+            "issuing_state",
+            "expiry_source",
+            "fields",
+            "unreadable_fields",
+        ]
+        assert schema.required == list(schema.properties)
+        assert "unknown" in schema.properties["detected_type"].enum
+        assert list(schema.properties["fields"].properties) == list(schema.properties["unreadable_fields"].items.enum)
+        assert all(field.nullable for field in schema.properties["fields"].properties.values())

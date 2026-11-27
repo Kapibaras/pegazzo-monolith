@@ -7,6 +7,7 @@ its default "never retry" policy: retries belong to the analysis endpoint (PGZ-1
 import asyncio
 import json
 import time
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from functools import cache
 from typing import Any
@@ -26,6 +27,18 @@ from app.enum.document import ExpirySource
 from app.utils.logging_config import logger
 
 RETRYABLE_STATUS = frozenset({408, 429})
+COMMON_KEYS = ("detected_type", "issuing_state", "expiry_source", "fields", "unreadable_fields")
+
+
+@dataclass(frozen=True)
+class ParsedOutput:
+    """Model output after validation against the declared type."""
+
+    detected_type: str
+    issuing_state: str | None
+    expiry_source: ExpirySource
+    fields: dict[str, str | None]
+    unreadable_fields: list[str]
 
 
 def estimate_cost(input_tokens: int, output_tokens: int, today: date | None = None) -> float:
@@ -54,9 +67,13 @@ def build_response_schema(declared_type: str) -> types.Schema:
             "issuing_state": types.Schema(type=types.Type.STRING, nullable=True),
             "expiry_source": types.Schema(type=types.Type.STRING, enum=[e.value for e in ExpirySource]),
             "fields": fields,
+            "unreadable_fields": types.Schema(
+                type=types.Type.ARRAY,
+                items=types.Schema(type=types.Type.STRING, enum=names),
+            ),
         },
-        required=["detected_type", "issuing_state", "expiry_source", "fields"],
-        property_ordering=["detected_type", "issuing_state", "expiry_source", "fields"],
+        required=[*COMMON_KEYS],
+        property_ordering=[*COMMON_KEYS],
     )
 
 
@@ -67,10 +84,12 @@ def _clean(value: Any) -> str | None:
     return text or None
 
 
-def parse_output(text: str, declared_type: str) -> tuple[str, str | None, ExpirySource, dict[str, str | None]]:
-    """Parse the model output into ``(detected_type, issuing_state, expiry_source, fields)``.
+def parse_output(text: str, declared_type: str) -> ParsedOutput:
+    """Parse and validate the model output.
 
-    Missing fields become ``None`` and unknown keys are dropped. Raises ``ExtractionError`` when it is not a JSON object.
+    Missing fields become ``None`` and unknown keys are dropped. ``unreadable_fields`` keeps only known field names and
+    their values are forced to ``None`` (printed but not legible is never guessed). Raises ``ExtractionError`` when the
+    output is not a JSON object.
     """
     try:
         data = json.loads(text)
@@ -85,12 +104,23 @@ def parse_output(text: str, declared_type: str) -> tuple[str, str | None, Expiry
     raw_fields = raw_fields if isinstance(raw_fields, dict) else {}
     names = extraction_spec(declared_type)["fields"]
     fields = {name: _clean(raw_fields.get(name)) for name in names}
+    raw_unreadable = data.get("unreadable_fields")
+    raw_unreadable = raw_unreadable if isinstance(raw_unreadable, list) else []
+    unreadable = list(dict.fromkeys(name for name in raw_unreadable if name in names))
+    for name in unreadable:
+        fields[name] = None
 
     detected = _clean(data.get("detected_type"))
     detected = detected if detected in taxonomy() else UNKNOWN_TYPE
     source = _clean(data.get("expiry_source"))
     expiry_source = ExpirySource(source) if source in {e.value for e in ExpirySource} else ExpirySource.NONE
-    return detected, _clean(data.get("issuing_state")), expiry_source, fields
+    return ParsedOutput(
+        detected_type=detected,
+        issuing_state=_clean(data.get("issuing_state")),
+        expiry_source=expiry_source,
+        fields=fields,
+        unreadable_fields=unreadable,
+    )
 
 
 def _map_api_error(ex: genai_errors.APIError) -> Exception:
@@ -191,17 +221,18 @@ class GeminiExtractor:
             input_tokens, output_tokens = _usage(response)
             log.tokens(input_tokens, output_tokens)
             text = self._response_text(response)
-            detected, issuing_state, expiry_source, fields = parse_output(text, declared_type)
+            parsed = parse_output(text, declared_type)
         except (ExtractionError, ProviderUnavailableError) as ex:
             log.emit(started, ex)
             raise
 
-        duration_ms = log.emit(started, None, detected_type=detected)
+        duration_ms = log.emit(started, None, parsed)
         return ExtractionResult(
-            detected_type=detected,
-            issuing_state=issuing_state,
-            expiry_source=expiry_source,
-            fields=fields,
+            detected_type=parsed.detected_type,
+            issuing_state=parsed.issuing_state,
+            expiry_source=parsed.expiry_source,
+            fields=parsed.fields,
+            unreadable_fields=parsed.unreadable_fields,
             model_version=getattr(response, "model_version", None) or self.model,
             input_tokens=input_tokens,
             output_tokens=output_tokens,
@@ -241,14 +272,16 @@ class CallLog:
         self.entry["input_tokens"] = input_tokens
         self.entry["output_tokens"] = output_tokens
 
-    def emit(self, started: float, error: Exception | None, detected_type: str | None = None) -> int:
+    def emit(self, started: float, error: Exception | None, parsed: ParsedOutput | None = None) -> int:
         """Write the log line and return the call duration in milliseconds."""
         duration_ms = int((time.monotonic() - started) * 1000)
         self.entry["duration_ms"] = duration_ms
         self.entry["estimated_cost"] = estimate_cost(self.entry["input_tokens"], self.entry["output_tokens"])
         if error is None:
             self.entry["outcome"] = "ok"
-            self.entry["detected_type"] = detected_type
+            self.entry["detected_type"] = parsed.detected_type if parsed else None
+            # Names only (not personal data): printed fields the model could not read.
+            self.entry["unreadable_fields"] = parsed.unreadable_fields if parsed else []
             logger.info("document_extraction_call %s", json.dumps(self.entry))
         else:
             self.entry["outcome"] = (

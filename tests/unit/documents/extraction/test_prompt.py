@@ -34,6 +34,8 @@ class TestBuildPrompt:
         assert "'none'" in prompt
         assert "Never invent, compute or infer dates" in prompt
         assert "unknown" in prompt
+        assert "unreadable_fields" in prompt
+        assert "printed but not legible" in prompt
 
     def test_expiry_field_hint(self):
         assert "read from the field 'expiry_year'" in build_prompt("ine")

@@ -270,12 +270,14 @@ result = await get_document_extractor().extract(
     ExtractionOptions(analysis_id=str(analysis.id), attempt=1),
 )
 result.detected_type, result.issuing_state, result.expiry_source, result.fields  # raw values, strings or None
+result.unreadable_fields  # printed but not legible (their value is None)
 result.input_tokens, result.output_tokens, result.estimated_cost, result.duration_ms, result.pages_sent
 ```
 
 - `DocumentExtractor` (protocol, `base.py`) is what the pipeline and the tests depend on; `GeminiExtractor` (`gemini.py`) is the only implementation. It uses the async client (`client.aio`), so it never blocks the event loop.
 - Files are always sent **inline as bytes** (`Part.from_bytes`), never through the Files API (it keeps a copy at Google) and never as URLs. The quality gate (PGZ-165) returns normalized bytes, and PDFs are split before sending anyway.
 - Structured output: a response schema per type (every field a nullable string) plus `detected_type` (any `DocumentType` value or `unknown`), `issuing_state` and `expiry_source` (`printed` / `rule` / `none`). The prompt treats the declared type as a hint and tells the model never to invent dates.
+- Empty fields: a `None` value listed in `unreadable_fields` is printed but not legible (an extraction error); a `None` value not listed is not printed on the document (fine). The model cannot flag what it cannot see at all (a cut-off half), so validation (PGZ-170) must also treat an empty `expected_fields` entry as an error.
 - Errors (`errors.py`): `503`, `429`, other `5xx`, timeouts and connection errors → `ProviderUnavailableError` (retryable; the endpoint retries within `AI_RETRY_BUDGET_SECONDS`). Other `4xx`, blocked or truncated responses, invalid JSON and unreadable PDFs → `ExtractionError` (not retryable). **The service never sleeps or retries**; the SDK runs with its default "never retry" policy.
 - Call log: one line per provider call, `document_extraction_call {json}` with analysis id, declared and detected type, files, pages sent, model, attempt, duration, tokens, estimated cost and outcome. It never contains extracted values, file contents, URLs or the key.
 - Cost: `ExtractionConfig.GEMINI_PRICES` (USD per 1M tokens, output includes thinking tokens). Confirm them against Google's price list.
