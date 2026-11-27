@@ -257,6 +257,61 @@ Rules enforced by the promotion: analyzable types need `status = analyzed`; evid
 
 ---
 
+## 🔎 Document extraction service (Gemini)
+
+`app/documents/extraction/` reads the files of one analysis and returns the type it sees plus the raw fields of the declared type. It is used by the synchronous analysis endpoint (PGZ-124); validation and prefill (PGZ-169/170/171) work on its output.
+
+```python
+from app.documents.extraction import ExtractionFile, ExtractionOptions, get_document_extractor
+
+result = await get_document_extractor().extract(
+    [ExtractionFile(front_bytes, "image/jpeg"), ExtractionFile(back_bytes, "image/jpeg")],  # INE: two parts, one call
+    "ine",
+    ExtractionOptions(analysis_id=str(analysis.id), attempt=1),
+)
+result.detected_type, result.issuing_state, result.expiry_source, result.fields  # raw values, strings or None
+result.input_tokens, result.output_tokens, result.estimated_cost, result.duration_ms, result.pages_sent
+```
+
+- `DocumentExtractor` (protocol, `base.py`) is what the pipeline and the tests depend on; `GeminiExtractor` (`gemini.py`) is the only implementation. It uses the async client (`client.aio`), so it never blocks the event loop.
+- Files are always sent **inline as bytes** (`Part.from_bytes`), never through the Files API (it keeps a copy at Google) and never as URLs. The quality gate (PGZ-165) returns normalized bytes, and PDFs are split before sending anyway.
+- Structured output: a response schema per type (every field a nullable string) plus `detected_type` (any `DocumentType` value or `unknown`), `issuing_state` and `expiry_source` (`printed` / `rule` / `none`). The prompt treats the declared type as a hint and tells the model never to invent dates.
+- Errors (`errors.py`): `503`, `429`, other `5xx`, timeouts and connection errors → `ProviderUnavailableError` (retryable; the endpoint retries within `AI_RETRY_BUDGET_SECONDS`). Other `4xx`, blocked or truncated responses, invalid JSON and unreadable PDFs → `ExtractionError` (not retryable). **The service never sleeps or retries**; the SDK runs with its default "never retry" policy.
+- Call log: one line per provider call, `document_extraction_call {json}` with analysis id, declared and detected type, files, pages sent, model, attempt, duration, tokens, estimated cost and outcome. It never contains extracted values, file contents, URLs or the key.
+- Cost: `ExtractionConfig.GEMINI_PRICES` (USD per 1M tokens, output includes thinking tokens). Confirm them against Google's price list.
+- Inline limit: `ExtractionConfig.INLINE_REQUEST_MAX_BYTES` (50 MB, sum of the files after the page split) → `InputTooLargeError`.
+
+### Page strategy
+
+Set per type with `default_pages` in its JSON definition: `"all"` or `{"first": n, "last": m}`. Images always count as one page. PDFs are split with `pypdf`; a PDF that keeps every page is sent unchanged. There is no page-count limit on uploads, only the size limit.
+
+| Type | Pages sent |
+|---|---|
+| `amortization_table` | first page |
+| `credit_contract` | first 2 + last |
+| `insurance_policy` | first 2 |
+| `ine`, `circulation_card` | all |
+| any other type | first 3 (`ExtractionConfig.DEFAULT_PAGES`) |
+
+### Adding a new document type
+
+1. Add the value to `DocumentType` (`app/enum/document.py`). The column is a `String(40)`, so no migration is needed.
+2. Create `app/documents/doc_types/<type>.json`; the registry loads it at import time and fails if the name is not a `DocumentType`:
+   - `name`, `label_es`, `allowed_entity_types`, `has_expiry`, `ai_analyzable` (and `max_files` if it has several parts).
+   - For extraction: `document_label` (English description for the prompt), `expected_doc_type` (words of the printed title), `expiry_field` (field holding the expiry, or `null`), `default_pages` (optional), `fields` (name → generic description), `expected_fields` / `optional_fields`, `validators`, `acceptance` and `extra_instructions` (type-specific hints, kept generic).
+3. If it can be uploaded in a registration flow, add it to `_REGISTRATION_CANDIDATES` in `app/documents/registry.py`.
+4. Add it to the tests of `tests/unit/documents/` (registry, prompt, page strategy).
+
+The pre-commit JSON hook reformats the definition (2-space indent, non-ASCII escaped); that is expected.
+
+Opt-in integration test against the real API (skipped by default):
+
+```bash
+RUN_GEMINI_INTEGRATION=1 GEMINI_SAMPLE_TYPE=ine GEMINI_SAMPLE_FILES="front.jpg;back.jpg" pipenv run pytest tests/integration -q --no-cov
+```
+
+---
+
 ## 📂 Project Structure
 
 ```txt
