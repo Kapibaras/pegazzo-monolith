@@ -174,6 +174,25 @@ Broker down is **non-fatal** — the API keeps running, but the flag shows `unre
 
 ---
 
+## 🤖 AI provider configuration
+
+Document analysis calls Gemini **synchronously inside the API request** (no Celery). Settings live in the `AI` class of `app/config/variables.py` and are validated when the API starts (`AI.validate()`): the app refuses to boot if the key is missing outside `LOCAL` or the limits are inconsistent.
+
+| Variable | Purpose | Default | Secret | Where it is configured |
+|---|---|---|---|---|
+| `GOOGLE_API_KEY` | Google AI Studio API key for Gemini | — (required outside `LOCAL`) | **Yes** | Local `.env` · Dokploy dev/staging/prod → **API service** |
+| `GEMINI_MODEL` | Gemini model used for extraction | `gemini-3.6-flash` | No | Local `.env` · Dokploy → API service |
+| `GEMINI_TIMEOUT_SECONDS` | Timeout for a single provider call | `20` | No | Local `.env` · Dokploy → API service |
+| `AI_MAX_DOCUMENT_BYTES` | Max document size accepted for analysis; same as the frontend upload limit (provisional, final value in PGZ-187) | `15728640` (15 MB) | No | Local `.env` · Dokploy → API service |
+| `AI_RETRY_BUDGET_SECONDS` | Total retry budget within one request (must be `>= GEMINI_TIMEOUT_SECONDS`) | `20` | No | Local `.env` · Dokploy → API service |
+
+> [!IMPORTANT]
+> `GOOGLE_API_KEY` lives **only on the backend API service**. Do not add it to the Celery worker or beat, never log it, and never return it in `/health` or error responses.
+
+Timeout chain that must hold: `GEMINI_TIMEOUT_SECONDS` < `AI_RETRY_BUDGET_SECONDS` < HTTP worker timeout (gunicorn) < proxy timeout (Traefik/Dokploy).
+
+---
+
 ## 📄 Document analysis: temporary storage and promotion
 
 Registration documents are uploaded and analyzed **before** the car, driver or associate exists. They live in a temporary area until the person saves a section of the registration; only then do they become final `Document` rows.
