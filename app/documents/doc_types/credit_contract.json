@@ -1,9 +1,15 @@
 {
   "name": "credit_contract",
-  "label_es": "Cotización / contrato de crédito automotriz",
-  "allowed_entity_types": ["car"],
+  "label_es": "Cotizaci\u00f3n / contrato de cr\u00e9dito automotriz",
+  "allowed_entity_types": [
+    "car"
+  ],
   "has_expiry": true,
   "ai_analyzable": true,
+  "default_pages": {
+    "first": 2,
+    "last": 1
+  },
   "fields": {
     "financier": "financial institution name",
     "quote_date": "date the quote was calculated",
@@ -30,19 +36,41 @@
     "offer_name": "offer name"
   },
   "expected_fields": [
-    "financier", "quote_date", "customer_name", "vehicle_version",
-    "vehicle_year", "vehicle_price", "down_payment", "amount_financed",
-    "loan_term_months", "monthly_payment", "annual_rate", "cat_average",
-    "first_receipt_amount", "offer_name"
+    "financier",
+    "quote_date",
+    "customer_name",
+    "vehicle_version",
+    "vehicle_year",
+    "vehicle_price",
+    "down_payment",
+    "amount_financed",
+    "loan_term_months",
+    "monthly_payment",
+    "annual_rate",
+    "cat_average",
+    "first_receipt_amount",
+    "offer_name"
   ],
   "optional_fields": [
-    "down_payment_percent", "monthly_payment_from_month_13", "opening_fee",
-    "free_insurance_months", "insurer", "insurance_total_amount",
-    "insurance_term_months", "state", "municipality"
+    "down_payment_percent",
+    "monthly_payment_from_month_13",
+    "opening_fee",
+    "free_insurance_months",
+    "insurer",
+    "insurance_total_amount",
+    "insurance_term_months",
+    "state",
+    "municipality"
   ],
   "validators": {
-    "vehicle_year": { "regex": "(19|20)\\d{2}", "description": "año de 4 dígitos" },
-    "loan_term_months": { "regex": "\\d{1,3}", "description": "número entero de meses" }
+    "vehicle_year": {
+      "regex": "(19|20)\\d{2}",
+      "description": "a\u00f1o de 4 d\u00edgitos"
+    },
+    "loan_term_months": {
+      "regex": "\\d{1,3}",
+      "description": "n\u00famero entero de meses"
+    }
   },
   "acceptance": {
     "min_expected_filled": 1.0,

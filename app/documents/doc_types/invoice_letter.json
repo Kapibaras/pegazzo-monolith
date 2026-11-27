@@ -1,0 +1,62 @@
+{
+  "name": "invoice_letter",
+  "label_es": "Carta factura",
+  "allowed_entity_types": [
+    "car"
+  ],
+  "has_expiry": false,
+  "ai_analyzable": true,
+  "document_label": "Mexican invoice letter from an auto financier (carta factura)",
+  "expected_doc_type": "carta factura",
+  "expiry_field": null,
+  "fields": {
+    "document_type": "type of document",
+    "financier": "financial institution that issues the letter",
+    "contract_number": "credit / contract number (n\u00famero de contrato o cr\u00e9dito)",
+    "vin": "serial number / VIN (n\u00famero de serie)",
+    "customer_name": "name of the customer (acreditado / cliente)",
+    "letter_date": "date of the letter, as printed",
+    "amount": "amount stated in the letter (valor / monto), if any",
+    "brand": "vehicle make (marca)",
+    "version": "line / type / version of the vehicle as printed",
+    "model_year": "model year (modelo)",
+    "engine_number": "engine number (motor)",
+    "invoice_number": "number of the invoice the letter refers to",
+    "dealer_name": "dealership that sold the vehicle",
+    "validity": "validity of the letter (vigencia) exactly as printed"
+  },
+  "expected_fields": [
+    "document_type",
+    "financier",
+    "contract_number",
+    "vin",
+    "customer_name",
+    "letter_date"
+  ],
+  "optional_fields": [
+    "amount",
+    "brand",
+    "version",
+    "model_year",
+    "engine_number",
+    "invoice_number",
+    "dealer_name",
+    "validity"
+  ],
+  "validators": {
+    "vin": {
+      "regex": "[A-HJ-NPR-Z0-9]{17}",
+      "description": "17 caracteres alfanum\u00e9ricos, sin I, O ni Q"
+    },
+    "model_year": {
+      "regex": "(19|20)\\d{2}",
+      "description": "a\u00f1o de 4 d\u00edgitos"
+    }
+  },
+  "acceptance": {
+    "min_expected_filled": 1.0,
+    "min_accuracy": 0.9,
+    "max_validation_failures": 0
+  },
+  "extra_instructions": "The letter is issued by the financier while the invoice is held as guarantee of the credit; it lets the customer drive the car. letter_date is the date the letter was signed, as printed. Copy the VIN character by character from the alphanumeric value, not the spelled-out one. Return money amounts as numbers with decimals, no currency symbols or commas. If the letter prints a validity (vigencia), copy it as printed; never compute an end date."
+}
