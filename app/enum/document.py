@@ -63,6 +63,14 @@ class DocumentErrorReason(StrEnum):
     WRONG_DOCUMENT = "wrong_document"
 
 
+class ExpirySource(StrEnum):
+    """Where the expiry of an extracted document comes from (returned by the extraction service, PGZ-164)."""
+
+    PRINTED = "printed"  # the document prints an expiry / validity end date
+    RULE = "rule"  # nothing printed; the expiry follows from a rule applied later (PGZ-171)
+    NONE = "none"  # the document does not expire
+
+
 class AnalysisStatus(StrEnum):
     """Lifecycle of a temporary ``document_analysis`` (not to be confused with ``DocumentAnalysisStatus``).
 
