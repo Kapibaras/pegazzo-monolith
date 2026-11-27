@@ -1,10 +1,14 @@
 {
   "name": "amortization_table",
-  "label_es": "Tabla de amortización",
-  "allowed_entity_types": ["car"],
+  "label_es": "Tabla de amortizaci\u00f3n",
+  "allowed_entity_types": [
+    "car"
+  ],
   "has_expiry": false,
   "ai_analyzable": true,
-  "default_pages": {"first": 1},
+  "default_pages": {
+    "first": 1
+  },
   "fields": {},
   "expected_fields": [],
   "optional_fields": [],

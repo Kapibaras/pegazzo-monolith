@@ -1,7 +1,9 @@
 {
   "name": "invoice_letter",
   "label_es": "Carta factura",
-  "allowed_entity_types": ["car"],
+  "allowed_entity_types": [
+    "car"
+  ],
   "has_expiry": false,
   "ai_analyzable": true,
   "document_label": "Mexican invoice letter from an auto financier (carta factura)",
@@ -10,8 +12,8 @@
   "fields": {
     "document_type": "type of document",
     "financier": "financial institution that issues the letter",
-    "contract_number": "credit / contract number (número de contrato o crédito)",
-    "vin": "serial number / VIN (número de serie)",
+    "contract_number": "credit / contract number (n\u00famero de contrato o cr\u00e9dito)",
+    "vin": "serial number / VIN (n\u00famero de serie)",
     "customer_name": "name of the customer (acreditado / cliente)",
     "letter_date": "date of the letter, as printed",
     "amount": "amount stated in the letter (valor / monto), if any",
@@ -24,14 +26,32 @@
     "validity": "validity of the letter (vigencia) exactly as printed"
   },
   "expected_fields": [
-    "document_type", "financier", "contract_number", "vin", "customer_name", "letter_date"
+    "document_type",
+    "financier",
+    "contract_number",
+    "vin",
+    "customer_name",
+    "letter_date"
   ],
   "optional_fields": [
-    "amount", "brand", "version", "model_year", "engine_number", "invoice_number", "dealer_name", "validity"
+    "amount",
+    "brand",
+    "version",
+    "model_year",
+    "engine_number",
+    "invoice_number",
+    "dealer_name",
+    "validity"
   ],
   "validators": {
-    "vin": { "regex": "[A-HJ-NPR-Z0-9]{17}", "description": "17 caracteres alfanuméricos, sin I, O ni Q" },
-    "model_year": { "regex": "(19|20)\\d{2}", "description": "año de 4 dígitos" }
+    "vin": {
+      "regex": "[A-HJ-NPR-Z0-9]{17}",
+      "description": "17 caracteres alfanum\u00e9ricos, sin I, O ni Q"
+    },
+    "model_year": {
+      "regex": "(19|20)\\d{2}",
+      "description": "a\u00f1o de 4 d\u00edgitos"
+    }
   },
   "acceptance": {
     "min_expected_filled": 1.0,

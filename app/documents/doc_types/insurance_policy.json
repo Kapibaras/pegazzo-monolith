@@ -1,24 +1,28 @@
 {
   "name": "insurance_policy",
-  "label_es": "Póliza de seguro",
-  "allowed_entity_types": ["car"],
+  "label_es": "P\u00f3liza de seguro",
+  "allowed_entity_types": [
+    "car"
+  ],
   "has_expiry": true,
   "ai_analyzable": true,
-  "document_label": "Mexican auto insurance policy cover sheet (carátula de póliza de seguro de automóvil)",
+  "document_label": "Mexican auto insurance policy cover sheet (car\u00e1tula de p\u00f3liza de seguro de autom\u00f3vil)",
   "expected_doc_type": "poliza",
   "expiry_field": "coverage_end",
-  "default_pages": {"first": 2},
+  "default_pages": {
+    "first": 2
+  },
   "fields": {
     "document_type": "type of document",
     "insurer": "insurance company name",
-    "policy_number": "policy number (póliza)",
+    "policy_number": "policy number (p\u00f3liza)",
     "inciso": "inciso number",
     "endorsement": "endorsement number (endoso)",
     "insured_number": "insured number (No. de asegurado)",
     "package": "package (paquete), e.g. AMPLIA",
     "coverage_start": "start date of the policy validity",
     "coverage_end": "end date of the policy validity",
-    "issue_date": "issue date (fecha de emisión)",
+    "issue_date": "issue date (fecha de emisi\u00f3n)",
     "insured_name": "name of the insured (Asegurado)",
     "contractor": "owner / contractor line (Propietario/Contratante)",
     "rfc": "RFC of the insured",
@@ -39,35 +43,80 @@
     "use": "use (uso), e.g. PRIVADO",
     "vehicle_key": "vehicle key (clave vehicular)",
     "payment_form": "payment form (forma de pago)",
-    "damage_sum_insured": "sum insured for DAÑOS MATERIALES",
-    "damage_deductible": "deductible for DAÑOS MATERIALES",
+    "damage_sum_insured": "sum insured for DA\u00d1OS MATERIALES",
+    "damage_deductible": "deductible for DA\u00d1OS MATERIALES",
     "theft_sum_insured": "sum insured for ROBO TOTAL",
     "theft_deductible": "deductible for ROBO TOTAL",
     "civil_liability_sum": "sum insured for RESPONSABILIDAD CIVIL",
     "net_premium": "prima neta",
-    "policy_fee": "gastos de expedición",
+    "policy_fee": "gastos de expedici\u00f3n",
     "iva": "I.V.A. amount",
     "total_premium": "prima total"
   },
   "expected_fields": [
-    "document_type", "insurer", "policy_number", "coverage_start", "coverage_end",
-    "issue_date", "insured_name", "rfc", "brand", "model_year", "vin",
-    "engine_number", "total_premium"
+    "document_type",
+    "insurer",
+    "policy_number",
+    "coverage_start",
+    "coverage_end",
+    "issue_date",
+    "insured_name",
+    "rfc",
+    "brand",
+    "model_year",
+    "vin",
+    "engine_number",
+    "total_premium"
   ],
   "optional_fields": [
-    "inciso", "endorsement", "insured_number", "package", "contractor",
-    "street", "colony", "municipality", "state", "postal_code", "phone",
-    "vehicle_description", "plates", "capacity", "service", "use",
-    "vehicle_key", "payment_form", "damage_sum_insured", "damage_deductible",
-    "theft_sum_insured", "theft_deductible", "civil_liability_sum",
-    "net_premium", "policy_fee", "iva"
+    "inciso",
+    "endorsement",
+    "insured_number",
+    "package",
+    "contractor",
+    "street",
+    "colony",
+    "municipality",
+    "state",
+    "postal_code",
+    "phone",
+    "vehicle_description",
+    "plates",
+    "capacity",
+    "service",
+    "use",
+    "vehicle_key",
+    "payment_form",
+    "damage_sum_insured",
+    "damage_deductible",
+    "theft_sum_insured",
+    "theft_deductible",
+    "civil_liability_sum",
+    "net_premium",
+    "policy_fee",
+    "iva"
   ],
   "validators": {
-    "policy_number": { "regex": "[A-Z0-9]{8,14}", "description": "8 a 14 caracteres alfanuméricos" },
-    "rfc": { "regex": "[A-ZÑ&]{3,4}\\d{6}[A-Z0-9]{3}", "description": "RFC de 12 o 13 caracteres" },
-    "vin": { "regex": "[A-HJ-NPR-Z0-9]{17}", "description": "17 caracteres alfanuméricos, sin I, O ni Q" },
-    "postal_code": { "regex": "\\d{5}", "description": "5 dígitos" },
-    "model_year": { "regex": "(19|20)\\d{2}", "description": "año de 4 dígitos" }
+    "policy_number": {
+      "regex": "[A-Z0-9]{8,14}",
+      "description": "8 a 14 caracteres alfanum\u00e9ricos"
+    },
+    "rfc": {
+      "regex": "[A-Z\u00d1&]{3,4}\\d{6}[A-Z0-9]{3}",
+      "description": "RFC de 12 o 13 caracteres"
+    },
+    "vin": {
+      "regex": "[A-HJ-NPR-Z0-9]{17}",
+      "description": "17 caracteres alfanum\u00e9ricos, sin I, O ni Q"
+    },
+    "postal_code": {
+      "regex": "\\d{5}",
+      "description": "5 d\u00edgitos"
+    },
+    "model_year": {
+      "regex": "(19|20)\\d{2}",
+      "description": "a\u00f1o de 4 d\u00edgitos"
+    }
   },
   "acceptance": {
     "min_expected_filled": 1.0,

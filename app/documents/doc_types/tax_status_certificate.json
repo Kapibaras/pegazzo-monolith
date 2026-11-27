@@ -1,45 +1,68 @@
 {
   "name": "tax_status_certificate",
-  "label_es": "Constancia de Situación Fiscal",
-  "allowed_entity_types": ["associate"],
+  "label_es": "Constancia de Situaci\u00f3n Fiscal",
+  "allowed_entity_types": [
+    "associate"
+  ],
   "has_expiry": false,
   "ai_analyzable": true,
-  "document_label": "Mexican tax status certificate from the SAT (Constancia de Situación Fiscal)",
+  "document_label": "Mexican tax status certificate from the SAT (Constancia de Situaci\u00f3n Fiscal)",
   "expected_doc_type": "constancia de situacion fiscal",
   "expiry_field": null,
   "fields": {
     "document_type": "type of document",
     "rfc": "RFC",
     "curp": "CURP, empty for companies",
-    "full_name": "name of the taxpayer (nombre, denominación o razón social) as printed",
-    "tax_regime": "tax regime (régimen) as printed; if several, the first one",
+    "full_name": "name of the taxpayer (nombre, denominaci\u00f3n o raz\u00f3n social) as printed",
+    "tax_regime": "tax regime (r\u00e9gimen) as printed; if several, the first one",
     "street": "street of the fiscal address (nombre de vialidad)",
     "exterior_number": "exterior number",
     "interior_number": "interior number, empty if blank",
     "colony": "colony (nombre de la colonia)",
-    "municipality": "municipality (municipio o demarcación territorial)",
+    "municipality": "municipality (municipio o demarcaci\u00f3n territorial)",
     "state": "state (entidad federativa)",
-    "postal_code": "5-digit postal code (código postal)",
-    "issue_date": "issue date (lugar y fecha de emisión), date only as printed",
+    "postal_code": "5-digit postal code (c\u00f3digo postal)",
+    "issue_date": "issue date (lugar y fecha de emisi\u00f3n), date only as printed",
     "id_cif": "idCIF number",
-    "taxpayer_status": "status in the registry (estatus en el padrón), e.g. ACTIVO"
+    "taxpayer_status": "status in the registry (estatus en el padr\u00f3n), e.g. ACTIVO"
   },
   "expected_fields": [
-    "document_type", "rfc", "full_name", "tax_regime", "postal_code", "issue_date"
+    "document_type",
+    "rfc",
+    "full_name",
+    "tax_regime",
+    "postal_code",
+    "issue_date"
   ],
   "optional_fields": [
-    "curp", "street", "exterior_number", "interior_number", "colony", "municipality", "state", "id_cif",
+    "curp",
+    "street",
+    "exterior_number",
+    "interior_number",
+    "colony",
+    "municipality",
+    "state",
+    "id_cif",
     "taxpayer_status"
   ],
   "validators": {
-    "rfc": { "regex": "[A-ZÑ&]{3,4}\\d{6}[A-Z0-9]{3}", "description": "RFC de 12 o 13 caracteres" },
-    "curp": { "regex": "[A-Z]{4}\\d{6}[HMX][A-Z]{2}[A-Z]{3}[A-Z0-9]\\d", "description": "CURP de 18 caracteres" },
-    "postal_code": { "regex": "\\d{5}", "description": "5 dígitos" }
+    "rfc": {
+      "regex": "[A-Z\u00d1&]{3,4}\\d{6}[A-Z0-9]{3}",
+      "description": "RFC de 12 o 13 caracteres"
+    },
+    "curp": {
+      "regex": "[A-Z]{4}\\d{6}[HMX][A-Z]{2}[A-Z]{3}[A-Z0-9]\\d",
+      "description": "CURP de 18 caracteres"
+    },
+    "postal_code": {
+      "regex": "\\d{5}",
+      "description": "5 d\u00edgitos"
+    }
   },
   "acceptance": {
     "min_expected_filled": 1.0,
     "min_accuracy": 0.9,
     "max_validation_failures": 0
   },
-  "extra_instructions": "The certificate is issued by the SAT. The first page has the identification (RFC, CURP, name, idCIF) and the fiscal address; the regimes and obligations follow. issue_date is the date in 'Lugar y Fecha de Emisión', without the place. Copy RFC and CURP character by character. Do not take values from the QR code or the barcode."
+  "extra_instructions": "The certificate is issued by the SAT. The first page has the identification (RFC, CURP, name, idCIF) and the fiscal address; the regimes and obligations follow. issue_date is the date in 'Lugar y Fecha de Emisi\u00f3n', without the place. Copy RFC and CURP character by character. Do not take values from the QR code or the barcode."
 }
