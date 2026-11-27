@@ -23,6 +23,7 @@ boto3 = "*"
 celery = {version = "*", extras = ["redis"]}
 psycopg2-binary = "*"
 google-genai = "==2.24.0"
+pypdf = "==7.2.0"
 
 [dev-packages]
 pytest = "*"

@@ -4,6 +4,7 @@
   "allowed_entity_types": ["car"],
   "has_expiry": false,
   "ai_analyzable": true,
+  "default_pages": {"first": 1},
   "fields": {},
   "expected_fields": [],
   "optional_fields": [],

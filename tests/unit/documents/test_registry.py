@@ -1,3 +1,5 @@
+import pytest
+
 from app.documents.registry import get_all_specs, get_analyzable_types, get_doc_type_spec, is_valid_for_entity
 from app.enum.document import DocumentType
 
@@ -82,6 +84,8 @@ class TestRegistrationHelpers:
             "ine",
             "driver_license",
             "proof_of_address",
+            "invoice_letter",
+            "tax_status_certificate",
         }
         assert expected.issubset(REGISTRATION_DOCUMENT_TYPES)
 
@@ -113,3 +117,47 @@ class TestRegistrationHelpers:
         assert is_ai_analyzable("ine") is True
         assert is_ai_analyzable("plates") is False
         assert is_ai_analyzable("unknown_type") is False
+
+
+class TestExtractionDefinitions:
+    """Types with fields carry what the extraction prompt needs (PGZ-164)."""
+
+    @pytest.mark.parametrize(
+        "name",
+        ["ine", "circulation_card", "insurance_policy", "invoice", "invoice_letter", "tax_status_certificate"],
+    )
+    def test_ported_types_have_extraction_keys(self, name):
+        spec = get_doc_type_spec(name)
+        assert spec["fields"], f"{name} has no fields"
+        assert spec.get("document_label"), f"{name} missing document_label"
+        assert spec.get("expected_doc_type"), f"{name} missing expected_doc_type"
+        assert "expiry_field" in spec, f"{name} missing expiry_field"
+
+    def test_expiry_field_is_a_defined_field(self):
+        for name, spec in get_all_specs().items():
+            expiry_field = spec.get("expiry_field")
+            if expiry_field is not None:
+                assert expiry_field in spec["fields"], f"{name}: expiry_field '{expiry_field}' is not in fields"
+
+    def test_expected_and_optional_fields_are_defined(self):
+        for name, spec in get_all_specs().items():
+            listed = set(spec.get("expected_fields", [])) | set(spec.get("optional_fields", []))
+            assert listed.issubset(spec.get("fields", {})), f"{name} lists undefined fields"
+            assert not set(spec.get("expected_fields", [])) & set(spec.get("optional_fields", [])), name
+
+    def test_new_flow_types(self):
+        assert is_valid_for_entity("invoice_letter", "car") is True
+        assert is_valid_for_entity("tax_status_certificate", "associate") is True
+        assert is_valid_for_entity("tax_status_certificate", "car") is False
+        assert {"financier", "contract_number", "vin", "customer_name", "letter_date", "amount"}.issubset(
+            get_doc_type_spec("invoice_letter")["fields"],
+        )
+        assert {"rfc", "curp", "full_name", "tax_regime", "postal_code", "issue_date"}.issubset(
+            get_doc_type_spec("tax_status_certificate")["fields"],
+        )
+
+    def test_invoice_amount_is_optional_and_extracts_color(self):
+        spec = get_doc_type_spec("invoice")
+        assert "total" in spec["optional_fields"]
+        assert "total" not in spec["expected_fields"]
+        assert "color" in spec["fields"]

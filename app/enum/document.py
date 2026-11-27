@@ -7,6 +7,7 @@ class DocumentType(StrEnum):
     CIRCULATION_CARD = "circulation_card"
     INSURANCE_POLICY = "insurance_policy"
     INVOICE = "invoice"
+    INVOICE_LETTER = "invoice_letter"
     CREDIT_CONTRACT = "credit_contract"
     AMORTIZATION_TABLE = "amortization_table"
     PLATES = "plates"
@@ -15,6 +16,7 @@ class DocumentType(StrEnum):
     CONTRACT = "contract"
     PROMISSORY_NOTE = "promissory_note"
     PROOF_OF_ADDRESS = "proof_of_address"
+    TAX_STATUS_CERTIFICATE = "tax_status_certificate"
     UNKNOWN = "unknown"
 
 

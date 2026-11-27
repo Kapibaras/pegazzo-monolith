@@ -4,6 +4,9 @@
   "allowed_entity_types": ["car"],
   "has_expiry": false,
   "ai_analyzable": true,
+  "document_label": "Mexican vehicle sales invoice (factura CFDI de agencia)",
+  "expected_doc_type": "factura",
+  "expiry_field": null,
   "fields": {
     "document_type": "type of document",
     "invoice_number": "invoice number (Factura N°)",
@@ -19,18 +22,18 @@
     "vin": "serial number / VIN (número de serie)",
     "engine_number": "engine number (motor)",
     "vehicle_key": "clave vehicular",
-    "color": "exterior color",
+    "color": "exterior color as printed by the dealership (color de agencia)",
     "subtotal": "subtotal amount",
     "iva": "IVA amount",
-    "total": "total amount"
+    "total": "total amount; empty when the invoice has no value"
   },
   "expected_fields": [
     "document_type", "invoice_number", "folio_fiscal", "issue_date",
     "issuer_name", "customer_name", "brand", "model_year", "vin",
-    "engine_number", "total"
+    "engine_number"
   ],
   "optional_fields": [
-    "issuer_rfc", "customer_rfc", "version", "vehicle_key", "color",
+    "issuer_rfc", "customer_rfc", "version", "vehicle_key", "color", "total",
     "subtotal", "iva"
   ],
   "validators": {
@@ -45,5 +48,5 @@
     "min_accuracy": 0.9,
     "max_validation_failures": 0
   },
-  "extra_instructions": "The scan is a printed CFDI. Use the alphanumeric VIN, not the spelled-out one."
+  "extra_instructions": "The scan is a printed representation of a CFDI, sometimes with a watermark or stamps over the text. The serial number may also be spelled out in words; use the printed alphanumeric one. The issuer is the dealership (top of the page); the customer is the buyer. issue_date is the issue date only (fecha de emisión / expedición), as printed, without the time. folio_fiscal is the UUID. Return money amounts as numbers with decimals, no currency symbols or commas. Invoices of financed cars can be issued without value (factura sin valor): then leave subtotal, iva and total empty, do not use any other amount. If there are several pages, read the data from the page with the vehicle and the totals. The PDF may also include a 'carta factura' letter (a separate page with a different date and the same vehicle data): use the CFDI page for issue_date, folio_fiscal, invoice_number and the amounts, and ignore the dates of the letter."
 }

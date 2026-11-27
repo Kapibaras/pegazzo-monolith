@@ -5,7 +5,7 @@ class TestDocumentEnums:
     """Tests for document-related enums."""
 
     def test_document_type_member_count(self):
-        assert len(DocumentType) == 12
+        assert len(DocumentType) == 14
 
     def test_document_category_member_count(self):
         assert len(DocumentCategory) == 4
@@ -28,6 +28,8 @@ class TestDocumentEnums:
         assert DocumentType.AMORTIZATION_TABLE == "amortization_table"
         assert DocumentType.UNKNOWN == "unknown"
         assert DocumentType.PROMISSORY_NOTE == "promissory_note"
+        assert DocumentType.INVOICE_LETTER == "invoice_letter"
+        assert DocumentType.TAX_STATUS_CERTIFICATE == "tax_status_certificate"
 
     def test_document_category_values(self):
         assert DocumentCategory.PEGAZZO == "PEGAZZO"

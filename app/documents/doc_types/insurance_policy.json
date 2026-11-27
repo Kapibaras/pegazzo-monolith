@@ -4,6 +4,10 @@
   "allowed_entity_types": ["car"],
   "has_expiry": true,
   "ai_analyzable": true,
+  "document_label": "Mexican auto insurance policy cover sheet (carátula de póliza de seguro de automóvil)",
+  "expected_doc_type": "poliza",
+  "expiry_field": "coverage_end",
+  "default_pages": {"first": 2},
   "fields": {
     "document_type": "type of document",
     "insurer": "insurance company name",
@@ -70,5 +74,5 @@
     "min_accuracy": 0.9,
     "max_validation_failures": 0
   },
-  "extra_instructions": "Extract data from the main policy cover sheet. Ignore the USA/Canada certificate and legal text."
+  "extra_instructions": "The PDF may contain several pages (claims card, the policy cover sheet, a tourist liability certificate for another country, legal text). Extract the data from the main policy cover sheet only. Return dates exactly as printed, without the time of day. Return money amounts as numbers with decimals, without currency symbols or thousands separators. Insurers use different labels: a client number is not the policy number; net premium, issuance fees, I.V.A. and total price map to net_premium, policy_fee, iva and total_premium. If the cover sheet has no package, inciso, endorsement number or vehicle key, leave those fields empty."
 }

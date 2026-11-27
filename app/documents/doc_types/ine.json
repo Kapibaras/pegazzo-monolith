@@ -4,6 +4,10 @@
   "allowed_entity_types": ["driver", "guarantor"],
   "has_expiry": true,
   "ai_analyzable": true,
+  "document_label": "Mexican voter ID card (INE / IFE, credencial para votar)",
+  "expected_doc_type": "credencial para votar",
+  "expiry_field": "expiry_year",
+  "default_pages": "all",
   "max_files": 2,
   "fields": {
     "document_type": "type of document exactly as printed on the card title",
@@ -45,5 +49,5 @@
     "min_accuracy": 0.9,
     "max_validation_failures": 0
   },
-  "extra_instructions": "The scan may contain the front and the back of the card on the same page. Copy values exactly as printed."
+  "extra_instructions": "The front and the back may come as two files, or both sides may appear on the same page, small and slightly tilted; read both sides. Copy values exactly as printed. curp and clave_elector must be read character by character (clave_elector is 18 characters: 6 letters, 8 digits, H or M, 3 digits). full_name is the printed name lines joined in order (paternal surname, maternal surname, given names). address is only the street line; colony is the colony line without the postal code; postal_code is the 5-digit code printed on that line; city is the municipality / city before the state; state is the state exactly as printed. issue_year is the four-digit AÑO DE REGISTRO only (ignore any two-digit code after it). expiry_year is the LAST year of VIGENCIA (e.g. 2026 - 2036 -> 2036). id_number is the first line of the machine-readable zone on the back, starting with IDMEX, without the characters after '<<'. If the back is not visible leave id_number empty."
 }

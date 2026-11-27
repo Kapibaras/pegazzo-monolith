@@ -4,6 +4,7 @@
   "allowed_entity_types": ["car"],
   "has_expiry": true,
   "ai_analyzable": true,
+  "default_pages": {"first": 2, "last": 1},
   "fields": {
     "financier": "financial institution name",
     "quote_date": "date the quote was calculated",

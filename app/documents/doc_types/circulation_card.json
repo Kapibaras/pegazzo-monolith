@@ -4,6 +4,10 @@
   "allowed_entity_types": ["car"],
   "has_expiry": true,
   "ai_analyzable": true,
+  "document_label": "Mexican vehicle circulation card (tarjeta de circulación)",
+  "expected_doc_type": "tarjeta de circulacion",
+  "expiry_field": "validity",
+  "default_pages": "all",
   "fields": {
     "document_type": "type of document",
     "owner_name": "full name of the owner (nombre del propietario) exactly as printed",
@@ -48,5 +52,5 @@
     "min_accuracy": 0.9,
     "max_validation_failures": 0
   },
-  "extra_instructions": "The card may be rotated 90 degrees: read every digit carefully, character by character, and do not drop or merge digits."
+  "extra_instructions": "The card may be rotated 90 degrees: read every digit carefully, character by character, and do not drop or merge digits. Layouts change by state. registration_number is ONLY the 'número de registro de la entidad' printed on some state cards; if the card prints a 'No. Tarjeta' instead, leave registration_number empty and put that number in card_number. Never copy one into the other. validity must be copied exactly as printed (it can be a word such as CONDICIONADA or a date); do not substitute the issue date. On cards that print make and line together in one 'Vehículo' field, split them: brand = manufacturer, model_line = the rest."
 }
